@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 curl = "0.4.45"
+url = "2.5.0"
