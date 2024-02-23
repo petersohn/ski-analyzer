@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::error::Error;
 use std::io::{stdout, Read, Write};
 
@@ -6,12 +7,21 @@ use curl::easy::Easy;
 use url::form_urlencoded;
 
 #[derive(Deserialize, Debug)]
-struct Element {
-    r#type: String,
-    id: i64,
-    lat: f64,
-    lon: f64,
-    tags: Option<serde_json::Map<String, serde_json::Value>>,
+#[serde(tag = "type", rename_all = "lowercase")]
+enum Element {
+    Node {
+        id: u64,
+        lat: f64,
+        lon: f64,
+        #[serde(default)]
+        tags: HashMap<String, String>,
+    },
+    Way {
+        id: u64,
+        nodes: Vec<u64>,
+        #[serde(default)]
+        tags: HashMap<String, String>,
+    },
 }
 
 #[derive(Deserialize, Debug)]
