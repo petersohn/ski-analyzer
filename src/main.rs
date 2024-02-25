@@ -8,20 +8,18 @@ use url::form_urlencoded;
 
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "lowercase")]
-enum Element {
-    Node {
-        id: u64,
-        lat: f64,
-        lon: f64,
-        #[serde(default)]
-        tags: HashMap<String, String>,
-    },
-    Way {
-        id: u64,
-        nodes: Vec<u64>,
-        #[serde(default)]
-        tags: HashMap<String, String>,
-    },
+enum ElementType {
+    Node { lat: f64, lon: f64 },
+    Way { nodes: Vec<u64> },
+}
+
+#[derive(Deserialize, Debug)]
+struct Element {
+    id: u64,
+    #[serde(default)]
+    tags: HashMap<String, String>,
+    #[serde(flatten)]
+    type_: ElementType,
 }
 
 #[derive(Deserialize, Debug)]
