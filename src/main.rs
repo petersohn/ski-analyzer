@@ -1,9 +1,10 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::{stdout, Read, Write};
 
 use curl::easy::Easy;
+use geo::{LineString, Polygon};
 use url::form_urlencoded;
 
 #[derive(Deserialize, Debug)]
@@ -26,6 +27,23 @@ struct Element {
 struct Document {
     elements: Vec<Element>,
 }
+
+// #[derive(Serialize, Deserialize, Debug)]
+// struct Lift {
+//     name: String,
+//     line: LineString,
+//     bottom_altitude: f64,
+//     top_altitude: f64,
+// }
+//
+// struct SkiArea {
+//     lifts: Vec<Lift>,
+// }
+//
+// impl From<Document> for SkiArea {
+//     fn from(document: Document) -> Self {
+//     }
+// }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut input: String =
