@@ -7,25 +7,63 @@ use curl::easy::Easy;
 use geo::{LineString, Polygon};
 use url::form_urlencoded;
 
+#[derive(Serialize, Deserialize, Debug)]
+struct Node {
+    lat: f64,
+    lon: f64,
+    #[serde(default)]
+    tags: HashMap<String, String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Way {
+    nodes: Vec<u64>,
+    #[serde(default)]
+    tags: HashMap<String, String>,
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "lowercase")]
 enum ElementType {
-    Node { lat: f64, lon: f64 },
-    Way { nodes: Vec<u64> },
+    Node(Node),
+    Way(Way),
 }
 
 #[derive(Deserialize, Debug)]
 struct Element {
     id: u64,
-    #[serde(default)]
-    tags: HashMap<String, String>,
     #[serde(flatten)]
     type_: ElementType,
 }
 
 #[derive(Deserialize, Debug)]
-struct Document {
+struct DocumentBase {
     elements: Vec<Element>,
+}
+
+#[derive(Serialize, Debug)]
+struct Document {
+    nodes: HashMap<u64, Node>,
+    ways: HashMap<u64, Way>,
+}
+
+impl From<DocumentBase> for Document {
+    fn from(input: DocumentBase) -> Document {
+        let mut result = Document{ nodes : HashMap::new(), ways : HashMap::new() };
+        for element in input.elements.into_iter() {
+            match element.type_ {
+                ElementType::Node(node) => {
+                    result.nodes.insert(element.id, node);
+                    ()
+                }
+                ElementType::Way(way) => {
+                    result.ways.insert(element.id, way);
+                    ()
+                }
+            }
+        }
+        result
+    }
 }
 
 // #[derive(Serialize, Deserialize, Debug)]
@@ -66,8 +104,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         })?;
         transfer.perform()?;
     }
-    let doc: Document = serde_json::from_slice(&*json)?;
-    println!("{:?}", doc);
+    let doc_: DocumentBase = serde_json::from_slice(&*json)?;
+    let doc = Document::from(doc_);
+    serde_json::to_writer(stdout(), &doc)?;
 
     Ok(())
 }
