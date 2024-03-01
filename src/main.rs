@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::{stdout, Read, Write};
@@ -7,7 +7,7 @@ use curl::easy::Easy;
 use geo::{LineString, Polygon};
 use url::form_urlencoded;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 struct Node {
     lat: f64,
     lon: f64,
@@ -15,7 +15,7 @@ struct Node {
     tags: HashMap<String, String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 struct Way {
     nodes: Vec<u64>,
     #[serde(default)]
@@ -36,34 +36,57 @@ struct Element {
     type_: ElementType,
 }
 
-#[derive(Deserialize, Debug)]
-struct DocumentBase {
-    elements: Vec<Element>,
-}
-
-#[derive(Serialize, Debug)]
-struct Document {
+#[derive(Debug)]
+struct Elements {
     nodes: HashMap<u64, Node>,
     ways: HashMap<u64, Way>,
 }
 
-impl From<DocumentBase> for Document {
-    fn from(input: DocumentBase) -> Document {
-        let mut result = Document{ nodes : HashMap::new(), ways : HashMap::new() };
-        for element in input.elements.into_iter() {
-            match element.type_ {
-                ElementType::Node(node) => {
-                    result.nodes.insert(element.id, node);
-                    ()
+impl<'de> Deserialize<'de> for Elements {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct ElementsVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for ElementsVisitor {
+            type Value = Elements;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(formatter, "a list of nodes and ways")
+            }
+
+            fn visit_seq<S>(self, mut seq: S) -> Result<Self::Value, S::Error>
+            where
+                S: serde::de::SeqAccess<'de>,
+            {
+                let mut elements = Elements {
+                    nodes: HashMap::new(),
+                    ways: HashMap::new(),
+                };
+
+                while let Some(element) = seq.next_element::<Element>()? {
+                    match element.type_ {
+                        ElementType::Node(node) => {
+                            elements.nodes.insert(element.id, node);
+                        }
+                        ElementType::Way(way) => {
+                            elements.ways.insert(element.id, way);
+                        }
+                    }
                 }
-                ElementType::Way(way) => {
-                    result.ways.insert(element.id, way);
-                    ()
-                }
+
+                Ok(elements)
             }
         }
-        result
+
+        deserializer.deserialize_seq(ElementsVisitor)
     }
+}
+
+#[derive(Deserialize, Debug)]
+struct Document {
+    elements: Elements,
 }
 
 // #[derive(Serialize, Deserialize, Debug)]
@@ -104,9 +127,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         })?;
         transfer.perform()?;
     }
-    let doc_: DocumentBase = serde_json::from_slice(&*json)?;
-    let doc = Document::from(doc_);
-    serde_json::to_writer(stdout(), &doc)?;
+    let doc: Document = serde_json::from_slice(&*json)?;
+    println!("{:#?}", doc);
+    // serde_json::to_writer(stdout(), &doc)?;
 
     Ok(())
 }
