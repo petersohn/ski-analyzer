@@ -3,9 +3,11 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 use std::io::{stdout, Read, Write};
+use std::str::FromStr;
 
 use curl::easy::Easy;
 use geo::{Coord, LineString, Point, Polygon};
+use strum_macros::EnumString;
 use url::form_urlencoded;
 
 #[derive(Debug, Clone)]
@@ -88,16 +90,16 @@ struct Elements {
 }
 
 impl Elements {
-    fn get_node(&self, id: &u64) -> Result_<&Node> {
+    fn get_node<'a>(&'a self, id: &u64) -> Result_<&'a Node> {
         match self.nodes.get(&id) {
             None => Err(InvalidInput::new(format!("node not found: {}", id))),
             Some(val) => Ok(&val),
         }
     }
 
-    fn iterate_nodes<F>(&self, ids: &[u64], mut f: F) -> Result_<()>
+    fn iterate_nodes<'a, F>(&'a self, ids: &[u64], mut f: F) -> Result_<()>
     where
-        F: FnMut(&Node) -> Result_<()>,
+        F: FnMut(&'a Node) -> Result_<()>,
     {
         for id in ids {
             f(self.get_node(id)?)?;
@@ -162,6 +164,7 @@ struct PointWithElevation {
 #[derive(Serialize, Deserialize, Debug)]
 struct Lift {
     name: String,
+    type_: String,
     line: LineString,
     begin_altitude: u32,
     end_altitude: u32,
@@ -170,34 +173,130 @@ struct Lift {
     can_disembark: bool,
 }
 
+fn get_tag<'a>(tags: &'a HashMap<String, String>, name: &str) -> &'a str {
+    match tags.get(name) {
+        None => "",
+        Some(val) => &*val,
+    }
+}
+
 impl Lift {
     fn parse(doc: &Document, way: &Way) -> Result_<Option<Self>> {
         let Some(aerialway_type) = way.tags.get("aerialway") else {
             return Ok(None);
         };
 
-        let Some((first, rest)) = way.nodes.split_first() else {
+        let Some((begin_id, rest)) = way.nodes.split_first() else {
             return Err(InvalidInput::new_s("empty lift"));
         };
-        let Some((last, midpoints)) = rest.split_last() else {
+        let Some((end_id, midpoints)) = rest.split_last() else {
             return Err(InvalidInput::new_s("lift has a single point"));
         };
+
+        fn is_station(node: &Node) -> bool {
+            get_tag(&node.tags, "aerialway") == "station"
+        }
+
         let mut midstations: Vec<PointWithElevation> = Vec::new();
+        let mut midstation_nodes: Vec<&Node> = Vec::new();
         doc.elements.iterate_nodes(&midpoints, |node: &Node| {
-            if let Some(t) = node.tags.get("aerialway") {
-                if t == "station" {
-                    midstations.push(PointWithElevation {
-                        point: node.into(),
-                        elevation: parse_ele(&node.tags),
-                    });
-                }
+            if is_station(&node) {
+                midstations.push(PointWithElevation {
+                    point: node.into(),
+                    elevation: parse_ele(&node.tags),
+                });
+                midstation_nodes.push(&node);
             }
             Ok(())
         })?;
 
+        #[derive(PartialEq, Eq, EnumString, strum_macros::Display)]
+        #[strum(serialize_all = "lowercase")]
+        enum AccessType {
+            #[strum(serialize = "")]
+            Unknown,
+            Entry,
+            Exit,
+            Both,
+        }
+
+        fn get_access(node: &Node) -> Result_<AccessType> {
+            if !is_station(&node) {
+                return Ok(AccessType::Unknown);
+            }
+
+            let access = get_tag(&node.tags, "aerialway:access");
+            AccessType::from_str(&access).or(Err(InvalidInput::new(format!(
+                "invalid access type: {}",
+                access
+            ))))
+        }
+
+        let begin_node = doc.elements.get_node(begin_id)?;
+        let begin_access = get_access(&begin_node)?;
+        let end_node = doc.elements.get_node(end_id)?;
+        let end_access = get_access(&end_node)?;
+
+        let (reverse, can_go_reverse, is_unusual) = match begin_access {
+            AccessType::Unknown => match end_access {
+                AccessType::Unknown => (
+                    false,
+                    ["cable_car", "gondola"].contains(&aerialway_type.as_str()),
+                    false,
+                ),
+                AccessType::Entry => (true, false, true),
+                AccessType::Exit => (false, false, true),
+                AccessType::Both => (false, true, true),
+            },
+            AccessType::Entry => match end_access {
+                AccessType::Unknown => (false, false, true),
+                AccessType::Entry => {
+                    return Err(InvalidInput::new_s(
+                        "invalid access combination: entry-entry",
+                    ))
+                }
+                AccessType::Exit => (false, false, false),
+                AccessType::Both => (false, false, true),
+            },
+            AccessType::Exit => match end_access {
+                AccessType::Unknown => (true, false, true),
+                AccessType::Entry => (true, false, false),
+                AccessType::Exit => {
+                    return Err(InvalidInput::new_s("invalid access combination: exit-exit"))
+                }
+                AccessType::Both => (true, false, true),
+            },
+            AccessType::Both => match end_access {
+                AccessType::Unknown => (false, true, true),
+                AccessType::Entry => (true, false, true),
+                AccessType::Exit => (false, false, true),
+                AccessType::Both => (false, true, false),
+            },
+        };
+
+        if is_unusual {
+            let mut accesses: Vec<&str> = Vec::new();
+            accesses.reserve(midstation_nodes.len() + 2);
+            let begin_access_s = begin_access.to_string();
+            accesses.push(&begin_access_s);
+            for node in midstation_nodes {
+                accesses.push(get_tag(&node.tags, "aerialway:access"));
+            }
+            let end_access_s = end_access.to_string();
+            accesses.push(&end_access_s);
+            eprintln!("Unusual station combination: {:?}", accesses)
+        }
+
+        let mut line = parse_way(&doc, &way)?;
+
+        if reverse {
+            line.reverse();
+        }
+
         Ok(Some(Lift {
-            name: way.tags.get("name").unwrap_or(&String::new()).clone(),
-            line: parse_way(&doc, &way)?,
+            name: get_tag(&way.tags, "name").into(),
+            type_: aerialway_type.clone(),
+            line: LineString::new(line),
             begin_altitude: parse_ele(
                 &doc.elements
                     .get_node(way.nodes.first().ok_or(InvalidInput::empty())?)?
@@ -209,20 +308,22 @@ impl Lift {
                     .tags,
             ),
             midstations,
-            can_go_reverse: false,
-            can_disembark: false,
+            can_go_reverse,
+            // can_disembark: false,
+            can_disembark: ["drag_lift", "t-bar", "j-bar", "platter", "rope_tow"]
+                .contains(&aerialway_type.as_str()),
         }))
     }
 }
 
-fn parse_way(doc: &Document, way: &Way) -> Result_<LineString> {
+fn parse_way(doc: &Document, way: &Way) -> Result_<Vec<Coord>> {
     let mut coords: Vec<Coord> = Vec::new();
     coords.reserve(way.nodes.len());
     doc.elements.iterate_nodes(&way.nodes, |node: &Node| {
         coords.push(node.into());
         Ok(())
     })?;
-    Ok(LineString::new(coords))
+    Ok(coords)
 }
 
 fn parse_ele(tags: &HashMap<String, String>) -> u32 {
