@@ -31,7 +31,7 @@ impl InvalidInput {
 
 impl fmt::Display for InvalidInput {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "invalid OSM input")
+        write!(f, "invalid OSM input: {}", self.msg)
     }
 }
 
@@ -197,7 +197,7 @@ impl Lift {
             get_tag(&node.tags, "aerialway") == "station"
         }
 
-        let mut midstations: Vec<PointWithElevation> = Vec::new();
+        let mut midstations = Vec::new();
         let mut midstation_nodes: Vec<&Node> = Vec::new();
         doc.elements.iterate_nodes(&midpoints, |node: &Node| {
             if is_station(&node) {
@@ -288,28 +288,22 @@ impl Lift {
         }
 
         let mut line = parse_way(&doc, &way)?;
+        let mut begin_altitude = parse_ele(&begin_node.tags);
+        let mut end_altitude = parse_ele(&end_node.tags);
 
         if reverse {
             line.reverse();
+            std::mem::swap(&mut begin_altitude, &mut end_altitude);
         }
 
         Ok(Some(Lift {
             name: get_tag(&way.tags, "name").into(),
             type_: aerialway_type.clone(),
             line: LineString::new(line),
-            begin_altitude: parse_ele(
-                &doc.elements
-                    .get_node(way.nodes.first().ok_or(InvalidInput::empty())?)?
-                    .tags,
-            ),
-            end_altitude: parse_ele(
-                &doc.elements
-                    .get_node(way.nodes.last().ok_or(InvalidInput::empty())?)?
-                    .tags,
-            ),
+            begin_altitude,
+            end_altitude,
             midstations,
             can_go_reverse,
-            // can_disembark: false,
             can_disembark: ["drag_lift", "t-bar", "j-bar", "platter", "rope_tow"]
                 .contains(&aerialway_type.as_str()),
         }))
@@ -339,16 +333,17 @@ struct SkiArea {
 }
 
 impl SkiArea {
-    fn new() -> Self {
-        SkiArea { lifts: Vec::new() }
-    }
-}
-
-impl From<&Document> for SkiArea {
-    fn from(document: &Document) -> Self {
-        let mut result = SkiArea::new();
-        for (_id, way) in document.elements.ways.iter() {}
-        result
+    fn parse(doc: &Document) -> Self {
+        let mut lifts = Vec::new();
+        for (id, way) in &doc.elements.ways {
+            match Lift::parse(&doc, &way) {
+                Err(e) => eprintln!("Error parsing way {}: {}", id, e),
+                Ok(None) => (),
+                Ok(Some(lift)) => lifts.push(lift),
+            }
+        }
+        eprintln!("Found {} lifts.", lifts.len());
+        SkiArea { lifts }
     }
 }
 
@@ -374,8 +369,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         transfer.perform()?;
     }
     let doc: Document = serde_json::from_slice(&*json)?;
-    println!("{:#?}", doc);
+    // println!("{:#?}", doc);
     // serde_json::to_writer(stdout(), &doc)?;
 
+    let ski_area = SkiArea::parse(&doc);
+    println!("{:#?}", ski_area);
     Ok(())
 }
