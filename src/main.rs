@@ -180,8 +180,17 @@ fn get_tag<'a>(tags: &'a HashMap<String, String>, name: &str) -> &'a str {
     }
 }
 
+fn parse_yesno(value: &str) -> Result_<Option<bool>> {
+    match value {
+        "" => Ok(None),
+        "yes" => Ok(Some(true)),
+        "no" => Ok(Some(false)),
+        _ => Err(InvalidInput::new(format!("invalid yesno value: {}", value))),
+    }
+}
+
 impl Lift {
-    fn parse(doc: &Document, way: &Way) -> Result_<Option<Self>> {
+    fn parse(doc: &Document, id: &u64, way: &Way) -> Result_<Option<Self>> {
         let Some(aerialway_type) = way.tags.get("aerialway") else {
             return Ok(None);
         };
@@ -237,13 +246,19 @@ impl Lift {
         let end_node = doc.elements.get_node(end_id)?;
         let end_access = get_access(&end_node)?;
 
-        let (reverse, can_go_reverse, is_unusual) = match begin_access {
+        let name = get_tag(&way.tags, "name").into();
+
+        let oneway = parse_yesno(&get_tag(&way.tags, "oneway"))?;
+
+        let (reverse, mut can_go_reverse, is_unusual) = match begin_access {
             AccessType::Unknown => match end_access {
-                AccessType::Unknown => (
-                    false,
-                    ["cable_car", "gondola"].contains(&aerialway_type.as_str()),
-                    false,
-                ),
+                AccessType::Unknown => {
+                    let can_go_reverse = match oneway {
+                        Some(val) => !val,
+                        None => ["cable_car", "gondola"].contains(&aerialway_type.as_str()),
+                    };
+                    (false, can_go_reverse, false)
+                }
                 AccessType::Entry => (true, false, true),
                 AccessType::Exit => (false, false, true),
                 AccessType::Both => (false, true, true),
@@ -284,7 +299,21 @@ impl Lift {
             }
             let end_access_s = end_access.to_string();
             accesses.push(&end_access_s);
-            eprintln!("Unusual station combination: {:?}", accesses)
+            eprintln!(
+                "{} {}: Unusual station combination: {:?}",
+                id, name, accesses
+            )
+        }
+
+        if let Some(oneway_) = oneway {
+            let actual_can_go_reverse = !oneway_;
+            if actual_can_go_reverse != can_go_reverse {
+                eprintln!(
+                    "{} {}: lift can_go_reverse mismatch: calculated={}, actual={}",
+                    id, name, can_go_reverse, actual_can_go_reverse
+                );
+                    can_go_reverse = actual_can_go_reverse;
+            }
         }
 
         let mut line = parse_way(&doc, &way)?;
@@ -297,7 +326,7 @@ impl Lift {
         }
 
         Ok(Some(Lift {
-            name: get_tag(&way.tags, "name").into(),
+            name,
             type_: aerialway_type.clone(),
             line: LineString::new(line),
             begin_altitude,
@@ -336,7 +365,7 @@ impl SkiArea {
     fn parse(doc: &Document) -> Self {
         let mut lifts = Vec::new();
         for (id, way) in &doc.elements.ways {
-            match Lift::parse(&doc, &way) {
+            match Lift::parse(&doc, &id, &way) {
                 Err(e) => eprintln!("Error parsing way {}: {}", id, e),
                 Ok(None) => (),
                 Ok(Some(lift)) => lifts.push(lift),
