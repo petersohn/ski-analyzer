@@ -6,7 +6,7 @@ use std::io::{stdout, Read, Write};
 use std::str::FromStr;
 
 use curl::easy::Easy;
-use geo::{Coord, LineString, Point, Polygon};
+use geo::{BoundingRect, Coord, LineString, Point, Polygon, Rect};
 use strum_macros::EnumString;
 use url::form_urlencoded;
 
@@ -166,6 +166,7 @@ struct Lift {
     name: String,
     type_: String,
     line: LineString,
+    bounding_rect: Rect,
     begin_altitude: u32,
     end_altitude: u32,
     midstations: Vec<PointWithElevation>,
@@ -312,29 +313,37 @@ impl Lift {
                     "{} {}: lift can_go_reverse mismatch: calculated={}, actual={}",
                     id, name, can_go_reverse, actual_can_go_reverse
                 );
-                    can_go_reverse = actual_can_go_reverse;
+                can_go_reverse = actual_can_go_reverse;
             }
         }
 
-        let mut line = parse_way(&doc, &way)?;
+        let mut line_points = parse_way(&doc, &way)?;
         let mut begin_altitude = parse_ele(&begin_node.tags);
         let mut end_altitude = parse_ele(&end_node.tags);
 
         if reverse {
-            line.reverse();
+            eprintln!("{} {}: lift goes in reverse", id, name);
+            line_points.reverse();
             std::mem::swap(&mut begin_altitude, &mut end_altitude);
         }
+
+        let line = LineString::new(line_points);
+        let bounding_rect = line
+            .bounding_rect()
+            .ok_or(InvalidInput::new_s("cannot calculate bounding rect"))?;
+        let can_disembark = ["drag_lift", "t-bar", "j-bar", "platter", "rope_tow"]
+            .contains(&aerialway_type.as_str());
 
         Ok(Some(Lift {
             name,
             type_: aerialway_type.clone(),
-            line: LineString::new(line),
+            line,
+            bounding_rect,
             begin_altitude,
             end_altitude,
             midstations,
             can_go_reverse,
-            can_disembark: ["drag_lift", "t-bar", "j-bar", "platter", "rope_tow"]
-                .contains(&aerialway_type.as_str()),
+            can_disembark,
         }))
     }
 }
@@ -398,6 +407,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         transfer.perform()?;
     }
     let doc: Document = serde_json::from_slice(&*json)?;
+    eprintln!(
+        "Total nodes: {}, total ways: {}",
+        doc.elements.nodes.len(),
+        doc.elements.ways.len(),
+    );
     // println!("{:#?}", doc);
     // serde_json::to_writer(stdout(), &doc)?;
 
