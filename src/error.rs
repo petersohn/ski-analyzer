@@ -15,10 +15,6 @@ impl InvalidInput {
         InvalidInput { msg: msg.into() }
     }
 
-    pub fn empty() -> Self {
-        InvalidInput { msg: String::new() }
-    }
-
     pub fn convert<T>(msg: &str, err: &T) -> Self
         where T: fmt::Display,
     {

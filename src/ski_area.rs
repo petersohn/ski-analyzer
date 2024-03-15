@@ -1,4 +1,4 @@
-use geo::{BoundingRect, Coord, LineString, Point, Polygon, Rect};
+use geo::{BoundingRect, Coord, CoordNum, LineString, Point, Polygon, Rect};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use strum_macros::EnumString;
@@ -13,11 +13,36 @@ pub struct PointWithElevation {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct BoundedGeometry<T, C = f64>
+where
+    C: CoordNum,
+    T: BoundingRect<C>,
+{
+    pub item: T,
+    pub bounding_rect: Rect<C>,
+}
+
+impl<T, C> BoundedGeometry<T, C>
+where
+    C: CoordNum,
+    T: BoundingRect<C>,
+{
+    pub fn new(item: T) -> Result<Self> {
+        let bounding_rect = item
+            .bounding_rect().into()
+            .ok_or(InvalidInput::new_s("cannot calculate bounding rect"))?;
+        Ok(BoundedGeometry {
+            item,
+            bounding_rect,
+        })
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Lift {
     pub name: String,
     pub type_: String,
-    pub line: LineString,
-    pub bounding_rect: Rect,
+    pub line: BoundedGeometry<LineString>,
     pub begin_altitude: u32,
     pub end_altitude: u32,
     pub midstations: Vec<PointWithElevation>,
@@ -31,6 +56,23 @@ fn parse_yesno(value: &str) -> Result<Option<bool>> {
         "yes" => Ok(Some(true)),
         "no" => Ok(Some(false)),
         _ => Err(InvalidInput::new(format!("invalid yesno value: {}", value))),
+    }
+}
+
+fn parse_way(doc: &Document, way: &Way) -> Result<Vec<Coord>> {
+    let mut coords: Vec<Coord> = Vec::new();
+    coords.reserve(way.nodes.len());
+    doc.elements.iterate_nodes(&way.nodes, |node: &Node| {
+        coords.push(node.into());
+        Ok(())
+    })?;
+    Ok(coords)
+}
+
+fn parse_ele(tags: &Tags) -> u32 {
+    match tags.get("ele") {
+        None => 0,
+        Some(ele) => ele.parse().unwrap_or(0),
     }
 }
 
@@ -174,10 +216,7 @@ impl Lift {
             std::mem::swap(&mut begin_altitude, &mut end_altitude);
         }
 
-        let line = LineString::new(line_points);
-        let bounding_rect = line
-            .bounding_rect()
-            .ok_or(InvalidInput::new_s("cannot calculate bounding rect"))?;
+        let line = BoundedGeometry::new(LineString::new(line_points))?;
         let can_disembark =
             ["drag_lift", "t-bar", "j-bar", "platter", "rope_tow"]
                 .contains(&aerialway_type.as_str());
@@ -186,7 +225,6 @@ impl Lift {
             name,
             type_: aerialway_type.clone(),
             line,
-            bounding_rect,
             begin_altitude,
             end_altitude,
             midstations,
@@ -196,22 +234,25 @@ impl Lift {
     }
 }
 
-fn parse_way(doc: &Document, way: &Way) -> Result<Vec<Coord>> {
-    let mut coords: Vec<Coord> = Vec::new();
-    coords.reserve(way.nodes.len());
-    doc.elements.iterate_nodes(&way.nodes, |node: &Node| {
-        coords.push(node.into());
-        Ok(())
-    })?;
-    Ok(coords)
+#[derive(
+    Serialize,
+    Deserialize,
+    Debug,
+    PartialEq,
+    Eq,
+    EnumString,
+    strum_macros::Display,
+)]
+#[strum(serialize_all = "lowercase")]
+pub enum Difficulty {
+    Novice,
+    Easy,
+    Intermediate,
+    Advanced,
 }
 
-fn parse_ele(tags: &Tags) -> u32 {
-    match tags.get("ele") {
-        None => 0,
-        Some(ele) => ele.parse().unwrap_or(0),
-    }
-}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Piste {}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SkiArea {
