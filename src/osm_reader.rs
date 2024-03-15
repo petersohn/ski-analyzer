@@ -96,11 +96,17 @@ impl<'de> Deserialize<'de> for Elements {
         impl<'de> serde::de::Visitor<'de> for ElementsVisitor {
             type Value = Elements;
 
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            fn expecting(
+                &self,
+                formatter: &mut std::fmt::Formatter,
+            ) -> std::fmt::Result {
                 write!(formatter, "a list of nodes and ways")
             }
 
-            fn visit_seq<S>(self, mut seq: S) -> StdResult<Self::Value, S::Error>
+            fn visit_seq<S>(
+                self,
+                mut seq: S,
+            ) -> StdResult<Self::Value, S::Error>
             where
                 S: serde::de::SeqAccess<'de>,
             {
@@ -134,7 +140,8 @@ pub struct Document {
 }
 
 fn query_inner(query: &str) -> StdResult<Vec<u8>, curl::Error> {
-    let mut input: String = form_urlencoded::byte_serialize(&query.as_bytes()).collect();
+    let mut input: String =
+        form_urlencoded::byte_serialize(&query.as_bytes()).collect();
     input.insert_str(0, "data=");
     let mut input_bytes = input.as_bytes();
 
@@ -158,10 +165,11 @@ fn query_inner(query: &str) -> StdResult<Vec<u8>, curl::Error> {
 
 impl Document {
     pub fn query(query: &str) -> Result<Self> {
-        let json =
-            query_inner(&query).or_else(|err| Err(InvalidInput::convert("query error", &err)))?;
-        let doc: Document = serde_json::from_slice(&*json)
-            .or_else(|err| Err(InvalidInput::convert("JSON decode error", &err)))?;
+        let json = query_inner(&query)
+            .or_else(|err| Err(InvalidInput::convert("query error", &err)))?;
+        let doc: Document = serde_json::from_slice(&*json).or_else(|err| {
+            Err(InvalidInput::convert("JSON decode error", &err))
+        })?;
         Ok(doc)
     }
 }

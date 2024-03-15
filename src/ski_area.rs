@@ -100,7 +100,8 @@ impl Lift {
                 AccessType::Unknown => {
                     let can_go_reverse = match oneway {
                         Some(val) => !val,
-                        None => ["cable_car", "gondola"].contains(&aerialway_type.as_str()),
+                        None => ["cable_car", "gondola"]
+                            .contains(&aerialway_type.as_str()),
                     };
                     (false, can_go_reverse, false)
                 }
@@ -122,7 +123,9 @@ impl Lift {
                 AccessType::Unknown => (true, false, true),
                 AccessType::Entry => (true, false, false),
                 AccessType::Exit => {
-                    return Err(InvalidInput::new_s("invalid access combination: exit-exit"))
+                    return Err(InvalidInput::new_s(
+                        "invalid access combination: exit-exit",
+                    ))
                 }
                 AccessType::Both => (true, false, true),
             },
@@ -175,8 +178,9 @@ impl Lift {
         let bounding_rect = line
             .bounding_rect()
             .ok_or(InvalidInput::new_s("cannot calculate bounding rect"))?;
-        let can_disembark = ["drag_lift", "t-bar", "j-bar", "platter", "rope_tow"]
-            .contains(&aerialway_type.as_str());
+        let can_disembark =
+            ["drag_lift", "t-bar", "j-bar", "platter", "rope_tow"]
+                .contains(&aerialway_type.as_str());
 
         Ok(Some(Lift {
             name,
