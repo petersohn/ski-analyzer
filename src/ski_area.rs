@@ -293,13 +293,20 @@ impl Lift {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SkiArea {
+    name: String,
     lifts: Vec<Lift>,
 }
 
 impl SkiArea {
-    pub fn parse(doc: &Document) -> Self {
+    pub fn parse(doc: &Document) -> Result<Self> {
+        let mut names: Vec<String> = Vec::new();
         let mut lifts = Vec::new();
         for (id, way) in &doc.elements.ways {
+            if get_tag(&way.tags, "landuse") == "winter_sports" {
+                names.push(get_tag(&way.tags, "name").to_string());
+                continue;
+            }
+
             match Lift::parse(&doc, &id, &way) {
                 Err(e) => eprintln!("Error parsing way {}: {}", id, e),
                 Ok(None) => (),
@@ -307,6 +314,13 @@ impl SkiArea {
             }
         }
         eprintln!("Found {} lifts.", lifts.len());
-        SkiArea { lifts }
+
+        if names.len() == 0 {
+            Err(InvalidInput::new_s("ski area entity not found"))
+        } else if names.len() > 1 {
+            Err(InvalidInput::new(format!("ambiguous ski area: {:?}", names)))
+        } else {
+            Ok(SkiArea { name: names.remove(0), lifts })
+        }
     }
 }
