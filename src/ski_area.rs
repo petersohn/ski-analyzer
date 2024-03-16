@@ -101,7 +101,7 @@ impl Lift {
             "magic_carpet",
             "zip_line",
         ];
-        let ignored_types = ["goods", "pylon", "station"];
+        let ignored_types = ["goods", "pylon", "station", "construction"];
         if ignored_types.contains(&aerialway_type.as_str()) {
             return Ok(None);
         }
