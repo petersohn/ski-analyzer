@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // println!("{:#?}", doc);
     // serde_json::to_writer(stdout(), &doc)?;
 
-    let ski_area = SkiArea::parse(&doc);
+    let ski_area = SkiArea::parse(&doc)?;
     println!("{:#?}", ski_area);
     Ok(())
 }
