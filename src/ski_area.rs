@@ -29,7 +29,8 @@ where
 {
     pub fn new(item: T) -> Result<Self> {
         let bounding_rect = item
-            .bounding_rect().into()
+            .bounding_rect()
+            .into()
             .ok_or(InvalidInput::new_s("cannot calculate bounding rect"))?;
         Ok(BoundedGeometry {
             item,
@@ -76,11 +77,40 @@ fn parse_ele(tags: &Tags) -> u32 {
     }
 }
 
+// TODO: handle funiculars
 impl Lift {
     fn parse(doc: &Document, id: &u64, way: &Way) -> Result<Option<Self>> {
+        if get_tag(&way.tags, "area") == "yes" {
+            return Ok(None);
+        }
+
         let Some(aerialway_type) = way.tags.get("aerialway") else {
             return Ok(None);
         };
+
+        let allowed_types = [
+            "cable_car",
+            "gondola",
+            "mixed_lift",
+            "chair_lift",
+            "drag_lift",
+            "t-bar",
+            "j-bar",
+            "platter",
+            "rope_tow",
+            "magic_carpet",
+            "zip_line",
+        ];
+        let ignored_types = ["goods", "pylon", "station"];
+        if ignored_types.contains(&aerialway_type.as_str()) {
+            return Ok(None);
+        }
+        if !allowed_types.contains(&aerialway_type.as_str()) {
+            return Err(InvalidInput::new(format!(
+                "invalid lift type: {}",
+                aerialway_type
+            )));
+        }
 
         let Some((begin_id, rest)) = way.nodes.split_first() else {
             return Err(InvalidInput::new_s("empty lift"));
@@ -133,7 +163,12 @@ impl Lift {
         let end_node = doc.elements.get_node(end_id)?;
         let end_access = get_access(&end_node)?;
 
-        let name = get_tag(&way.tags, "name").into();
+        let mut name = get_tag(&way.tags, "name").to_string();
+
+        if name == "" {
+            eprintln!("{}: {} lift has no name", id, aerialway_type);
+            name = format!("<unnamed {}>", aerialway_type);
+        }
 
         let oneway = parse_yesno(&get_tag(&way.tags, "oneway"))?;
 
@@ -234,25 +269,27 @@ impl Lift {
     }
 }
 
-#[derive(
-    Serialize,
-    Deserialize,
-    Debug,
-    PartialEq,
-    Eq,
-    EnumString,
-    strum_macros::Display,
-)]
-#[strum(serialize_all = "lowercase")]
-pub enum Difficulty {
-    Novice,
-    Easy,
-    Intermediate,
-    Advanced,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Piste {}
+// #[derive(
+//     Serialize,
+//     Deserialize,
+//     Debug,
+//     PartialEq,
+//     Eq,
+//     EnumString,
+//     strum_macros::Display,
+// )]
+// #[strum(serialize_all = "lowercase")]
+// pub enum Difficulty {
+//     Novice,
+//     Easy,
+//     Intermediate,
+//     Advanced,
+//     Expert,
+//     Freeride,
+// }
+//
+// #[derive(Serialize, Deserialize, Debug)]
+// pub struct Piste {}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SkiArea {

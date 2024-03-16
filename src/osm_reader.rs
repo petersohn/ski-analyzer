@@ -164,12 +164,20 @@ fn query_inner(query: &str) -> StdResult<Vec<u8>, curl::Error> {
 }
 
 impl Document {
-    pub fn query(query: &str) -> Result<Self> {
+    pub fn query_custom(query: &str) -> Result<Self> {
         let json = query_inner(&query)
             .or_else(|err| Err(InvalidInput::convert("query error", &err)))?;
         let doc: Document = serde_json::from_slice(&*json).or_else(|err| {
             Err(InvalidInput::convert("JSON decode error", &err))
         })?;
         Ok(doc)
+    }
+
+    pub fn query(name: &str) -> Result<Self> {
+        let query = String::from(
+            r###"[out:json];(way[landuse="winter_sports"][name~""###,
+        ) + name
+            + r###"",i];(way(area)["aerialway"];way(area)["piste:type"="downhill"];);node(w););out;"###;
+        Document::query_custom(query.as_str())
     }
 }
