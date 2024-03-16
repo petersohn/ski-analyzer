@@ -1,10 +1,7 @@
-use curl::easy::Easy;
 use geo::{Coord, Point};
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::io::Read;
 use std::result::Result as StdResult;
-use url::form_urlencoded;
 
 use crate::error::{InvalidInput, Result};
 
@@ -139,45 +136,12 @@ pub struct Document {
     pub elements: Elements,
 }
 
-fn query_inner(query: &str) -> StdResult<Vec<u8>, curl::Error> {
-    let mut input: String =
-        form_urlencoded::byte_serialize(&query.as_bytes()).collect();
-    input.insert_str(0, "data=");
-    let mut input_bytes = input.as_bytes();
-
-    let mut easy = Easy::new();
-    easy.url("https://overpass-api.de/api/interpreter")?;
-    easy.post(true)?;
-    easy.post_field_size(input_bytes.len() as u64)?;
-
-    let mut json: Vec<u8> = Vec::new();
-    {
-        let mut transfer = easy.transfer();
-        transfer.read_function(|buf| Ok(input_bytes.read(buf).unwrap_or(0)))?;
-        transfer.write_function(|data| {
-            json.extend_from_slice(data);
-            Ok(data.len())
-        })?;
-        transfer.perform()?;
-    }
-    Ok(json)
-}
 
 impl Document {
-    pub fn query_custom(query: &str) -> Result<Self> {
-        let json = query_inner(&query)
-            .or_else(|err| Err(InvalidInput::convert("query error", &err)))?;
+    pub fn parse(json: &Vec<u8>) -> Result<Self>{
         let doc: Document = serde_json::from_slice(&*json).or_else(|err| {
             Err(InvalidInput::convert("JSON decode error", &err))
         })?;
         Ok(doc)
-    }
-
-    pub fn query(name: &str) -> Result<Self> {
-        let query = String::from(
-            r###"[out:json];(way[landuse="winter_sports"][name~""###,
-        ) + name
-            + r###"",i];(way(area)["aerialway"];way(area)["piste:type"="downhill"];);node(w););out;"###;
-        Document::query_custom(query.as_str())
     }
 }

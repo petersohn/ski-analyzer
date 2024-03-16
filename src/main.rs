@@ -5,6 +5,7 @@ use ski_area::SkiArea;
 use std::error::Error;
 
 mod error;
+mod osm_query;
 mod osm_reader;
 mod ski_area;
 
@@ -17,7 +18,8 @@ struct Args {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
-    let doc = Document::query(&args.name.as_str())?;
+    let json = osm_query::query_ski_area(args.name.as_str())?;
+    let doc = Document::parse(&json)?;
     eprintln!(
         "Total nodes: {}, total ways: {}",
         doc.elements.nodes.len(),
