@@ -145,3 +145,30 @@ impl Document {
         Ok(doc)
     }
 }
+
+pub fn parse_yesno(value: &str) -> Result<Option<bool>> {
+    match value {
+        "" => Ok(None),
+        "yes" => Ok(Some(true)),
+        "no" => Ok(Some(false)),
+        _ => Err(InvalidInput::new(format!("invalid yesno value: {}", value))),
+    }
+}
+
+pub fn parse_way(doc: &Document, way: &Way) -> Result<Vec<Coord>> {
+    let mut coords: Vec<Coord> = Vec::new();
+    coords.reserve(way.nodes.len());
+    doc.elements.iterate_nodes(&way.nodes, |node: &Node| {
+        coords.push(node.into());
+        Ok(())
+    })?;
+    Ok(coords)
+}
+
+pub fn parse_ele(tags: &Tags) -> u32 {
+    match tags.get("ele") {
+        None => 0,
+        Some(ele) => ele.parse().unwrap_or(0),
+    }
+}
+
