@@ -434,7 +434,11 @@ fn parse_pistes(doc: &Document) -> Vec<Piste> {
 
     let config = get_config();
     if config.verbose {
-        eprintln!("Found {} linear and {} area piste entities.", line_entities.len(), area_entities.len());
+        eprintln!(
+            "Found {} linear and {} area piste entities.",
+            line_entities.len(),
+            area_entities.len()
+        );
     }
 
     // let lines
