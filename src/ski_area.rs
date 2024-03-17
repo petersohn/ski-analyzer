@@ -1,8 +1,10 @@
 use geo::{BoundingRect, Coord, CoordNum, LineString, Point, Polygon, Rect};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 use strum_macros::EnumString;
 
+use std::str::FromStr;
+
+use crate::config::get_config;
 use crate::error::{InvalidInput, Result};
 use crate::osm_reader::{get_tag, Document, Node, Tags, Way};
 
@@ -101,7 +103,8 @@ impl Lift {
             "magic_carpet",
             "zip_line",
         ];
-        let ignored_types = ["goods", "pylon", "station", "construction"];
+        let ignored_types =
+            ["goods", "pylon", "station", "construction", "yes"];
         if ignored_types.contains(&aerialway_type.as_str()) {
             return Ok(None);
         }
@@ -165,8 +168,12 @@ impl Lift {
 
         let mut name = get_tag(&way.tags, "name").to_string();
 
+        let config = get_config();
+
         if name == "" {
-            eprintln!("{}: {} lift has no name", id, aerialway_type);
+            if config.verbose {
+                eprintln!("{}: {} lift has no name", id, aerialway_type);
+            }
             name = format!("<unnamed {}>", aerialway_type);
         }
 
@@ -214,7 +221,7 @@ impl Lift {
             },
         };
 
-        if is_unusual {
+        if is_unusual && config.verbose {
             let mut accesses: Vec<&str> = Vec::new();
             accesses.reserve(midstation_nodes.len() + 2);
             let begin_access_s = begin_access.to_string();
@@ -233,10 +240,12 @@ impl Lift {
         if let Some(oneway_) = oneway {
             let actual_can_go_reverse = !oneway_;
             if actual_can_go_reverse != can_go_reverse {
-                eprintln!(
+                if config.verbose {
+                    eprintln!(
                     "{} {}: lift can_go_reverse mismatch: calculated={}, actual={}",
                     id, name, can_go_reverse, actual_can_go_reverse
                 );
+                }
                 can_go_reverse = actual_can_go_reverse;
             }
         }
@@ -246,7 +255,9 @@ impl Lift {
         let mut end_altitude = parse_ele(&end_node.tags);
 
         if reverse {
-            eprintln!("{} {}: lift goes in reverse", id, name);
+            if config.verbose {
+                eprintln!("{} {}: lift goes in reverse", id, name);
+            }
             line_points.reverse();
             std::mem::swap(&mut begin_altitude, &mut end_altitude);
         }
@@ -269,27 +280,27 @@ impl Lift {
     }
 }
 
-// #[derive(
-//     Serialize,
-//     Deserialize,
-//     Debug,
-//     PartialEq,
-//     Eq,
-//     EnumString,
-//     strum_macros::Display,
-// )]
-// #[strum(serialize_all = "lowercase")]
-// pub enum Difficulty {
-//     Novice,
-//     Easy,
-//     Intermediate,
-//     Advanced,
-//     Expert,
-//     Freeride,
-// }
-//
-// #[derive(Serialize, Deserialize, Debug)]
-// pub struct Piste {}
+#[derive(
+    Serialize,
+    Deserialize,
+    Debug,
+    PartialEq,
+    Eq,
+    EnumString,
+    strum_macros::Display,
+)]
+#[strum(serialize_all = "lowercase")]
+pub enum Difficulty {
+    Novice,
+    Easy,
+    Intermediate,
+    Advanced,
+    Expert,
+    Freeride,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Piste {}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SkiArea {
@@ -301,6 +312,8 @@ impl SkiArea {
     pub fn parse(doc: &Document) -> Result<Self> {
         let mut names: Vec<String> = Vec::new();
         let mut lifts = Vec::new();
+        let config = get_config();
+
         for (id, way) in &doc.elements.ways {
             if get_tag(&way.tags, "landuse") == "winter_sports" {
                 names.push(get_tag(&way.tags, "name").to_string());
@@ -313,14 +326,23 @@ impl SkiArea {
                 Ok(Some(lift)) => lifts.push(lift),
             }
         }
-        eprintln!("Found {} lifts.", lifts.len());
+
+        if config.verbose {
+            eprintln!("Found {} lifts.", lifts.len());
+        }
 
         if names.len() == 0 {
             Err(InvalidInput::new_s("ski area entity not found"))
         } else if names.len() > 1 {
-            Err(InvalidInput::new(format!("ambiguous ski area: {:?}", names)))
+            Err(InvalidInput::new(format!(
+                "ambiguous ski area: {:?}",
+                names
+            )))
         } else {
-            Ok(SkiArea { name: names.remove(0), lifts })
+            Ok(SkiArea {
+                name: names.remove(0),
+                lifts,
+            })
         }
     }
 }

@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use config::{get_config, set_config, Config};
 use osm_reader::Document;
 use ski_area::SkiArea;
 
@@ -6,6 +7,7 @@ use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::{Read, Write};
 
+mod config;
 mod error;
 mod osm_query;
 mod osm_reader;
@@ -15,6 +17,8 @@ mod ski_area;
 struct Args {
     #[command(subcommand)]
     command: Command,
+    #[command(flatten)]
+    config: Config,
 }
 
 #[derive(Clone, Subcommand)]
@@ -44,6 +48,7 @@ enum Command {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
+    set_config(args.config.clone())?;
     match args.command {
         Command::QueryOsm { name, output } => {
             let json = osm_query::query_ski_area(name.as_str())?;
@@ -61,11 +66,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let mut data = Vec::new();
                 file.read_to_end(&mut data)?;
                 let doc = Document::parse(&data)?;
-                eprintln!(
-                    "Total nodes: {}, total ways: {}",
-                    doc.elements.nodes.len(),
-                    doc.elements.ways.len(),
-                );
+                if get_config().verbose {
+                    eprintln!(
+                        "Total nodes: {}, total ways: {}",
+                        doc.elements.nodes.len(),
+                        doc.elements.ways.len(),
+                    );
+                }
                 SkiArea::parse(&doc)?
             };
 
