@@ -1,5 +1,6 @@
 use geo::{BoundingRect, CoordNum, LineString, Polygon};
 
+use std::collections::HashMap;
 use std::str::FromStr;
 
 use super::{BoundedGeometry, Difficulty, Piste, PisteMetadata};
@@ -40,13 +41,55 @@ where
     geometry: BoundedGeometry<T, C>,
 }
 
-enum PartialPisteType {
-    Line(PartialPiste<LineString>),
-    Area(PartialPiste<Polygon>),
+#[derive(PartialEq, Eq, Hash)]
+struct PartialPisteId {
+    id: String,
+    is_ref: bool,
 }
 
-impl PartialPisteType {
-    fn parse(doc: &Document, way: &Way) -> Result<Self> {
+impl PartialPisteId {
+    fn new(metadata: &PisteMetadata) -> Self {
+        if metadata.ref_ != "" {
+            PartialPisteId {
+                id: metadata.ref_.clone(),
+                is_ref: true,
+            }
+        } else {
+            PartialPisteId {
+                id: metadata.name.clone(),
+                is_ref: false,
+            }
+        }
+    }
+}
+
+struct PartialPistes {
+    line_entities: Vec<PartialPiste<LineString>>,
+    area_entities: Vec<PartialPiste<Polygon>>,
+}
+
+impl PartialPistes {
+    fn new() -> Self {
+        PartialPistes {
+            line_entities: Vec::new(),
+            area_entities: Vec::new(),
+        }
+    }
+}
+
+fn parse_partial_piste(doc: &Document, way: &Way, result: &mut HashMap<PartialPisteId, PartialPistes) {
+}
+
+fn parse_partial_pistes(
+    doc: &Document,
+) -> HashMap<PartialPisteId, PartialPistes> {
+    let mut result = HashMap::new();
+
+    for (id, way) in &doc.elements.ways {
+        if get_tag(&way.tags, "piste:type") != "downhill" {
+            continue;
+        }
+
         let metadata = parse_metadata(&way.tags)?;
         let coords = parse_way(&doc, &way)?;
         let line = LineString::new(coords);
@@ -62,13 +105,24 @@ impl PartialPisteType {
                 geometry: BoundedGeometry::new(line)?,
             })
         })
+        match PartialPisteType::parse(&doc, &way) {
+            Err(err) => {
+                eprintln!("{}: error parsing piste: {}", id, err);
+                continue;
+            }
+            Ok(PartialPisteType::Line(line)) => {
+                line_entities.push(line);
+            }
+            Ok(PartialPisteType::Area(area)) => {
+                area_entities.push(area);
+            }
+        };
     }
+
+    result
 }
 
 pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
-    let mut line_entities: Vec<PartialPiste<LineString>> = Vec::new();
-    let mut area_entities: Vec<PartialPiste<Polygon>> = Vec::new();
-
     for (id, way) in &doc.elements.ways {
         if get_tag(&way.tags, "piste:type") != "downhill" {
             continue;
