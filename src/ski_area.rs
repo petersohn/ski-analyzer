@@ -43,6 +43,7 @@ where
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Lift {
+    pub ref_: String,
     pub name: String,
     pub type_: String,
     pub line: BoundedGeometry<LineString>,
@@ -167,15 +168,29 @@ impl Lift {
         let end_access = get_access(&end_node)?;
 
         let mut name = get_tag(&way.tags, "name").to_string();
+        let ref_ = get_tag(&way.tags, "ref").to_string();
 
         let config = get_config();
 
         if name == "" {
             if config.verbose {
-                eprintln!("{}: {} lift has no name", id, aerialway_type);
+                eprintln!(
+                    "{} {}: {} lift has no name",
+                    id, ref_, aerialway_type
+                );
             }
-            name = format!("<unnamed {}>", aerialway_type);
+            name = if ref_ == "" {
+                format!("<unnamed {}>", aerialway_type)
+            } else {
+                ref_.clone()
+            };
         }
+
+        let ref_name = if ref_ == "" {
+            name.clone()
+        } else {
+            format!("{} ({})", name, ref_)
+        };
 
         let oneway = parse_yesno(&get_tag(&way.tags, "oneway"))?;
 
@@ -233,7 +248,7 @@ impl Lift {
             accesses.push(&end_access_s);
             eprintln!(
                 "{} {}: Unusual station combination: {:?}",
-                id, name, accesses
+                id, ref_name, accesses
             )
         }
 
@@ -242,9 +257,9 @@ impl Lift {
             if actual_can_go_reverse != can_go_reverse {
                 if config.verbose {
                     eprintln!(
-                    "{} {}: lift can_go_reverse mismatch: calculated={}, actual={}",
-                    id, name, can_go_reverse, actual_can_go_reverse
-                );
+                        "{} {}: lift can_go_reverse mismatch: calculated={}, actual={}",
+                        id, name, can_go_reverse, actual_can_go_reverse
+                    );
                 }
                 can_go_reverse = actual_can_go_reverse;
             }
@@ -256,7 +271,7 @@ impl Lift {
 
         if reverse {
             if config.verbose {
-                eprintln!("{} {}: lift goes in reverse", id, name);
+                eprintln!("{} {}: lift goes in reverse", id, ref_name);
             }
             line_points.reverse();
             std::mem::swap(&mut begin_altitude, &mut end_altitude);
@@ -268,6 +283,7 @@ impl Lift {
                 .contains(&aerialway_type.as_str());
 
         Ok(Some(Lift {
+            ref_,
             name,
             type_: aerialway_type.clone(),
             line,
