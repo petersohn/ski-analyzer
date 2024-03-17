@@ -1,4 +1,7 @@
-use geo::{BoundingRect, Coord, CoordNum, LineString, Point, Polygon, Rect};
+use geo::{
+    BoundingRect, Coord, CoordNum, LineString, MultiLineString, MultiPolygon,
+    Point, Polygon, Rect,
+};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 
@@ -38,6 +41,18 @@ where
             item,
             bounding_rect,
         })
+    }
+}
+
+impl<T, C> BoundingRect<C> for BoundedGeometry<T, C>
+where
+    C: CoordNum,
+    T: BoundingRect<C>,
+{
+    type Output = Rect<C>;
+
+    fn bounding_rect(&self) -> Self::Output {
+        self.bounding_rect.bounding_rect()
     }
 }
 
@@ -307,6 +322,8 @@ impl Lift {
 )]
 #[strum(serialize_all = "lowercase")]
 pub enum Difficulty {
+    #[strum(serialize = "")]
+    Unknown,
     Novice,
     Easy,
     Intermediate,
@@ -316,12 +333,120 @@ pub enum Difficulty {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Piste {}
+pub struct PisteMetadata {
+    pub ref_: String,
+    pub name: String,
+    pub difficulty: Difficulty,
+}
+
+impl PisteMetadata {
+    fn parse(tags: &Tags) -> Result<Self> {
+        let mut name = get_tag(&tags, "name");
+        if name == "" {
+            name = get_tag(&tags, "piste:name");
+        }
+
+        let mut ref_ = get_tag(&tags, "ref");
+        if ref_ == "" {
+            ref_ = get_tag(&tags, "piste:ref");
+        }
+
+        let difficulty_str = get_tag(&tags, "piste:difficulty");
+        let difficulty = Difficulty::from_str(&difficulty_str).or(Err(
+            InvalidInput::new(format!(
+                "invalid difficulty: {}",
+                difficulty_str
+            )),
+        ))?;
+
+        Ok(PisteMetadata {
+            ref_: ref_.to_string(),
+            name: name.to_string(),
+            difficulty,
+        })
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Piste {
+    pub metadata: PisteMetadata,
+    pub bounding_rect: Rect,
+    pub areas: MultiPolygon,
+    pub lines: MultiLineString,
+}
+
+struct PartialPiste<T, C = f64>
+where
+    C: CoordNum,
+    T: BoundingRect<C>,
+{
+    metadata: PisteMetadata,
+    geometry: BoundedGeometry<T, C>,
+}
+
+enum PartialPisteType {
+    Line(PartialPiste<LineString>),
+    Area(PartialPiste<Polygon>),
+}
+
+impl PartialPisteType {
+    fn parse(doc: &Document, way: &Way) -> Result<Self> {
+        let metadata = PisteMetadata::parse(&way.tags)?;
+        let coords = parse_way(&doc, &way)?;
+        let line = LineString::new(coords);
+
+        Ok(if get_tag(&way.tags, "area") == "yes" {
+            PartialPisteType::Area(PartialPiste {
+                metadata,
+                geometry: BoundedGeometry::new(Polygon::new(line, Vec::new()))?,
+            })
+        } else {
+            PartialPisteType::Line(PartialPiste {
+                metadata,
+                geometry: BoundedGeometry::new(line)?,
+            })
+        })
+    }
+}
+
+fn parse_pistes(doc: &Document) -> Vec<Piste> {
+    let mut line_entities: Vec<PartialPiste<LineString>> = Vec::new();
+    let mut area_entities: Vec<PartialPiste<Polygon>> = Vec::new();
+
+    for (id, way) in &doc.elements.ways {
+        if get_tag(&way.tags, "piste:type") != "downhill" {
+            continue;
+        }
+
+        match PartialPisteType::parse(&doc, &way) {
+            Err(err) => {
+                eprintln!("{}: error parsing piste: {}", id, err);
+                continue;
+            }
+            Ok(PartialPisteType::Line(line)) => {
+                line_entities.push(line);
+            }
+            Ok(PartialPisteType::Area(area)) => {
+                area_entities.push(area);
+            }
+        };
+    }
+
+    let config = get_config();
+    if config.verbose {
+        eprintln!("Found {} linear and {} area piste entities.", line_entities.len(), area_entities.len());
+    }
+
+    // let lines
+    let pistes = Vec::new();
+    pistes
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SkiArea {
     name: String,
     lifts: Vec<Lift>,
+    pistes: Vec<Piste>,
 }
 
 impl SkiArea {
@@ -330,12 +455,22 @@ impl SkiArea {
         let mut lifts = Vec::new();
         let config = get_config();
 
-        for (id, way) in &doc.elements.ways {
+        for (_id, way) in &doc.elements.ways {
             if get_tag(&way.tags, "landuse") == "winter_sports" {
                 names.push(get_tag(&way.tags, "name").to_string());
-                continue;
             }
+        }
 
+        if names.len() == 0 {
+            return Err(InvalidInput::new_s("ski area entity not found"));
+        } else if names.len() > 1 {
+            return Err(InvalidInput::new(format!(
+                "ambiguous ski area: {:?}",
+                names
+            )));
+        }
+
+        for (id, way) in &doc.elements.ways {
             match Lift::parse(&doc, &id, &way) {
                 Err(e) => eprintln!("Error parsing way {}: {}", id, e),
                 Ok(None) => (),
@@ -347,18 +482,16 @@ impl SkiArea {
             eprintln!("Found {} lifts.", lifts.len());
         }
 
-        if names.len() == 0 {
-            Err(InvalidInput::new_s("ski area entity not found"))
-        } else if names.len() > 1 {
-            Err(InvalidInput::new(format!(
-                "ambiguous ski area: {:?}",
-                names
-            )))
-        } else {
-            Ok(SkiArea {
-                name: names.remove(0),
-                lifts,
-            })
+        let pistes = parse_pistes(&doc);
+
+        if config.verbose {
+            eprintln!("Found {} pistes.", pistes.len());
         }
+
+        Ok(SkiArea {
+            name: names.remove(0),
+            lifts,
+            pistes,
+        })
     }
 }
