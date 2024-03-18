@@ -41,7 +41,7 @@ where
     geometry: BoundedGeometry<T, C>,
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 struct PartialPisteId {
     id: String,
     is_ref: bool,
@@ -61,6 +61,13 @@ impl PartialPisteId {
             }
         }
     }
+
+    fn empty() -> Self {
+        PartialPisteId {
+            id: String::new(),
+            is_ref: false,
+        }
+    }
 }
 
 struct PartialPistes {
@@ -77,7 +84,35 @@ impl PartialPistes {
     }
 }
 
-fn parse_partial_piste(doc: &Document, way: &Way, result: &mut HashMap<PartialPisteId, PartialPistes) {
+fn parse_partial_piste(
+    doc: &Document,
+    way: &Way,
+    result: &mut HashMap<PartialPisteId, PartialPistes>,
+) -> Result<()> {
+    let metadata = parse_metadata(&way.tags)?;
+    let coords = parse_way(&doc, &way)?;
+    let line = LineString::new(coords);
+    let key = PartialPisteId::new(&metadata);
+    let partial_piste = match result.get_mut(&key) {
+        Some(vec) => vec,
+        None => {
+            result.insert(key.clone(), PartialPistes::new());
+            result.get_mut(&key).unwrap()
+        }
+    };
+
+    if get_tag(&way.tags, "area") == "yes" {
+        partial_piste.line_entities.push(PartialPiste {
+            metadata,
+            geometry: BoundedGeometry::new(line)?,
+        });
+    } else {
+        partial_piste.area_entities.push(PartialPiste {
+            metadata,
+            geometry: BoundedGeometry::new(Polygon::new(line, Vec::new()))?,
+        });
+    }
+    Ok(())
 }
 
 fn parse_partial_pistes(
@@ -90,65 +125,35 @@ fn parse_partial_pistes(
             continue;
         }
 
-        let metadata = parse_metadata(&way.tags)?;
-        let coords = parse_way(&doc, &way)?;
-        let line = LineString::new(coords);
-
-        Ok(if get_tag(&way.tags, "area") == "yes" {
-            PartialPisteType::Area(PartialPiste {
-                metadata,
-                geometry: BoundedGeometry::new(Polygon::new(line, Vec::new()))?,
-            })
-        } else {
-            PartialPisteType::Line(PartialPiste {
-                metadata,
-                geometry: BoundedGeometry::new(line)?,
-            })
-        })
-        match PartialPisteType::parse(&doc, &way) {
-            Err(err) => {
-                eprintln!("{}: error parsing piste: {}", id, err);
-                continue;
-            }
-            Ok(PartialPisteType::Line(line)) => {
-                line_entities.push(line);
-            }
-            Ok(PartialPisteType::Area(area)) => {
-                area_entities.push(area);
-            }
-        };
+        if let Err(err) = parse_partial_piste(&doc, &way, &mut result) {
+            eprintln!("{}: error parsing piste: {}", id, err);
+        }
     }
 
     result
 }
 
 pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
-    for (id, way) in &doc.elements.ways {
-        if get_tag(&way.tags, "piste:type") != "downhill" {
-            continue;
-        }
-
-        match PartialPisteType::parse(&doc, &way) {
-            Err(err) => {
-                eprintln!("{}: error parsing piste: {}", id, err);
-                continue;
-            }
-            Ok(PartialPisteType::Line(line)) => {
-                line_entities.push(line);
-            }
-            Ok(PartialPisteType::Area(area)) => {
-                area_entities.push(area);
-            }
-        };
-    }
+    let partial_pistes = parse_partial_pistes(&doc);
+    let unnamed = partial_pistes.get(&PartialPisteId::empty());
 
     let config = get_config();
     if config.verbose {
-        eprintln!(
-            "Found {} linear and {} area piste entities.",
-            line_entities.len(),
-            area_entities.len()
-        );
+        let count = match &unnamed {
+            None => partial_pistes.len(),
+            Some(_) => partial_pistes.len() - 1,
+        };
+        eprintln!("Found {} differently named pistes.", count);
+    }
+
+    if let Some(u) = &unnamed {
+        if config.verbose {
+            eprintln!(
+                "Found {} linear and {} area unnamed piste entities.",
+                u.line_entities.len(),
+                u.area_entities.len()
+            );
+        }
     }
 
     // let lines
