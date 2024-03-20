@@ -6,7 +6,7 @@ use std::str::FromStr;
 use super::{BoundedGeometry, Difficulty, Piste, PisteMetadata};
 
 use crate::config::get_config;
-use crate::error::{InvalidInput, Result};
+use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{get_tag, parse_way, Document, Tags, Way};
 
 fn parse_metadata(tags: &Tags) -> Result<PisteMetadata> {
@@ -21,9 +21,11 @@ fn parse_metadata(tags: &Tags) -> Result<PisteMetadata> {
     }
 
     let difficulty_str = get_tag(&tags, "piste:difficulty");
-    let difficulty = Difficulty::from_str(&difficulty_str).or(Err(
-        InvalidInput::new(format!("invalid difficulty: {}", difficulty_str)),
-    ))?;
+    let difficulty =
+        Difficulty::from_str(&difficulty_str).or(Err(Error::new(
+            ErrorType::OSMError,
+            format!("invalid difficulty: {}", difficulty_str),
+        )))?;
 
     Ok(PisteMetadata {
         ref_: ref_.to_string(),

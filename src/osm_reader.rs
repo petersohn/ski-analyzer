@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::result::Result as StdResult;
 
-use crate::error::{InvalidInput, Result};
+use crate::error::{Error, ErrorType, Result};
 
 pub type Tags = HashMap<String, String>;
 
@@ -67,7 +67,10 @@ pub struct Elements {
 impl Elements {
     pub fn get_node<'a>(&'a self, id: &u64) -> Result<&'a Node> {
         match self.nodes.get(&id) {
-            None => Err(InvalidInput::new(format!("node not found: {}", id))),
+            None => Err(Error::new(
+                ErrorType::OSMError,
+                format!("node not found: {}", id),
+            )),
             Some(val) => Ok(&val),
         }
     }
@@ -136,11 +139,14 @@ pub struct Document {
     pub elements: Elements,
 }
 
-
 impl Document {
-    pub fn parse(json: &Vec<u8>) -> Result<Self>{
+    pub fn parse(json: &Vec<u8>) -> Result<Self> {
         let doc: Document = serde_json::from_slice(&*json).or_else(|err| {
-            Err(InvalidInput::convert("JSON decode error", &err))
+            Err(Error::convert(
+                ErrorType::OSMError,
+                "JSON decode error",
+                &err,
+            ))
         })?;
         Ok(doc)
     }
@@ -151,7 +157,10 @@ pub fn parse_yesno(value: &str) -> Result<Option<bool>> {
         "" => Ok(None),
         "yes" => Ok(Some(true)),
         "no" => Ok(Some(false)),
-        _ => Err(InvalidInput::new(format!("invalid yesno value: {}", value))),
+        _ => Err(Error::new(
+            ErrorType::OSMError,
+            format!("invalid yesno value: {}", value),
+        )),
     }
 }
 
@@ -171,4 +180,3 @@ pub fn parse_ele(tags: &Tags) -> u32 {
         Some(ele) => ele.parse().unwrap_or(0),
     }
 }
-

@@ -1,4 +1,4 @@
-use crate::error::{InvalidInput, Result};
+use crate::error::{Error, ErrorType, Result};
 use curl::easy::Easy;
 use std::io::Read;
 use std::result::Result as StdResult;
@@ -29,8 +29,13 @@ fn query_inner(query: &str) -> StdResult<Vec<u8>, curl::Error> {
 }
 
 pub fn query(query: &str) -> Result<Vec<u8>> {
-    Ok(query_inner(&query)
-        .or_else(|err| Err(InvalidInput::convert("query error", &err)))?)
+    Ok(query_inner(&query).or_else(|err| {
+        Err(Error::convert(
+            ErrorType::ExternalError,
+            "query error",
+            &err,
+        ))
+    })?)
 }
 
 pub fn query_ski_area(name: &str) -> Result<Vec<u8>> {

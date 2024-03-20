@@ -1,33 +1,45 @@
-use std::error::Error;
 use std::fmt;
 
 #[derive(Debug, Clone)]
-pub struct InvalidInput {
+pub enum ErrorType {
+    InputError,
+    OSMError,
+    LogicError,
+    ExternalError,
+}
+
+#[derive(Debug, Clone)]
+pub struct Error {
+    type_: ErrorType,
     msg: String,
 }
 
-impl InvalidInput {
-    pub fn new(msg: String) -> Self {
-        InvalidInput { msg }
+impl Error {
+    pub fn new(type_: ErrorType, msg: String) -> Self {
+        Error { type_, msg }
     }
 
-    pub fn new_s(msg: &str) -> Self {
-        InvalidInput { msg: msg.into() }
+    pub fn new_s(type_: ErrorType, msg: &str) -> Self {
+        Error {
+            type_,
+            msg: msg.into(),
+        }
     }
 
-    pub fn convert<T>(msg: &str, err: &T) -> Self
-        where T: fmt::Display,
+    pub fn convert<T>(type_: ErrorType, msg: &str, err: &T) -> Self
+    where
+        T: fmt::Display,
     {
-        InvalidInput::new(format!("{}: {}", msg, err))
+        Error::new(type_, format!("{}: {}", msg, err))
     }
 }
 
-impl fmt::Display for InvalidInput {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "invalid OSM input: {}", self.msg)
+        write!(f, "{:?}: {}", self.type_, self.msg)
     }
 }
 
-impl Error for InvalidInput {}
+impl std::error::Error for Error {}
 
-pub type Result<T> = std::result::Result<T, InvalidInput>;
+pub type Result<T> = std::result::Result<T, Error>;

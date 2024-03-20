@@ -1,4 +1,4 @@
-use crate::error::{InvalidInput, Result};
+use crate::error::{Error, ErrorType, Result};
 
 use clap::Args;
 
@@ -19,7 +19,8 @@ pub fn get_config() -> &'static Config {
 }
 
 pub fn set_config(config: Config) -> Result<()> {
-    CONFIG
-        .set(config)
-        .or(Err(InvalidInput::new_s("config already set")))
+    CONFIG.set(config).or(Err(Error::new_s(
+        ErrorType::LogicError,
+        "config already set",
+    )))
 }

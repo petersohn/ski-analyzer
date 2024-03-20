@@ -6,7 +6,7 @@ use std::str::FromStr;
 use super::{BoundedGeometry, Lift, PointWithElevation};
 
 use crate::config::get_config;
-use crate::error::{InvalidInput, Result};
+use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{
     get_tag, parse_ele, parse_way, parse_yesno, Document, Node, Way,
 };
@@ -31,10 +31,10 @@ fn get_access(node: &Node) -> Result<AccessType> {
     }
 
     let access = get_tag(&node.tags, "aerialway:access");
-    AccessType::from_str(&access).or(Err(InvalidInput::new(format!(
-        "invalid access type: {}",
-        access
-    ))))
+    AccessType::from_str(&access).or(Err(Error::new(
+        ErrorType::OSMError,
+        format!("invalid access type: {}", access),
+    )))
 }
 
 const ALLOWED_TYPES: &[&str] = &[
@@ -70,17 +70,20 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
         return Ok(None);
     }
     if !ALLOWED_TYPES.contains(&aerialway_type.as_str()) {
-        return Err(InvalidInput::new(format!(
-            "invalid lift type: {}",
-            aerialway_type
-        )));
+        return Err(Error::new(
+            ErrorType::OSMError,
+            format!("invalid lift type: {}", aerialway_type),
+        ));
     }
 
     let Some((begin_id, rest)) = way.nodes.split_first() else {
-        return Err(InvalidInput::new_s("empty lift"));
+        return Err(Error::new_s(ErrorType::OSMError, "empty lift"));
     };
     let Some((end_id, midpoints)) = rest.split_last() else {
-        return Err(InvalidInput::new_s("lift has a single point"));
+        return Err(Error::new_s(
+            ErrorType::OSMError,
+            "lift has a single point",
+        ));
     };
 
     let mut midstations = Vec::new();
@@ -142,7 +145,8 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
         AccessType::Entry => match end_access {
             AccessType::Unknown => (false, false, true),
             AccessType::Entry => {
-                return Err(InvalidInput::new_s(
+                return Err(Error::new_s(
+                    ErrorType::OSMError,
                     "invalid access combination: entry-entry",
                 ))
             }
@@ -153,7 +157,8 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
             AccessType::Unknown => (true, false, true),
             AccessType::Entry => (true, false, false),
             AccessType::Exit => {
-                return Err(InvalidInput::new_s(
+                return Err(Error::new_s(
+                    ErrorType::OSMError,
                     "invalid access combination: exit-exit",
                 ))
             }

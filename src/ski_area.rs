@@ -9,7 +9,7 @@ use lift::parse_lift;
 use piste::parse_pistes;
 
 use crate::config::get_config;
-use crate::error::{InvalidInput, Result};
+use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{get_tag, Document};
 
 mod lift;
@@ -37,10 +37,10 @@ where
     T: BoundingRect<C>,
 {
     pub fn new(item: T) -> Result<Self> {
-        let bounding_rect = item
-            .bounding_rect()
-            .into()
-            .ok_or(InvalidInput::new_s("cannot calculate bounding rect"))?;
+        let bounding_rect = item.bounding_rect().into().ok_or(Error::new_s(
+            ErrorType::LogicError,
+            "cannot calculate bounding rect",
+        ))?;
         Ok(BoundedGeometry {
             item,
             bounding_rect,
@@ -128,12 +128,15 @@ impl SkiArea {
         }
 
         if names.len() == 0 {
-            return Err(InvalidInput::new_s("ski area entity not found"));
+            return Err(Error::new_s(
+                ErrorType::InputError,
+                "ski area entity not found",
+            ));
         } else if names.len() > 1 {
-            return Err(InvalidInput::new(format!(
-                "ambiguous ski area: {:?}",
-                names
-            )));
+            return Err(Error::new(
+                ErrorType::InputError,
+                format!("ambiguous ski area: {:?}", names),
+            ));
         }
 
         for (id, way) in &doc.elements.ways {
