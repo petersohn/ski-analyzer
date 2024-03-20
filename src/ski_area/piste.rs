@@ -1,4 +1,7 @@
-use geo::{BoundingRect, CoordNum, LineString, Polygon};
+use geo::{
+    BooleanOps, BoundingRect, CoordNum, HaversineLength, Intersects,
+    LineString, MultiLineString, Polygon,
+};
 
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -135,9 +138,34 @@ fn parse_partial_pistes(
     result
 }
 
+fn get_intersection_length(
+    area: &PartialPiste<Polygon>,
+    lines: &Vec<PartialPiste<LineString>>,
+) -> f64 {
+    let mut result = 0.0;
+
+    for line in lines {
+        if !area
+            .geometry
+            .bounding_rect
+            .intersects(&line.geometry.bounding_rect)
+        {
+            continue;
+        }
+
+        let intersection = area.geometry.item.clip(
+            &MultiLineString::new(vec![line.geometry.item.clone()]),
+            false,
+        );
+        result += intersection.haversine_length();
+    }
+
+    result
+}
+
 pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
-    let partial_pistes = parse_partial_pistes(&doc);
-    let unnamed = partial_pistes.get(&PartialPisteId::empty());
+    let mut partial_pistes = parse_partial_pistes(&doc);
+    let mut unnamed = partial_pistes.remove(&PartialPisteId::empty());
 
     let config = get_config();
     if config.verbose {
@@ -148,13 +176,31 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
         eprintln!("Found {} differently named pistes.", count);
     }
 
-    if let Some(u) = &unnamed {
+    if let Some(u) = &mut unnamed {
         if config.verbose {
             eprintln!(
                 "Found {} linear and {} area unnamed piste entities.",
                 u.line_entities.len(),
                 u.area_entities.len()
             );
+        }
+        let mut unnamed_areas: Vec<PartialPiste<Polygon>> = Vec::new();
+
+        while let Some(area) = u.area_entities.pop() {
+            let mut target: Option<&mut PartialPistes> = None;
+            let mut max_len: f64 = 0.0;
+            for piste in partial_pistes.values_mut() {
+                let len = get_intersection_length(&area, &piste.line_entities);
+                if len > 0.0 && len > max_len {
+                    target = Some(piste);
+                    max_len = len;
+                }
+            }
+
+            match target {
+                Some(piste) => piste.area_entities.push(area),
+                None => unnamed_areas.push(area),
+            }
         }
     }
 
