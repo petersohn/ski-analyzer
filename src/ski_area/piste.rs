@@ -12,7 +12,7 @@ use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{get_tag, parse_way, Document, Tags, Way};
 
-fn parse_metadata(tags: &Tags) -> Result<PisteMetadata> {
+fn parse_metadata(tags: &Tags) -> PisteMetadata {
     let mut name = get_tag(&tags, "name");
     if name == "" {
         name = get_tag(&tags, "piste:name");
@@ -24,17 +24,23 @@ fn parse_metadata(tags: &Tags) -> Result<PisteMetadata> {
     }
 
     let difficulty_str = get_tag(&tags, "piste:difficulty");
-    let difficulty =
-        Difficulty::from_str(&difficulty_str).or(Err(Error::new(
-            ErrorType::OSMError,
-            format!("invalid difficulty: {}", difficulty_str),
-        )))?;
 
-    Ok(PisteMetadata {
+    let difficulty = match Difficulty::from_str(&difficulty_str) {
+        Ok(difficulty) => difficulty,
+        Err(_) => {
+            eprintln!(
+                "{} {}: invalid difficulty: {}",
+                name, ref_, difficulty_str
+            );
+            Difficulty::Unknown
+        }
+    };
+
+    PisteMetadata {
         ref_: ref_.to_string(),
         name: name.to_string(),
         difficulty,
-    })
+    }
 }
 
 struct PartialPiste<T, C = f64>
@@ -94,7 +100,7 @@ fn parse_partial_piste(
     way: &Way,
     result: &mut HashMap<PartialPisteId, PartialPistes>,
 ) -> Result<()> {
-    let metadata = parse_metadata(&way.tags)?;
+    let metadata = parse_metadata(&way.tags);
     let coords = parse_way(&doc, &way)?;
     let line = LineString::new(coords);
     let key = PartialPisteId::new(&metadata);
@@ -165,28 +171,20 @@ fn get_intersection_length(
 
 pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
     let mut partial_pistes = parse_partial_pistes(&doc);
-    let mut unnamed = partial_pistes.remove(&PartialPisteId::empty());
 
     let config = get_config();
-    if config.verbose {
-        let count = match &unnamed {
-            None => partial_pistes.len(),
-            Some(_) => partial_pistes.len() - 1,
-        };
-        eprintln!("Found {} differently named pistes.", count);
-    }
 
-    if let Some(u) = &mut unnamed {
+    if let Some(mut unnamed) = partial_pistes.remove(&PartialPisteId::empty()) {
         if config.verbose {
             eprintln!(
                 "Found {} linear and {} area unnamed piste entities.",
-                u.line_entities.len(),
-                u.area_entities.len()
+                unnamed.line_entities.len(),
+                unnamed.area_entities.len()
             );
         }
         let mut unnamed_areas: Vec<PartialPiste<Polygon>> = Vec::new();
 
-        while let Some(area) = u.area_entities.pop() {
+        while let Some(area) = unnamed.area_entities.pop() {
             let mut target: Option<&mut PartialPistes> = None;
             let mut max_len: f64 = 0.0;
             for piste in partial_pistes.values_mut() {
@@ -202,6 +200,12 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
                 None => unnamed_areas.push(area),
             }
         }
+
+        unnamed.area_entities = unnamed_areas.into();
+    }
+
+    if config.verbose {
+        eprintln!("Found {} differently named pistes.", partial_pistes.len());
     }
 
     // let lines
