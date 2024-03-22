@@ -179,20 +179,34 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
         let mut unnamed_areas: Vec<PartialPiste<Polygon>> = Vec::new();
 
         while let Some(area) = unnamed.area_entities.pop() {
-            let mut target: Option<&mut PartialPistes> = None;
-            let mut max_len: f64 = 0.0;
-            for piste in partial_pistes.values_mut() {
-                let len = piste.line_entities.iter().fold(0.0, |acc, line| {
-                    acc + get_intersection_length(&area, &line)
-                });
-                if len > 0.0 && len > max_len {
-                    target = Some(piste);
-                    max_len = len;
-                }
-            }
+            let target = partial_pistes
+                .values_mut()
+                .filter_map(|piste| {
+                    let len =
+                        piste.line_entities.iter().fold(0.0, |acc, line| {
+                            acc + get_intersection_length(&area, &line)
+                        });
+                    if len > 0.0 {
+                        Some((piste, len))
+                    } else {
+                        None
+                    }
+                })
+                .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+            // let mut target: Option<&mut PartialPistes> = None;
+            // let mut max_len: f64 = 0.0;
+            // for piste in partial_pistes.values_mut() {
+            //     let len = piste.line_entities.iter().fold(0.0, |acc, line| {
+            //         acc + get_intersection_length(&area, &line)
+            //     });
+            //     if len > 0.0 && len > max_len {
+            //         target = Some(piste);
+            //         max_len = len;
+            //     }
+            // }
 
             match target {
-                Some(piste) => piste.area_entities.push(area),
+                Some((piste, _)) => piste.area_entities.push(area),
                 None => unnamed_areas.push(area),
             }
         }
