@@ -146,27 +146,21 @@ fn parse_partial_pistes(
 
 fn get_intersection_length(
     area: &PartialPiste<Polygon>,
-    lines: &Vec<PartialPiste<LineString>>,
+    line: &PartialPiste<LineString>,
 ) -> f64 {
-    let mut result = 0.0;
-
-    for line in lines {
-        if !area
-            .geometry
-            .bounding_rect
-            .intersects(&line.geometry.bounding_rect)
-        {
-            continue;
-        }
-
-        let intersection = area.geometry.item.clip(
-            &MultiLineString::new(vec![line.geometry.item.clone()]),
-            false,
-        );
-        result += intersection.haversine_length();
+    if !area
+        .geometry
+        .bounding_rect
+        .intersects(&line.geometry.bounding_rect)
+    {
+        return 0.0;
     }
 
-    result
+    let intersection = area.geometry.item.clip(
+        &MultiLineString::new(vec![line.geometry.item.clone()]),
+        false,
+    );
+    intersection.haversine_length()
 }
 
 pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
@@ -188,7 +182,9 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
             let mut target: Option<&mut PartialPistes> = None;
             let mut max_len: f64 = 0.0;
             for piste in partial_pistes.values_mut() {
-                let len = get_intersection_length(&area, &piste.line_entities);
+                let len = piste.line_entities.iter().fold(0.0, |acc, line| {
+                    acc + get_intersection_length(&area, &line)
+                });
                 if len > 0.0 && len > max_len {
                     target = Some(piste);
                     max_len = len;
@@ -201,7 +197,26 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
             }
         }
 
-        unnamed.area_entities = unnamed_areas.into();
+        let mut unnamed_lines: Vec<PartialPiste<LineString>> = Vec::new();
+
+        while let Some(line) = unnamed.line_entities.pop() {
+            let mut target: Option<&mut PartialPistes> = None;
+            let mut max_len: f64 = 0.0;
+            for piste in partial_pistes.values_mut() {
+                let len = piste.area_entities.iter().fold(0.0, |acc, area| {
+                    acc + get_intersection_length(&area, &line)
+                });
+                if len > 0.0 && len > max_len {
+                    target = Some(piste);
+                    max_len = len;
+                }
+            }
+
+            match target {
+                Some(piste) => piste.line_entities.push(line),
+                None => unnamed_lines.push(line),
+            }
+        }
     }
 
     if config.verbose {

@@ -78,6 +78,7 @@ pub struct Lift {
     Debug,
     PartialEq,
     Eq,
+    Hash,
     EnumString,
     strum_macros::Display,
 )]
