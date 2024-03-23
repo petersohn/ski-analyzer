@@ -2,12 +2,12 @@ pub fn max_if<It, F, P, B>(it: It, mut func: F, mut pred: P) -> Option<It::Item>
 where
     It: Iterator,
     F: FnMut(&It::Item) -> B,
-    P: FnMut(&B) -> bool,
+    P: FnMut(&It::Item, &B) -> bool,
     B: PartialOrd,
 {
     it.filter_map(|item| {
         let value = func(&item);
-        if pred(&value) {
+        if pred(&item, &value) {
             Some((item, value))
         } else {
             None
