@@ -10,6 +10,7 @@ use super::{BoundedGeometry, Difficulty, Piste, PisteMetadata};
 
 use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
+use crate::iter::max_if;
 use crate::osm_reader::{get_tag, parse_way, Document, Tags, Way};
 
 fn parse_metadata(tags: &Tags) -> PisteMetadata {
@@ -48,6 +49,7 @@ where
     C: CoordNum,
     T: BoundingRect<C>,
 {
+    id: u64,
     metadata: PisteMetadata,
     geometry: BoundedGeometry<T, C>,
 }
@@ -97,6 +99,7 @@ impl PartialPistes {
 
 fn parse_partial_piste(
     doc: &Document,
+    id: u64,
     way: &Way,
     result: &mut HashMap<PartialPisteId, PartialPistes>,
 ) -> Result<()> {
@@ -112,13 +115,15 @@ fn parse_partial_piste(
         }
     };
 
-    if get_tag(&way.tags, "area") == "yes" {
+    if get_tag(&way.tags, "area") != "yes" {
         partial_piste.line_entities.push(PartialPiste {
+            id,
             metadata,
             geometry: BoundedGeometry::new(line)?,
         });
     } else {
         partial_piste.area_entities.push(PartialPiste {
+            id,
             metadata,
             geometry: BoundedGeometry::new(Polygon::new(line, Vec::new()))?,
         });
@@ -136,7 +141,7 @@ fn parse_partial_pistes(
             continue;
         }
 
-        if let Err(err) = parse_partial_piste(&doc, &way, &mut result) {
+        if let Err(err) = parse_partial_piste(&doc, *id, &way, &mut result) {
             eprintln!("{}: error parsing piste: {}", id, err);
         }
     }
@@ -179,34 +184,17 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
         let mut unnamed_areas: Vec<PartialPiste<Polygon>> = Vec::new();
 
         while let Some(area) = unnamed.area_entities.pop() {
-            let target = partial_pistes
-                .values_mut()
-                .filter_map(|piste| {
-                    let len =
-                        piste.line_entities.iter().fold(0.0, |acc, line| {
-                            acc + get_intersection_length(&area, &line)
-                        });
-                    if len > 0.0 {
-                        Some((piste, len))
-                    } else {
-                        None
-                    }
-                })
-                .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-            // let mut target: Option<&mut PartialPistes> = None;
-            // let mut max_len: f64 = 0.0;
-            // for piste in partial_pistes.values_mut() {
-            //     let len = piste.line_entities.iter().fold(0.0, |acc, line| {
-            //         acc + get_intersection_length(&area, &line)
-            //     });
-            //     if len > 0.0 && len > max_len {
-            //         target = Some(piste);
-            //         max_len = len;
-            //     }
-            // }
-
+            let target = max_if(
+                partial_pistes.values_mut(),
+                |piste| {
+                    piste.line_entities.iter().fold(0.0, |acc, line| {
+                        acc + get_intersection_length(&area, &line)
+                    })
+                },
+                |len| *len > 0.0,
+            );
             match target {
-                Some((piste, _)) => piste.area_entities.push(area),
+                Some(piste) => piste.area_entities.push(area),
                 None => unnamed_areas.push(area),
             }
         }
@@ -214,22 +202,26 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
         let mut unnamed_lines: Vec<PartialPiste<LineString>> = Vec::new();
 
         while let Some(line) = unnamed.line_entities.pop() {
-            let mut target: Option<&mut PartialPistes> = None;
-            let mut max_len: f64 = 0.0;
-            for piste in partial_pistes.values_mut() {
-                let len = piste.area_entities.iter().fold(0.0, |acc, area| {
-                    acc + get_intersection_length(&area, &line)
-                });
-                if len > 0.0 && len > max_len {
-                    target = Some(piste);
-                    max_len = len;
-                }
-            }
-
+            let target = max_if(
+                partial_pistes.values_mut(),
+                |piste| {
+                    piste.area_entities.iter().fold(0.0, |acc, area| {
+                        acc + get_intersection_length(&area, &line)
+                    })
+                },
+                |len| *len > 0.0,
+            );
             match target {
                 Some(piste) => piste.line_entities.push(line),
                 None => unnamed_lines.push(line),
             }
+        }
+        if config.verbose {
+            eprintln!(
+                "Could not find named piste for {} linear and {} area entities.",
+                unnamed_lines.len(),
+                unnamed_areas.len()
+            );
         }
     }
 

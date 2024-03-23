@@ -9,6 +9,7 @@ use std::io::{Read, Write};
 
 mod config;
 mod error;
+mod iter;
 mod osm_query;
 mod osm_reader;
 mod ski_area;
