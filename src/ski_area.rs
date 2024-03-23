@@ -148,13 +148,13 @@ impl SkiArea {
             }
         }
 
-        if config.verbose {
+        if config.is_v() {
             eprintln!("Found {} lifts.", lifts.len());
         }
 
         let pistes = parse_pistes(&doc);
 
-        if config.verbose {
+        if config.is_v() {
             eprintln!("Found {} pistes.", pistes.len());
         }
 

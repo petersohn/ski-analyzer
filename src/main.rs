@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let mut data = Vec::new();
                 file.read_to_end(&mut data)?;
                 let doc = Document::parse(&data)?;
-                if get_config().verbose {
+                if get_config().is_v() {
                     eprintln!(
                         "Total nodes: {}, total ways: {}",
                         doc.elements.nodes.len(),

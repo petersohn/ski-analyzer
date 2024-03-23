@@ -110,7 +110,7 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
     let config = get_config();
 
     if name == "" {
-        if config.verbose {
+        if config.is_vv() {
             eprintln!("{} {}: {} lift has no name", id, ref_, aerialway_type);
         }
         name = if ref_ == "" {
@@ -172,7 +172,7 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
         },
     };
 
-    if is_unusual && config.verbose {
+    if is_unusual && config.is_vv() {
         let mut accesses: Vec<&str> = Vec::new();
         accesses.reserve(midstation_nodes.len() + 2);
         let begin_access_s = begin_access.to_string();
@@ -191,7 +191,7 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
     if let Some(oneway_) = oneway {
         let actual_can_go_reverse = !oneway_;
         if actual_can_go_reverse != can_go_reverse {
-            if config.verbose {
+            if config.is_vv() {
                 eprintln!(
                         "{} {}: lift can_go_reverse mismatch: calculated={}, actual={}",
                         id, name, can_go_reverse, actual_can_go_reverse
@@ -206,7 +206,7 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
     let mut end_altitude = parse_ele(&end_node.tags);
 
     if reverse {
-        if config.verbose {
+        if config.is_vv() {
             eprintln!("{} {}: lift goes in reverse", id, ref_name);
         }
         line_points.reverse();

@@ -174,7 +174,7 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
     let config = get_config();
 
     if let Some(mut unnamed) = partial_pistes.remove(&PartialPisteId::empty()) {
-        if config.verbose {
+        if config.is_v() {
             eprintln!(
                 "Found {} linear and {} area unnamed piste entities.",
                 unnamed.line_entities.len(),
@@ -216,7 +216,7 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
                 None => unnamed_lines.push(line),
             }
         }
-        if config.verbose {
+        if config.is_v() {
             eprintln!(
                 "Could not find named piste for {} linear and {} area entities.",
                 unnamed_lines.len(),
@@ -225,7 +225,7 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
         }
     }
 
-    if config.verbose {
+    if config.is_v() {
         eprintln!("Found {} differently named pistes.", partial_pistes.len());
     }
 
