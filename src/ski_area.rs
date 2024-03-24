@@ -75,6 +75,8 @@ pub struct Lift {
 #[derive(
     Serialize,
     Deserialize,
+    Copy,
+    Clone,
     Debug,
     PartialEq,
     Eq,
@@ -94,7 +96,7 @@ pub enum Difficulty {
     Freeride,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Serialize, Deserialize, Debug)]
 pub struct PisteMetadata {
     pub ref_: String,
     pub name: String,

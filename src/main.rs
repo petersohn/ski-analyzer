@@ -7,9 +7,9 @@ use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::{Read, Write};
 
+mod collection;
 mod config;
 mod error;
-mod iter;
 mod osm_query;
 mod osm_reader;
 mod ski_area;

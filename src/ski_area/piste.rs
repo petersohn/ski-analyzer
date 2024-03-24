@@ -9,8 +9,9 @@ use std::str::FromStr;
 use super::{BoundedGeometry, Difficulty, Piste, PisteMetadata};
 
 use crate::config::get_config;
-use crate::error::{Error, ErrorType, Result};
-use crate::iter::max_if;
+// use crate::error::{Error, ErrorType, Result};
+use crate::collection::{get_or_default, max_if};
+use crate::error::Result;
 use crate::osm_reader::{get_tag, parse_way, Document, Tags, Way};
 
 fn parse_metadata(tags: &Tags) -> PisteMetadata {
@@ -50,46 +51,23 @@ struct PartialPisteId {
     is_ref: bool,
 }
 
-impl PartialPisteId {
-    fn new(metadata: &PisteMetadata) -> Self {
-        if metadata.ref_ != "" {
-            PartialPisteId {
-                id: metadata.ref_.clone(),
-                is_ref: true,
-            }
-        } else {
-            PartialPisteId {
-                id: metadata.name.clone(),
-                is_ref: false,
-            }
-        }
-    }
-
-    fn empty() -> Self {
-        PartialPisteId {
-            id: String::new(),
-            is_ref: false,
-        }
-    }
-}
-
 struct PartialPistes {
     line_entities: Vec<BoundedGeometry<LineString>>,
     area_entities: Vec<BoundedGeometry<Polygon>>,
-    ref_: String,
-    names: HashSet<String>,
-    difficulty: Difficulty,
 }
 
 impl PartialPistes {
-    fn new(ref_: String) -> Self {
+    fn new() -> Self {
         PartialPistes {
             line_entities: Vec::new(),
             area_entities: Vec::new(),
-            ref_,
-            names: HashSet::new(),
-            difficulty: Difficulty::Unknown,
         }
+    }
+}
+
+impl Default for PartialPistes {
+    fn default() -> Self {
+        PartialPistes::new()
     }
 }
 
@@ -107,7 +85,7 @@ fn parse_partial_piste(
     doc: &Document,
     id: u64,
     way: &Way,
-    result: &mut HashMap<PartialPisteId, PartialPistes>,
+    result: &mut HashMap<PisteMetadata, PartialPistes>,
     unnamed_lines: &mut Vec<UnnamedPiste<LineString>>,
     unnamed_areas: &mut Vec<UnnamedPiste<Polygon>>,
 ) -> Result<()> {
@@ -115,9 +93,8 @@ fn parse_partial_piste(
     let coords = parse_way(&doc, &way)?;
     let line = LineString::new(coords);
     let is_area = get_tag(&way.tags, "area") == "yes";
-    let key = PartialPisteId::new(&metadata);
 
-    if key.id == "" {
+    if metadata.ref_ == "" && metadata.name == "" {
         if is_area {
             unnamed_areas.push(UnnamedPiste {
                 id,
@@ -134,31 +111,7 @@ fn parse_partial_piste(
         return Ok(());
     }
 
-    let partial_piste = match result.get_mut(&key) {
-        Some(vec) => vec,
-        None => {
-            result
-                .insert(key.clone(), PartialPistes::new(metadata.ref_.clone()));
-            result.get_mut(&key).unwrap()
-        }
-    };
-
-    if partial_piste.difficulty == Difficulty::Unknown {
-        partial_piste.difficulty = metadata.difficulty;
-    } else if partial_piste.difficulty != metadata.difficulty
-        && get_config().is_vv()
-    {
-        eprintln!(
-            "{} {} {}: Difficulty mismatch: previous={:?} new={:?}",
-            id,
-            metadata.ref_,
-            metadata.name,
-            partial_piste.difficulty,
-            metadata.difficulty
-        );
-    }
-
-    partial_piste.names.insert(metadata.name);
+    let partial_piste = get_or_default(result, metadata);
 
     if is_area {
         partial_piste
@@ -175,7 +128,7 @@ fn parse_partial_piste(
 fn parse_partial_pistes(
     doc: &Document,
 ) -> (
-    HashMap<PartialPisteId, PartialPistes>,
+    HashMap<PisteMetadata, PartialPistes>,
     Vec<UnnamedPiste<LineString>>,
     Vec<UnnamedPiste<Polygon>>,
 ) {
@@ -217,6 +170,21 @@ fn get_intersection_length(
     intersection.haversine_length()
 }
 
+pub fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
+    let mut map: HashMap<String, HashMap<String, HashSet<Difficulty>>> =
+        HashMap::new();
+
+    for metadata in pistes.keys() {
+        let names = get_or_default(&mut map, metadata.ref_.clone());
+        let difficulties = get_or_default(names, metadata.name.clone());
+        difficulties.insert(metadata.difficulty);
+    }
+
+    for (ref_, names) in map {
+        if names.len() > 1 {}
+    }
+}
+
 pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
     let (mut partial_pistes, mut unnamed_lines, mut unnamed_areas) =
         parse_partial_pistes(&doc);
@@ -225,25 +193,31 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
 
     if config.is_v() {
         eprintln!(
-            "Found {} linear and {} area unnamed piste entities.",
+            "Found {} different pistes, {} linear and {} area unnamed piste entities.",
+            partial_pistes.len(),
             unnamed_lines.len(),
             unnamed_areas.len()
         );
     }
+
+    if config.is_vv() {
+        find_anomalies(&partial_pistes);
+    }
+
     let mut unnamed_areas2 = Vec::new();
 
     while let Some(area) = unnamed_areas.pop() {
         let target = max_if(
-            partial_pistes.values_mut(),
+            partial_pistes.iter_mut(),
             |piste| {
-                piste.line_entities.iter().fold(0.0, |acc, line| {
+                piste.1.line_entities.iter().fold(0.0, |acc, line| {
                     acc + get_intersection_length(&area.geometry, &line)
                 })
             },
-            |piste, len| *len > 0.0 && piste.difficulty == area.difficulty,
+            |piste, len| *len > 0.0 && piste.0.difficulty == area.difficulty,
         );
         match target {
-            Some(piste) => piste.area_entities.push(area.geometry),
+            Some(piste) => piste.1.area_entities.push(area.geometry),
             None => unnamed_areas2.push(area),
         }
     }
@@ -252,16 +226,16 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
 
     while let Some(line) = unnamed_lines.pop() {
         let target = max_if(
-            partial_pistes.values_mut(),
+            partial_pistes.iter_mut(),
             |piste| {
-                piste.area_entities.iter().fold(0.0, |acc, area| {
+                piste.1.area_entities.iter().fold(0.0, |acc, area| {
                     acc + get_intersection_length(&area, &line.geometry)
                 })
             },
-            |piste, len| *len > 0.0 && piste.difficulty == line.difficulty,
+            |piste, len| *len > 0.0 && piste.0.difficulty == line.difficulty,
         );
         match target {
-            Some(piste) => piste.line_entities.push(line.geometry),
+            Some(piste) => piste.1.line_entities.push(line.geometry),
             None => unnamed_lines2.push(line),
         }
     }
@@ -271,10 +245,6 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
             unnamed_lines2.len(),
             unnamed_areas2.len()
         );
-    }
-
-    if config.is_v() {
-        eprintln!("Found {} differently named pistes.", partial_pistes.len());
     }
 
     // let lines
