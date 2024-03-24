@@ -53,8 +53,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     match args.command {
         Command::QueryOsm { name, output } => {
             let json = osm_query::query_ski_area(name.as_str())?;
-            let mut file =
-                OpenOptions::new().write(true).create(true).open(output)?;
+            let mut file = OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(output)?;
             file.write(&json)?;
         }
         Command::ParseOsm {
@@ -77,8 +80,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 SkiArea::parse(&doc)?
             };
 
-            let file =
-                OpenOptions::new().write(true).create(true).open(output)?;
+            let file = OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(output)?;
             if pretty {
                 serde_json::to_writer_pretty(file, &ski_area)?;
             } else {

@@ -1,3 +1,4 @@
+use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use curl::easy::Easy;
 use std::io::Read;
@@ -8,6 +9,11 @@ fn query_inner(query: &str) -> StdResult<Vec<u8>, curl::Error> {
     let mut input: String =
         form_urlencoded::byte_serialize(&query.as_bytes()).collect();
     input.insert_str(0, "data=");
+
+    if get_config().is_v() {
+        eprintln!("{}", input);
+    }
+
     let mut input_bytes = input.as_bytes();
 
     let mut easy = Easy::new();
