@@ -19,18 +19,3 @@ where
     .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
     .map(|item| item.0)
 }
-
-pub fn get_or_default<'a, K, V>(map: &'a mut HashMap<K, V>, key: K) -> &'a mut V
-where
-    K: Clone + Eq + Hash,
-    V: Default,
-{
-    let val = map.get_mut(&key);
-    let ret = match val {
-        Some(value) => value,
-        None => {
-            map.insert(key.clone(), V::default());
-            map.get_mut(&key).unwrap()
-        }
-    };
-}

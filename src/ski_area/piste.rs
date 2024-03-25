@@ -10,7 +10,7 @@ use super::{BoundedGeometry, Difficulty, Piste, PisteMetadata};
 
 use crate::config::get_config;
 // use crate::error::{Error, ErrorType, Result};
-use crate::collection::{get_or_default, max_if};
+use crate::collection::max_if;
 use crate::error::Result;
 use crate::osm_reader::{get_tag, parse_way, Document, Tags, Way};
 
@@ -51,24 +51,10 @@ struct PartialPisteId {
     is_ref: bool,
 }
 
+#[derive(Default)]
 struct PartialPistes {
     line_entities: Vec<BoundedGeometry<LineString>>,
     area_entities: Vec<BoundedGeometry<Polygon>>,
-}
-
-impl PartialPistes {
-    fn new() -> Self {
-        PartialPistes {
-            line_entities: Vec::new(),
-            area_entities: Vec::new(),
-        }
-    }
-}
-
-impl Default for PartialPistes {
-    fn default() -> Self {
-        PartialPistes::new()
-    }
 }
 
 struct UnnamedPiste<T, C = f64>
@@ -111,7 +97,7 @@ fn parse_partial_piste(
         return Ok(());
     }
 
-    let partial_piste = get_or_default(result, metadata);
+    let partial_piste = result.entry(metadata).or_default();
 
     if is_area {
         partial_piste
@@ -175,8 +161,8 @@ pub fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
         HashMap::new();
 
     for metadata in pistes.keys() {
-        let names = get_or_default(&mut map, metadata.ref_.clone());
-        let difficulties = get_or_default(names, metadata.name.clone());
+        let names = map.entry(metadata.ref_.clone()).or_default();
+        let difficulties = names.entry(metadata.name.clone()).or_default();
         difficulties.insert(metadata.difficulty);
     }
 
