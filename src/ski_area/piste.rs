@@ -156,7 +156,7 @@ fn get_intersection_length(
     intersection.haversine_length()
 }
 
-pub fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
+fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
     let mut map: HashMap<String, HashMap<String, HashSet<Difficulty>>> =
         HashMap::new();
 
@@ -167,7 +167,32 @@ pub fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
     }
 
     for (ref_, names) in map {
-        if names.len() > 1 {}
+        if ref_ != "" && names.len() > 1 {
+            eprintln!(
+                "Multiple names for piste {}: {}",
+                ref_,
+                names
+                    .keys()
+                    .map(|k| k.as_str())
+                    .collect::<Vec<&str>>()
+                    .join(", ")
+            );
+        }
+
+        for (name, difficulties) in names {
+            if difficulties.len() > 1 {
+                eprintln!(
+                    "Multiple difficulties for piste {} {}: {}",
+                    ref_,
+                    name,
+                    difficulties
+                        .iter()
+                        .map(|d| d.to_string())
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                );
+            }
+        }
     }
 }
 
@@ -190,46 +215,64 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
         find_anomalies(&partial_pistes);
     }
 
-    let mut unnamed_areas2 = Vec::new();
+    let mut changed = true;
+    while changed {
+        changed = false;
+        let mut unnamed_areas2 = Vec::new();
 
-    while let Some(area) = unnamed_areas.pop() {
-        let target = max_if(
-            partial_pistes.iter_mut(),
-            |piste| {
-                piste.1.line_entities.iter().fold(0.0, |acc, line| {
-                    acc + get_intersection_length(&area.geometry, &line)
-                })
-            },
-            |piste, len| *len > 0.0 && piste.0.difficulty == area.difficulty,
-        );
-        match target {
-            Some(piste) => piste.1.area_entities.push(area.geometry),
-            None => unnamed_areas2.push(area),
+        while let Some(area) = unnamed_areas.pop() {
+            let target = max_if(
+                partial_pistes.iter_mut(),
+                |piste| {
+                    piste.1.line_entities.iter().fold(0.0, |acc, line| {
+                        acc + get_intersection_length(&area.geometry, &line)
+                    })
+                },
+                |piste, len| {
+                    *len > 0.0 && piste.0.difficulty == area.difficulty
+                },
+            );
+            match target {
+                Some(piste) => {
+                    piste.1.area_entities.push(area.geometry);
+                    changed = true;
+                }
+                None => unnamed_areas2.push(area),
+            }
         }
+
+        let mut unnamed_lines2 = Vec::new();
+
+        while let Some(line) = unnamed_lines.pop() {
+            let target = max_if(
+                partial_pistes.iter_mut(),
+                |piste| {
+                    piste.1.area_entities.iter().fold(0.0, |acc, area| {
+                        acc + get_intersection_length(&area, &line.geometry)
+                    })
+                },
+                |piste, len| {
+                    *len > 0.0 && piste.0.difficulty == line.difficulty
+                },
+            );
+            match target {
+                Some(piste) => {
+                    piste.1.line_entities.push(line.geometry);
+                    changed = true;
+                }
+                None => unnamed_lines2.push(line),
+            }
+        }
+
+        unnamed_areas = unnamed_areas2.into();
+        unnamed_lines = unnamed_lines2.into();
     }
 
-    let mut unnamed_lines2 = Vec::new();
-
-    while let Some(line) = unnamed_lines.pop() {
-        let target = max_if(
-            partial_pistes.iter_mut(),
-            |piste| {
-                piste.1.area_entities.iter().fold(0.0, |acc, area| {
-                    acc + get_intersection_length(&area, &line.geometry)
-                })
-            },
-            |piste, len| *len > 0.0 && piste.0.difficulty == line.difficulty,
-        );
-        match target {
-            Some(piste) => piste.1.line_entities.push(line.geometry),
-            None => unnamed_lines2.push(line),
-        }
-    }
     if config.is_v() {
         eprintln!(
             "Could not find named piste for {} linear and {} area entities.",
-            unnamed_lines2.len(),
-            unnamed_areas2.len()
+            unnamed_lines.len(),
+            unnamed_areas.len()
         );
     }
 
