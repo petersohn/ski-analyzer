@@ -51,7 +51,7 @@ struct PartialPisteId {
     is_ref: bool,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct PartialPistes {
     line_entities: Vec<BoundedGeometry<LineString>>,
     area_entities: Vec<BoundedGeometry<Polygon>>,
@@ -199,7 +199,9 @@ fn find_differing_metadata(pistes: &HashMap<PisteMetadata, PartialPistes>) {
 fn find_overlapping_pistes(pistes: &HashMap<PisteMetadata, PartialPistes>) {
     for (line_metadata, partial_pistes) in pistes {
         for line in &partial_pistes.line_entities {
-            let threshold = line.item.haversine_length() / 2.0;
+            let length = line.item.haversine_length();
+
+            let threshold = length / 2.0;
 
             for (area_metadata, partial_pistes2) in pistes {
                 if area_metadata == line_metadata {
@@ -209,8 +211,8 @@ fn find_overlapping_pistes(pistes: &HashMap<PisteMetadata, PartialPistes>) {
                     let intersection = get_intersection_length(area, line);
                     if intersection > threshold {
                         eprintln!(
-                            "Piste name or difficulty mismatch: {:?} vs. {:?}",
-                            line_metadata, area_metadata
+                            "Line {:?} intersects area {:?} {}/{} m",
+                            line_metadata, area_metadata, intersection, length
                         );
                     }
                 }
@@ -222,6 +224,48 @@ fn find_overlapping_pistes(pistes: &HashMap<PisteMetadata, PartialPistes>) {
 fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
     find_differing_metadata(&pistes);
     find_overlapping_pistes(&pistes);
+}
+
+fn merge_empty_refs(
+    input: HashMap<PisteMetadata, PartialPistes>,
+) -> HashMap<PisteMetadata, PartialPistes> {
+    let mut result: HashMap<PisteMetadata, PartialPistes> = HashMap::new();
+    let mut refless: HashMap<PisteMetadata, PartialPistes> = HashMap::new();
+
+    for (metadata, pistes) in input {
+        if metadata.ref_ == "" {
+            refless.insert(metadata, pistes);
+        } else {
+            result.insert(metadata, pistes);
+        }
+    }
+
+    if refless.len() == 0 {
+        return result;
+    }
+
+    for (metadata, pistes) in result.iter_mut() {
+        if let Some(refless_pistes) = refless.get_mut(&PisteMetadata {
+            ref_: String::new(),
+            name: metadata.name.clone(),
+            difficulty: metadata.difficulty,
+        }) {
+            pistes
+                .line_entities
+                .append(&mut refless_pistes.line_entities);
+            pistes
+                .area_entities
+                .append(&mut refless_pistes.area_entities);
+        }
+    }
+
+    for (metadata, pistes) in refless {
+        if pistes.line_entities.len() != 0 || pistes.area_entities.len() != 0 {
+            result.insert(metadata, pistes);
+        }
+    }
+
+    result
 }
 
 pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
@@ -238,6 +282,8 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
             unnamed_areas.len()
         );
     }
+
+    partial_pistes = merge_empty_refs(partial_pistes);
 
     if config.is_vv() {
         find_anomalies(&partial_pistes);
