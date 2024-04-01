@@ -156,7 +156,7 @@ fn get_intersection_length(
     intersection.haversine_length()
 }
 
-fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
+fn find_differing_metadata(pistes: &HashMap<PisteMetadata, PartialPistes>) {
     let mut map: HashMap<String, HashMap<String, HashSet<Difficulty>>> =
         HashMap::new();
 
@@ -196,6 +196,34 @@ fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
     }
 }
 
+fn find_overlapping_pistes(pistes: &HashMap<PisteMetadata, PartialPistes>) {
+    for (line_metadata, partial_pistes) in pistes {
+        for line in &partial_pistes.line_entities {
+            let threshold = line.item.haversine_length() / 2.0;
+
+            for (area_metadata, partial_pistes2) in pistes {
+                if area_metadata == line_metadata {
+                    continue;
+                }
+                for area in &partial_pistes2.area_entities {
+                    let intersection = get_intersection_length(area, line);
+                    if intersection > threshold {
+                        eprintln!(
+                            "Piste name or difficulty mismatch: {:?} vs. {:?}",
+                            line_metadata, area_metadata
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
+    find_differing_metadata(&pistes);
+    find_overlapping_pistes(&pistes);
+}
+
 pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
     let (mut partial_pistes, mut unnamed_lines, mut unnamed_areas) =
         parse_partial_pistes(&doc);
@@ -233,8 +261,8 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
                 },
             );
             match target {
-                Some(piste) => {
-                    piste.1.area_entities.push(area.geometry);
+                Some((_, piste)) => {
+                    piste.area_entities.push(area.geometry);
                     changed = true;
                 }
                 None => unnamed_areas2.push(area),
@@ -256,8 +284,8 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
                 },
             );
             match target {
-                Some(piste) => {
-                    piste.1.line_entities.push(line.geometry);
+                Some((_, piste)) => {
+                    piste.line_entities.push(line.geometry);
                     changed = true;
                 }
                 None => unnamed_lines2.push(line),
