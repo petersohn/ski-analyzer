@@ -1,6 +1,6 @@
 use geo::{
-    BoundingRect, Coord, CoordNum, HaversineLength, Intersects, LineString,
-    MultiLineString, Polygon, Rect,
+    BooleanOps, BoundingRect, Coord, CoordNum, HaversineLength, Intersects,
+    LineString, MultiLineString, MultiPolygon, Polygon, Rect,
 };
 
 use std::borrow::Borrow;
@@ -262,75 +262,23 @@ fn create_pistes(
                     )
                 })
                 .unwrap(),
+            areas: MultiPolygon(
+                piste.area_entities.into_iter().map(|a| a.item).collect(),
+            ),
+            lines: MultiLineString(
+                piste.line_entities.into_iter().map(|l| l.item).collect(),
+            ),
         });
     }
 
     result
 }
 
-fn merge_empty_refs(
-    input: HashMap<PisteMetadata, PartialPistes>,
-) -> HashMap<PisteMetadata, PartialPistes> {
-    let mut result: HashMap<PisteMetadata, PartialPistes> = HashMap::new();
-    let mut refless: HashMap<PisteMetadata, PartialPistes> = HashMap::new();
-
-    for (metadata, pistes) in input {
-        if metadata.ref_ == "" {
-            refless.insert(metadata, pistes);
-        } else {
-            result.insert(metadata, pistes);
-        }
-    }
-
-    if refless.len() == 0 {
-        return result;
-    }
-
-    for (metadata, pistes) in result.iter_mut() {
-        if let Some(refless_pistes) = refless.get_mut(&PisteMetadata {
-            ref_: String::new(),
-            name: metadata.name.clone(),
-            difficulty: metadata.difficulty,
-        }) {
-            pistes
-                .line_entities
-                .append(&mut refless_pistes.line_entities);
-            pistes
-                .area_entities
-                .append(&mut refless_pistes.area_entities);
-        }
-    }
-
-    for (metadata, pistes) in refless {
-        if pistes.line_entities.len() != 0 || pistes.area_entities.len() != 0 {
-            result.insert(metadata, pistes);
-        }
-    }
-
-    result
-}
-
-pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
-    let (mut partial_pistes, mut unnamed_lines, mut unnamed_areas) =
-        parse_partial_pistes(&doc);
-
-    let config = get_config();
-
-    if config.is_v() {
-        eprintln!(
-            "Found {} different pistes, {} linear and {} area unnamed piste entities.",
-            partial_pistes.len(),
-            unnamed_lines.len(),
-            unnamed_areas.len()
-        );
-    }
-
-    partial_pistes = merge_empty_refs(partial_pistes);
-
-    if config.is_vv() {
-        find_anomalies(&partial_pistes);
-    }
-
+fn handle_unnamed_entities(
+    mut unnamed_lines: Vec<UnnamedPiste<LineString>>,
+    mut unnamed_areas: Vec<UnnamedPiste<Polygon>>,
+    partial_pistes: &mut HashMap<PisteMetadata, PartialPistes>,
+) {
     let mut changed = true;
     while changed {
         changed = false;
@@ -384,6 +332,7 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
         unnamed_lines = unnamed_lines2.into();
     }
 
+    let config = get_config();
     if config.is_v() {
         eprintln!(
             "Could not find named piste for {} linear and {} area entities.",
@@ -391,8 +340,72 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
             unnamed_areas.len()
         );
     }
+}
 
-    // let lines
-    let pistes = Vec::new();
+fn merge_empty_refs(
+    input: HashMap<PisteMetadata, PartialPistes>,
+) -> HashMap<PisteMetadata, PartialPistes> {
+    let mut result: HashMap<PisteMetadata, PartialPistes> = HashMap::new();
+    let mut refless: HashMap<PisteMetadata, PartialPistes> = HashMap::new();
+
+    for (metadata, pistes) in input {
+        if metadata.ref_ == "" {
+            refless.insert(metadata, pistes);
+        } else {
+            result.insert(metadata, pistes);
+        }
+    }
+
+    if refless.len() == 0 {
+        return result;
+    }
+
+    for (metadata, pistes) in result.iter_mut() {
+        if let Some(refless_pistes) = refless.get_mut(&PisteMetadata {
+            ref_: String::new(),
+            name: metadata.name.clone(),
+            difficulty: metadata.difficulty,
+        }) {
+            pistes
+                .line_entities
+                .append(&mut refless_pistes.line_entities);
+            pistes
+                .area_entities
+                .append(&mut refless_pistes.area_entities);
+        }
+    }
+
+    for (metadata, pistes) in refless {
+        if pistes.line_entities.len() != 0 || pistes.area_entities.len() != 0 {
+            result.insert(metadata, pistes);
+        }
+    }
+
+    result
+}
+
+pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
+    let (mut partial_pistes, unnamed_lines, unnamed_areas) =
+        parse_partial_pistes(&doc);
+
+    let config = get_config();
+
+    if config.is_v() {
+        eprintln!(
+            "Found {} different pistes, {} linear and {} area unnamed piste entities.",
+            partial_pistes.len(),
+            unnamed_lines.len(),
+            unnamed_areas.len()
+        );
+    }
+
+    partial_pistes = merge_empty_refs(partial_pistes);
+    handle_unnamed_entities(unnamed_lines, unnamed_areas, &mut partial_pistes);
+    let mut pistes = create_pistes(partial_pistes);
+
+    // if config.is_vv() {
+    //     find_anomalies(&partial_pistes);
+    // }
+
     pistes
 }
