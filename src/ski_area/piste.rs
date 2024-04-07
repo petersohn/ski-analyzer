@@ -3,6 +3,7 @@ use geo::{
     LineString, MultiLineString, Polygon,
 };
 
+use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
@@ -62,14 +63,12 @@ where
     C: CoordNum,
     T: BoundingRect<C>,
 {
-    id: u64,
     difficulty: Difficulty,
     geometry: BoundedGeometry<T, C>,
 }
 
 fn parse_partial_piste(
     doc: &Document,
-    id: u64,
     way: &Way,
     result: &mut HashMap<PisteMetadata, PartialPistes>,
     unnamed_lines: &mut Vec<UnnamedPiste<LineString>>,
@@ -83,13 +82,11 @@ fn parse_partial_piste(
     if metadata.ref_ == "" && metadata.name == "" {
         if is_area {
             unnamed_areas.push(UnnamedPiste {
-                id,
                 difficulty: metadata.difficulty,
                 geometry: BoundedGeometry::new(Polygon::new(line, Vec::new()))?,
             });
         } else {
             unnamed_lines.push(UnnamedPiste {
-                id,
                 difficulty: metadata.difficulty,
                 geometry: BoundedGeometry::new(line)?,
             });
@@ -129,7 +126,6 @@ fn parse_partial_pistes(
 
         if let Err(err) = parse_partial_piste(
             &doc,
-            *id,
             &way,
             &mut result,
             &mut unnamed_lines,
@@ -156,14 +152,19 @@ fn get_intersection_length(
     intersection.haversine_length()
 }
 
-fn find_differing_metadata(pistes: &HashMap<PisteMetadata, PartialPistes>) {
+fn find_differing_metadata<It>(metadatas: It)
+where
+    It: Iterator,
+    It::Item: Borrow<PisteMetadata>,
+{
     let mut map: HashMap<String, HashMap<String, HashSet<Difficulty>>> =
         HashMap::new();
 
-    for metadata in pistes.keys() {
-        let names = map.entry(metadata.ref_.clone()).or_default();
-        let difficulties = names.entry(metadata.name.clone()).or_default();
-        difficulties.insert(metadata.difficulty);
+    for metadata in metadatas {
+        let m = metadata.borrow();
+        let names = map.entry(m.ref_.clone()).or_default();
+        let difficulties = names.entry(m.name.clone()).or_default();
+        difficulties.insert(m.difficulty);
     }
 
     for (ref_, names) in map {
@@ -222,7 +223,7 @@ fn find_overlapping_pistes(pistes: &HashMap<PisteMetadata, PartialPistes>) {
 }
 
 fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
-    find_differing_metadata(&pistes);
+    find_differing_metadata(pistes.keys());
     find_overlapping_pistes(&pistes);
 }
 
