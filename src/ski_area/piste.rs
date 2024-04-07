@@ -1,6 +1,6 @@
 use geo::{
-    BooleanOps, BoundingRect, CoordNum, HaversineLength, Intersects,
-    LineString, MultiLineString, Polygon,
+    BoundingRect, Coord, CoordNum, HaversineLength, Intersects, LineString,
+    MultiLineString, Polygon, Rect,
 };
 
 use std::borrow::Borrow;
@@ -225,6 +225,47 @@ fn find_overlapping_pistes(pistes: &HashMap<PisteMetadata, PartialPistes>) {
 fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
     find_differing_metadata(pistes.keys());
     find_overlapping_pistes(&pistes);
+}
+
+fn create_pistes(
+    partial_pistes: HashMap<PisteMetadata, PartialPistes>,
+) -> Vec<Piste> {
+    let mut result = Vec::new();
+    result.reserve(partial_pistes.len());
+    let config = get_config();
+    for (metadata, piste) in partial_pistes.into_iter() {
+        if piste.line_entities.len() == 0 && piste.area_entities.len() == 0 {
+            if config.is_vv() {
+                eprintln!(
+                    "{} {}: no lines of areas.",
+                    metadata.ref_, metadata.name
+                );
+            }
+        }
+        result.push(Piste {
+            metadata,
+            bounding_rect: piste
+                .line_entities
+                .iter()
+                .map(|l| l.bounding_rect)
+                .chain(piste.area_entities.iter().map(|a| a.bounding_rect))
+                .reduce(|r1, r2| {
+                    Rect::new(
+                        Coord {
+                            x: r1.min().x.min(r2.min().x),
+                            y: r1.min().y.min(r2.min().y),
+                        },
+                        Coord {
+                            x: r1.max().x.max(r2.max().x),
+                            y: r1.max().y.max(r2.max().y),
+                        },
+                    )
+                })
+                .unwrap(),
+        });
+    }
+
+    result
 }
 
 fn merge_empty_refs(
