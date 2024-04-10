@@ -227,6 +227,19 @@ fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
     find_overlapping_pistes(&pistes);
 }
 
+fn union_rects(r1: Rect, r2: Rect) -> Rect {
+    Rect::new(
+        Coord {
+            x: r1.min().x.min(r2.min().x),
+            y: r1.min().y.min(r2.min().y),
+        },
+        Coord {
+            x: r1.max().x.max(r2.max().x),
+            y: r1.max().y.max(r2.max().y),
+        },
+    )
+}
+
 fn create_pistes(
     partial_pistes: HashMap<PisteMetadata, PartialPistes>,
 ) -> Vec<Piste> {
@@ -249,18 +262,7 @@ fn create_pistes(
                 .iter()
                 .map(|l| l.bounding_rect)
                 .chain(piste.area_entities.iter().map(|a| a.bounding_rect))
-                .reduce(|r1, r2| {
-                    Rect::new(
-                        Coord {
-                            x: r1.min().x.min(r2.min().x),
-                            y: r1.min().y.min(r2.min().y),
-                        },
-                        Coord {
-                            x: r1.max().x.max(r2.max().x),
-                            y: r1.max().y.max(r2.max().y),
-                        },
-                    )
-                })
+                .reduce(union_rects)
                 .unwrap(),
             areas: MultiPolygon(
                 piste.area_entities.into_iter().map(|a| a.item).collect(),
@@ -274,11 +276,66 @@ fn create_pistes(
     result
 }
 
+fn merge_unnamed_pistes(
+    unnamed_lines: Vec<UnnamedPiste<LineString>>,
+    unnamed_areas: Vec<UnnamedPiste<Polygon>>,
+) -> Vec<Piste> {
+    let mut result: Vec<Piste> = unnamed_lines
+        .into_iter()
+        .map(|u| Piste {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: String::new(),
+                difficulty: u.difficulty,
+            },
+            bounding_rect: u.geometry.bounding_rect,
+            areas: MultiPolygon::new(Vec::new()),
+            lines: MultiLineString::new(vec![u.geometry.item]),
+        })
+        .chain(unnamed_areas.into_iter().map(|u| Piste {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: String::new(),
+                difficulty: u.difficulty,
+            },
+            bounding_rect: u.geometry.bounding_rect,
+            areas: MultiPolygon::new(vec![u.geometry.item]),
+            lines: MultiLineString::new(Vec::new()),
+        }))
+        .collect();
+
+    let mut i = 0;
+    while i < result.len() - 1 {
+        let mut j = i + 1;
+        while j < result.len() {
+            if result[i].metadata.difficulty == result[j].metadata.difficulty
+                && result[i].bounding_rect.intersects(&result[j].bounding_rect)
+                && (result[i].areas.intersects(&result[j].areas)
+                    || result[i].areas.intersects(&result[j].lines)
+                    || result[i].lines.intersects(&result[j].areas)
+                    || result[i].lines.intersects(&result[j].lines))
+            {
+                let mut item = result.remove(j);
+                result[i].areas.0.append(&mut item.areas.0);
+                result[i].lines.0.append(&mut item.lines.0);
+                result[i].bounding_rect =
+                    union_rects(result[i].bounding_rect, item.bounding_rect);
+            } else {
+                j += 1;
+            }
+        }
+
+        i += 1;
+    }
+
+    result
+}
+
 fn handle_unnamed_entities(
     mut unnamed_lines: Vec<UnnamedPiste<LineString>>,
     mut unnamed_areas: Vec<UnnamedPiste<Polygon>>,
     partial_pistes: &mut HashMap<PisteMetadata, PartialPistes>,
-) {
+) -> Vec<Piste> {
     let mut changed = true;
     while changed {
         changed = false;
@@ -340,6 +397,14 @@ fn handle_unnamed_entities(
             unnamed_areas.len()
         );
     }
+
+    let result = merge_unnamed_pistes(unnamed_lines, unnamed_areas);
+
+    if config.is_v() {
+        eprintln!("Calculated {} distinct unnamed pistes", result.len());
+    }
+
+    result
 }
 
 fn merge_empty_refs(
@@ -400,8 +465,13 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
     }
 
     partial_pistes = merge_empty_refs(partial_pistes);
-    handle_unnamed_entities(unnamed_lines, unnamed_areas, &mut partial_pistes);
+    let mut unnamed_pistes = handle_unnamed_entities(
+        unnamed_lines,
+        unnamed_areas,
+        &mut partial_pistes,
+    );
     let mut pistes = create_pistes(partial_pistes);
+    pistes.append(&mut unnamed_pistes);
 
     // if config.is_vv() {
     //     find_anomalies(&partial_pistes);
