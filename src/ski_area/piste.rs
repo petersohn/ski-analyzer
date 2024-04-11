@@ -197,33 +197,30 @@ where
     }
 }
 
-fn find_overlapping_pistes(pistes: &HashMap<PisteMetadata, PartialPistes>) {
-    for (line_metadata, partial_pistes) in pistes {
-        for line in &partial_pistes.line_entities {
-            let length = line.item.haversine_length();
+fn find_overlapping_pistes(pistes: &Vec<Piste>) {
+    for (i, piste) in pistes.iter().enumerate() {
+        let length = piste.lines.haversine_length();
+        let threshold = length / 2.0;
 
-            let threshold = length / 2.0;
-
-            for (area_metadata, partial_pistes2) in pistes {
-                if area_metadata == line_metadata {
-                    continue;
-                }
-                for area in &partial_pistes2.area_entities {
-                    let intersection = get_intersection_length(area, line);
-                    if intersection > threshold {
-                        eprintln!(
-                            "Line {:?} intersects area {:?} {}/{} m",
-                            line_metadata, area_metadata, intersection, length
-                        );
-                    }
-                }
+        for (j, piste2) in pistes.iter().enumerate() {
+            if i == j || !piste.bounding_rect.intersects(&piste2.bounding_rect)
+            {
+                continue;
+            }
+            let intersection =
+                piste2.areas.clip(&piste.lines, false).haversine_length();
+            if intersection > threshold {
+                eprintln!(
+                    "Line {:?} intersects area {:?} {}/{} m",
+                    piste.metadata, piste2.metadata, intersection, length
+                );
             }
         }
     }
 }
 
-fn find_anomalies(pistes: &HashMap<PisteMetadata, PartialPistes>) {
-    find_differing_metadata(pistes.keys());
+fn find_anomalies(pistes: &Vec<Piste>) {
+    find_differing_metadata(pistes.iter().map(|p| &p.metadata));
     find_overlapping_pistes(&pistes);
 }
 
@@ -471,11 +468,10 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
         &mut partial_pistes,
     );
     let mut pistes = create_pistes(partial_pistes);
+    if config.is_vv() {
+        find_anomalies(&pistes);
+    }
     pistes.append(&mut unnamed_pistes);
-
-    // if config.is_vv() {
-    //     find_anomalies(&partial_pistes);
-    // }
 
     pistes
 }
