@@ -211,7 +211,7 @@ fn find_overlapping_pistes(pistes: &Vec<Piste>) {
                 piste2.areas.clip(&piste.lines, false).haversine_length();
             if intersection > threshold {
                 eprintln!(
-                    "Line {:?} intersects area {:?} {}/{} m",
+                    "Line {:?} intersects area {:?} {:.0}/{:.0} m",
                     piste.metadata, piste2.metadata, intersection, length
                 );
             }
