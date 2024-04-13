@@ -104,11 +104,18 @@ pub struct PisteMetadata {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Piste {
-    pub metadata: PisteMetadata,
+pub struct PisteData {
     pub bounding_rect: Rect,
     pub areas: MultiPolygon,
     pub lines: MultiLineString,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Piste {
+    #[serde(flatten)]
+    pub metadata: PisteMetadata,
+    #[serde(flatten)]
+    pub data: PisteData,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

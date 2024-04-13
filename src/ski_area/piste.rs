@@ -7,7 +7,7 @@ use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
-use super::{BoundedGeometry, Difficulty, Piste, PisteMetadata};
+use super::{BoundedGeometry, Difficulty, Piste, PisteData, PisteMetadata};
 
 use crate::config::get_config;
 // use crate::error::{Error, ErrorType, Result};
@@ -199,16 +199,23 @@ where
 
 fn find_overlapping_pistes(pistes: &Vec<Piste>) {
     for (i, piste) in pistes.iter().enumerate() {
-        let length = piste.lines.haversine_length();
+        let length = piste.data.lines.haversine_length();
         let threshold = length / 2.0;
 
         for (j, piste2) in pistes.iter().enumerate() {
-            if i == j || !piste.bounding_rect.intersects(&piste2.bounding_rect)
+            if i == j
+                || !piste
+                    .data
+                    .bounding_rect
+                    .intersects(&piste2.data.bounding_rect)
             {
                 continue;
             }
-            let intersection =
-                piste2.areas.clip(&piste.lines, false).haversine_length();
+            let intersection = piste2
+                .data
+                .areas
+                .clip(&piste.data.lines, false)
+                .haversine_length();
             if intersection > threshold {
                 eprintln!(
                     "Line {:?} intersects area {:?} {:.0}/{:.0} m",
@@ -237,37 +244,108 @@ fn union_rects(r1: Rect, r2: Rect) -> Rect {
     )
 }
 
+fn line_to_piste(line: BoundedGeometry<LineString>) -> PisteData {
+    PisteData {
+        bounding_rect: line.bounding_rect,
+        areas: MultiPolygon::new(Vec::new()),
+        lines: MultiLineString::new(vec![line.item]),
+    }
+}
+
+fn area_to_piste(area: BoundedGeometry<Polygon>) -> PisteData {
+    PisteData {
+        bounding_rect: area.bounding_rect,
+        areas: MultiPolygon::new(vec![area.item]),
+        lines: MultiLineString::new(Vec::new()),
+    }
+}
+
+fn merge_pistes(pistes: &mut Vec<PisteData>) {
+    let mut i = 0;
+    while i < pistes.len() - 1 {
+        let mut changed = false;
+        let mut j = i + 1;
+        while j < pistes.len() {
+            if pistes[i].bounding_rect.intersects(&pistes[j].bounding_rect)
+                && (pistes[i].areas.intersects(&pistes[j].areas)
+                    || pistes[i].areas.intersects(&pistes[j].lines)
+                    || pistes[i].lines.intersects(&pistes[j].areas)
+                    || pistes[i].lines.intersects(&pistes[j].lines))
+            {
+                let mut item = pistes.remove(j);
+                pistes[i].areas.0.append(&mut item.areas.0);
+                pistes[i].lines.0.append(&mut item.lines.0);
+                pistes[i].bounding_rect =
+                    union_rects(pistes[i].bounding_rect, item.bounding_rect);
+                changed = true;
+            } else {
+                j += 1;
+            }
+        }
+
+        if !changed {
+            i += 1;
+        }
+    }
+}
+
 fn create_pistes(
     partial_pistes: HashMap<PisteMetadata, PartialPistes>,
 ) -> Vec<Piste> {
     let mut result = Vec::new();
     result.reserve(partial_pistes.len());
     let config = get_config();
-    for (metadata, piste) in partial_pistes.into_iter() {
-        if piste.line_entities.len() == 0 && piste.area_entities.len() == 0 {
+    for (metadata, partial_piste) in partial_pistes.into_iter() {
+        if partial_piste.line_entities.len() == 0
+            && partial_piste.area_entities.len() == 0
+        {
             if config.is_vv() {
                 eprintln!(
                     "{} {}: no lines of areas.",
                     metadata.ref_, metadata.name
                 );
             }
+            continue;
         }
-        result.push(Piste {
-            metadata,
-            bounding_rect: piste
-                .line_entities
-                .iter()
-                .map(|l| l.bounding_rect)
-                .chain(piste.area_entities.iter().map(|a| a.bounding_rect))
-                .reduce(union_rects)
-                .unwrap(),
-            areas: MultiPolygon(
-                piste.area_entities.into_iter().map(|a| a.item).collect(),
-            ),
-            lines: MultiLineString(
-                piste.line_entities.into_iter().map(|l| l.item).collect(),
-            ),
-        });
+
+        let mut datas: Vec<PisteData> = partial_piste
+            .line_entities
+            .into_iter()
+            .map(|line| line_to_piste(line))
+            .chain(
+                partial_piste
+                    .area_entities
+                    .into_iter()
+                    .map(|area| area_to_piste(area)),
+            )
+            .collect();
+        merge_pistes(&mut datas);
+
+        if datas.len() > 1 {
+            if config.is_vv() {
+                eprintln!(
+                    "{} {}: piste has {} disjunct parts",
+                    metadata.ref_,
+                    metadata.name,
+                    datas.len()
+                );
+            }
+
+            result.append(
+                &mut datas
+                    .into_iter()
+                    .map(|data| Piste {
+                        metadata: metadata.clone(),
+                        data,
+                    })
+                    .collect(),
+            );
+        } else {
+            result.push(Piste {
+                metadata,
+                data: datas.into_iter().next().unwrap(),
+            });
+        }
     }
 
     result
@@ -277,55 +355,31 @@ fn merge_unnamed_pistes(
     unnamed_lines: Vec<UnnamedPiste<LineString>>,
     unnamed_areas: Vec<UnnamedPiste<Polygon>>,
 ) -> Vec<Piste> {
-    let mut result: Vec<Piste> = unnamed_lines
-        .into_iter()
-        .map(|u| Piste {
-            metadata: PisteMetadata {
-                ref_: String::new(),
-                name: String::new(),
-                difficulty: u.difficulty,
-            },
-            bounding_rect: u.geometry.bounding_rect,
-            areas: MultiPolygon::new(Vec::new()),
-            lines: MultiLineString::new(vec![u.geometry.item]),
-        })
-        .chain(unnamed_areas.into_iter().map(|u| Piste {
-            metadata: PisteMetadata {
-                ref_: String::new(),
-                name: String::new(),
-                difficulty: u.difficulty,
-            },
-            bounding_rect: u.geometry.bounding_rect,
-            areas: MultiPolygon::new(vec![u.geometry.item]),
-            lines: MultiLineString::new(Vec::new()),
-        }))
-        .collect();
-
-    let mut i = 0;
-    while i < result.len() - 1 {
-        let mut j = i + 1;
-        while j < result.len() {
-            if result[i].metadata.difficulty == result[j].metadata.difficulty
-                && result[i].bounding_rect.intersects(&result[j].bounding_rect)
-                && (result[i].areas.intersects(&result[j].areas)
-                    || result[i].areas.intersects(&result[j].lines)
-                    || result[i].lines.intersects(&result[j].areas)
-                    || result[i].lines.intersects(&result[j].lines))
-            {
-                let mut item = result.remove(j);
-                result[i].areas.0.append(&mut item.areas.0);
-                result[i].lines.0.append(&mut item.lines.0);
-                result[i].bounding_rect =
-                    union_rects(result[i].bounding_rect, item.bounding_rect);
-            } else {
-                j += 1;
-            }
-        }
-
-        i += 1;
+    let mut pistes: HashMap<Difficulty, Vec<PisteData>> = HashMap::new();
+    for line in unnamed_lines {
+        let v = pistes.entry(line.difficulty).or_default();
+        v.push(line_to_piste(line.geometry));
+    }
+    for area in unnamed_areas {
+        let v = pistes.entry(area.difficulty).or_default();
+        v.push(area_to_piste(area.geometry));
     }
 
-    result
+    for mut datas in pistes.values_mut() {
+        merge_pistes(&mut datas);
+    }
+
+    let it = pistes.into_iter().map(|(difficulty, datas)| {
+        datas.into_iter().map(move |data| Piste {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: String::new(),
+                difficulty,
+            },
+            data,
+        })
+    });
+    it.flatten().collect()
 }
 
 fn handle_unnamed_entities(
