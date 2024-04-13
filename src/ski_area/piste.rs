@@ -16,14 +16,14 @@ use crate::error::Result;
 use crate::osm_reader::{get_tag, parse_way, Document, Tags, Way};
 
 fn parse_metadata(tags: &Tags) -> PisteMetadata {
-    let mut name = get_tag(&tags, "name");
+    let mut name = get_tag(&tags, "piste:name");
     if name == "" {
-        name = get_tag(&tags, "piste:name");
+        name = get_tag(&tags, "name");
     }
 
-    let mut ref_ = get_tag(&tags, "ref");
+    let mut ref_ = get_tag(&tags, "piste:ref");
     if ref_ == "" {
-        ref_ = get_tag(&tags, "piste:ref");
+        ref_ = get_tag(&tags, "ref");
     }
 
     let difficulty_str = get_tag(&tags, "piste:difficulty");
