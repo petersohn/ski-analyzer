@@ -260,23 +260,22 @@ fn area_to_piste(area: BoundedGeometry<Polygon>) -> PisteData {
     }
 }
 
-fn merge_pistes(pistes: &mut Vec<PisteData>) {
+fn merge_pistes(target: &mut PisteData, source: &mut PisteData) {
+    target.lines.0.append(&mut source.lines.0);
+    target.areas.0.append(&mut source.areas.0);
+    target.bounding_rect =
+        union_rects(target.bounding_rect, source.bounding_rect);
+}
+
+fn merge_intersecting_pistes(pistes: &mut Vec<PisteData>) {
     let mut i = 0;
     while i < pistes.len() - 1 {
         let mut changed = false;
         let mut j = i + 1;
         while j < pistes.len() {
-            if pistes[i].bounding_rect.intersects(&pistes[j].bounding_rect)
-                && (pistes[i].areas.intersects(&pistes[j].areas)
-                    || pistes[i].areas.intersects(&pistes[j].lines)
-                    || pistes[i].lines.intersects(&pistes[j].areas)
-                    || pistes[i].lines.intersects(&pistes[j].lines))
-            {
+            if pistes[i].intersects(&pistes[j]) {
                 let mut item = pistes.remove(j);
-                pistes[i].areas.0.append(&mut item.areas.0);
-                pistes[i].lines.0.append(&mut item.lines.0);
-                pistes[i].bounding_rect =
-                    union_rects(pistes[i].bounding_rect, item.bounding_rect);
+                merge_pistes(&mut pistes[i], &mut item);
                 changed = true;
             } else {
                 j += 1;
@@ -319,7 +318,7 @@ fn create_pistes(
                     .map(|area| area_to_piste(area)),
             )
             .collect();
-        merge_pistes(&mut datas);
+        merge_intersecting_pistes(&mut datas);
 
         if datas.len() > 1 {
             if config.is_vv() {
@@ -366,7 +365,7 @@ fn merge_unnamed_pistes(
     }
 
     for mut datas in pistes.values_mut() {
-        merge_pistes(&mut datas);
+        merge_intersecting_pistes(&mut datas);
     }
 
     let it = pistes.into_iter().map(|(difficulty, datas)| {
@@ -458,17 +457,16 @@ fn handle_unnamed_entities(
     result
 }
 
-fn merge_empty_refs(
-    input: HashMap<PisteMetadata, PartialPistes>,
-) -> HashMap<PisteMetadata, PartialPistes> {
-    let mut result: HashMap<PisteMetadata, PartialPistes> = HashMap::new();
-    let mut refless: HashMap<PisteMetadata, PartialPistes> = HashMap::new();
+fn merge_empty_refs(input: Vec<Piste>) -> Vec<Piste> {
+    let mut result: Vec<Piste> = Vec::new();
+    let mut refless: HashMap<PisteMetadata, Vec<PisteData>> = HashMap::new();
 
-    for (metadata, pistes) in input {
-        if metadata.ref_ == "" {
-            refless.insert(metadata, pistes);
+    for piste in input {
+        if piste.metadata.ref_ == "" {
+            let datas = refless.entry(piste.metadata).or_default();
+            datas.push(piste.data);
         } else {
-            result.insert(metadata, pistes);
+            result.push(piste);
         }
     }
 
@@ -476,24 +474,35 @@ fn merge_empty_refs(
         return result;
     }
 
-    for (metadata, pistes) in result.iter_mut() {
+    for piste in result.iter_mut() {
         if let Some(refless_pistes) = refless.get_mut(&PisteMetadata {
             ref_: String::new(),
-            name: metadata.name.clone(),
-            difficulty: metadata.difficulty,
+            name: piste.metadata.name.clone(),
+            difficulty: piste.metadata.difficulty,
         }) {
-            pistes
-                .line_entities
-                .append(&mut refless_pistes.line_entities);
-            pistes
-                .area_entities
-                .append(&mut refless_pistes.area_entities);
+            for refless_piste in refless_pistes.iter_mut() {
+                if piste.data.intersects(refless_piste) {
+                    merge_pistes(&mut piste.data, refless_piste);
+                }
+            }
         }
     }
 
-    for (metadata, pistes) in refless {
-        if pistes.line_entities.len() != 0 || pistes.area_entities.len() != 0 {
-            result.insert(metadata, pistes);
+    for (metadata, datas) in refless {
+        if datas.len() == 1 {
+            result.push(Piste {
+                metadata,
+                data: datas.into_iter().next().unwrap(),
+            });
+        } else {
+            for data in datas {
+                if data.lines.0.len() != 0 || data.areas.0.len() != 0 {
+                    result.push(Piste {
+                        metadata: metadata.clone(),
+                        data,
+                    });
+                }
+            }
         }
     }
 
@@ -515,13 +524,12 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
         );
     }
 
-    partial_pistes = merge_empty_refs(partial_pistes);
     let mut unnamed_pistes = handle_unnamed_entities(
         unnamed_lines,
         unnamed_areas,
         &mut partial_pistes,
     );
-    let mut pistes = create_pistes(partial_pistes);
+    let mut pistes = merge_empty_refs(create_pistes(partial_pistes));
     if config.is_vv() {
         find_anomalies(&pistes);
     }

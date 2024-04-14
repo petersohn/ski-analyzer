@@ -110,6 +110,16 @@ pub struct PisteData {
     pub lines: MultiLineString,
 }
 
+impl geo::Intersects for PisteData {
+    fn intersects(&self, other: &PisteData) -> bool {
+        self.bounding_rect.intersects(&other.bounding_rect)
+            && (self.areas.intersects(&other.areas)
+                || self.areas.intersects(&other.lines)
+                || self.lines.intersects(&other.areas)
+                || self.lines.intersects(&other.lines))
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Piste {
     #[serde(flatten)]
