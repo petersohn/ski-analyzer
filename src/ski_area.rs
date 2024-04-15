@@ -14,6 +14,8 @@ use crate::osm_reader::{get_tag, Document};
 
 mod lift;
 mod piste;
+#[cfg(test)]
+mod piste_test;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PointWithElevation {

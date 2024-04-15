@@ -58,7 +58,7 @@ pub struct Element {
     pub type_: ElementType,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Elements {
     pub nodes: HashMap<u64, Node>,
     pub ways: HashMap<u64, Way>,
@@ -134,7 +134,7 @@ impl<'de> Deserialize<'de> for Elements {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 pub struct Document {
     pub elements: Elements,
 }
