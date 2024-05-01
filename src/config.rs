@@ -10,7 +10,7 @@ pub struct Config {
     /// -v: status report.
     /// -vv: anomalies.
     #[arg(short, long, action = clap::ArgAction::Count)]
-    verbose: u8,
+    pub verbose: u8,
 }
 
 impl Config {
