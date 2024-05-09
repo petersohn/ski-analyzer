@@ -1,7 +1,8 @@
 use super::piste::parse_pistes;
-use super::Difficulty;
+use super::{Difficulty, Piste, PisteMetadata};
 use crate::config::{set_config, Config};
 use crate::osm_reader::{Document, Node, Tags, Way};
+use geo::{Coord, LineString, MultiLineString, MultiPolygon, Polygon};
 
 use rstest::{fixture, rstest};
 
@@ -75,6 +76,47 @@ fn create_document(ways: Vec<WayDef>) -> Document {
         builder.add_way(way.line, &way.tags);
     }
     builder.document
+}
+
+fn to_point(coord: &Coord) -> Point {
+    coord.x_y()
+}
+
+fn to_line(line: &LineString) -> Line {
+    line.0.iter().map(to_point).collect()
+}
+
+fn to_lines(lines: &MultiLineString) -> Vec<Line> {
+    lines.iter().map(to_line).collect()
+}
+
+fn to_line_a(area: &Polygon) -> Line {
+    to_line(area.exterior())
+}
+
+fn to_lines_a(areas: &MultiPolygon) -> Vec<Line> {
+    areas.iter().map(to_line_a).collect()
+}
+
+#[derive(PartialEq, Debug)]
+struct PisteOut {
+    metadata: PisteMetadata,
+    areas: Vec<Line>,
+    lines: Vec<Line>,
+}
+
+impl PisteOut {
+    fn new(piste: &Piste) -> Self {
+        PisteOut {
+            metadata: piste.metadata.clone(),
+            areas: to_lines_a(&piste.data.areas),
+            lines: to_lines(&piste.data.lines),
+        }
+    }
+
+    fn list(pistes: &Vec<Piste>) -> Vec<PisteOut> {
+        pistes.iter().map(PisteOut::new).collect()
+    }
 }
 
 struct Init;
@@ -321,4 +363,48 @@ fn metadata_alternate_naming(_init: Init, line0: Line) {
     assert_eq!(pistes[0].metadata.name, "Good Name");
     assert_eq!(pistes[0].metadata.ref_, "b");
     assert_eq!(pistes[0].metadata.difficulty, Difficulty::Easy);
+}
+
+#[rstest]
+fn find_areas_to_line(_init: Init, line0: Line, area00: Line, area01: Line) {
+    let document = create_document(vec![
+        WayDef {
+            line: line0.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "easy"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: area00.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "easy"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: area01.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "easy"),
+            ],
+        },
+    ]);
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![PisteOut {
+        metadata: PisteMetadata {
+            ref_: String::new(),
+            name: "Piste 1".to_owned(),
+            difficulty: Difficulty::Easy,
+        },
+        lines: vec![line0],
+        areas: vec![area00, area01],
+    }];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(actual, expected);
 }
