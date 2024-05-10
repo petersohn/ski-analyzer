@@ -474,3 +474,50 @@ fn different_difficulty(_init: Init, line0: Line, area00: Line) {
     let actual = PisteOut::list(&pistes);
     assert_eq!(to_set(actual), to_set(expected));
 }
+
+#[rstest]
+fn different_name(_init: Init, line0: Line, area00: Line) {
+    let document = create_document(vec![
+        WayDef {
+            line: line0.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: area00.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+                ("name", "Piste 2"),
+            ],
+        },
+    ]);
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: "Piste 1".to_owned(),
+                difficulty: Difficulty::Intermediate,
+            },
+            lines: vec![line0],
+            areas: vec![],
+        },
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: "Piste 2".to_owned(),
+                difficulty: Difficulty::Intermediate,
+            },
+            lines: vec![],
+            areas: vec![area00],
+        },
+    ];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(to_set(actual), to_set(expected));
+}
