@@ -99,7 +99,9 @@ fn to_line(line: &LineString) -> Line {
 }
 
 fn to_lines(lines: &MultiLineString) -> Vec<Line> {
-    lines.iter().map(to_line).collect()
+    let mut result: Vec<Line> = lines.iter().map(to_line).collect();
+    result.sort();
+    result
 }
 
 fn to_line_a(area: &Polygon) -> Line {
@@ -107,7 +109,9 @@ fn to_line_a(area: &Polygon) -> Line {
 }
 
 fn to_lines_a(areas: &MultiPolygon) -> Vec<Line> {
-    areas.iter().map(to_line_a).collect()
+    let mut result: Vec<Line> = areas.iter().map(to_line_a).collect();
+    result.sort();
+    result
 }
 
 fn to_set<T>(vec: Vec<T>) -> HashSet<T>
@@ -392,6 +396,7 @@ fn find_areas_to_line(_init: Init, line0: Line, area00: Line, area01: Line) {
             tags: vec![
                 ("piste:type", "downhill"),
                 ("piste:difficulty", "easy"),
+                ("ref", "1"),
                 ("name", "Piste 1"),
             ],
         },
@@ -417,7 +422,7 @@ fn find_areas_to_line(_init: Init, line0: Line, area00: Line, area01: Line) {
     let pistes = parse_pistes(&document);
     let expected = vec![PisteOut {
         metadata: PisteMetadata {
-            ref_: String::new(),
+            ref_: "1".to_owned(),
             name: "Piste 1".to_owned(),
             difficulty: Difficulty::Easy,
         },
