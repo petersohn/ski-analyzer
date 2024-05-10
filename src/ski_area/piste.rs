@@ -489,12 +489,21 @@ fn merge_empty_refs(input: Vec<Piste>) -> Vec<Piste> {
     }
 
     for (metadata, datas) in refless {
-        for data in datas {
-            if data.lines.0.len() != 0 || data.areas.0.len() != 0 {
+        if datas.len() == 1 {
+            if datas[0].lines.0.len() != 0 || datas[0].areas.0.len() != 0 {
                 result.push(Piste {
-                    metadata: metadata.clone(),
-                    data,
+                    metadata,
+                    data: datas.into_iter().next().unwrap(),
                 });
+            }
+        } else {
+            for data in datas {
+                if data.lines.0.len() != 0 || data.areas.0.len() != 0 {
+                    result.push(Piste {
+                        metadata: metadata.clone(),
+                        data,
+                    });
+                }
             }
         }
     }
