@@ -184,6 +184,8 @@ fn line0() -> Line {
     ]
 }
 
+const LINE0_MIDPOINT: usize = 12;
+
 #[fixture]
 fn area00() -> Line {
     vec![
@@ -428,6 +430,52 @@ fn find_areas_to_line(_init: Init, line0: Line, area00: Line, area01: Line) {
         },
         lines: vec![line0],
         areas: vec![area00, area01],
+    }];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(actual, expected);
+}
+
+#[rstest]
+fn find_lines_to_area(_init: Init, line0: Line, area00: Line) {
+    let line00 = line0[0..5].to_vec();
+    let line01 = line0[5..LINE0_MIDPOINT].to_vec();
+    let document = create_document(vec![
+        WayDef {
+            line: line00.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "advanced"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: line01.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "advanced"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: area00.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "advanced"),
+                ("name", "Piste 1"),
+            ],
+        },
+    ]);
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![PisteOut {
+        metadata: PisteMetadata {
+            ref_: String::new(),
+            name: "Piste 1".to_owned(),
+            difficulty: Difficulty::Advanced,
+        },
+        lines: vec![line00, line01],
+        areas: vec![area00],
     }];
     let actual = PisteOut::list(&pistes);
     assert_eq!(actual, expected);
