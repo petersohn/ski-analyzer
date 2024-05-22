@@ -184,6 +184,7 @@ fn line0() -> Line {
     ]
 }
 
+// line0[..LINE0_MIDPOINT] intersects area00, line0[LINE0_MIDPOINT..] intersects area01
 const LINE0_MIDPOINT: usize = 12;
 
 #[fixture]
@@ -479,6 +480,154 @@ fn find_lines_to_area(_init: Init, line0: Line, area00: Line) {
     }];
     let actual = PisteOut::list(&pistes);
     assert_eq!(actual, expected);
+}
+
+#[rstest]
+fn merge_unnamed_pistes(_init: Init, line0: Line, area00: Line, area01: Line) {
+    let line00 = line0[0..8].to_vec();
+    let line01 = line0[8..].to_vec();
+    let document = create_document(vec![
+        WayDef {
+            line: line00.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: line01.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+            ],
+        },
+        WayDef {
+            line: area00.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+            ],
+        },
+        WayDef {
+            line: area01.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+            ],
+        },
+    ]);
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![PisteOut {
+        metadata: PisteMetadata {
+            ref_: String::new(),
+            name: "Piste 1".to_owned(),
+            difficulty: Difficulty::Intermediate,
+        },
+        lines: vec![line00, line01],
+        areas: vec![area00, area01],
+    }];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(actual, expected);
+}
+
+#[rstest]
+fn orphaned_unnamed_area(_init: Init, line0: Line, area01: Line) {
+    let line00 = line0[0..LINE0_MIDPOINT].to_vec();
+    let document = create_document(vec![
+        WayDef {
+            line: line00.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+                ("ref", "1a"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: area01.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+            ],
+        },
+    ]);
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: "1a".to_owned(),
+                name: "Piste 1".to_owned(),
+                difficulty: Difficulty::Intermediate,
+            },
+            lines: vec![line00],
+            areas: vec![],
+        },
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: String::new(),
+                difficulty: Difficulty::Intermediate,
+            },
+            lines: vec![],
+            areas: vec![area01],
+        },
+    ];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(to_set(actual), to_set(expected));
+}
+
+#[rstest]
+fn orphaned_unnamed_line(_init: Init, line0: Line, area01: Line) {
+    let line00 = line0[0..LINE0_MIDPOINT].to_vec();
+    let document = create_document(vec![
+        WayDef {
+            line: line00.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "novice"),
+            ],
+        },
+        WayDef {
+            line: area01.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "novice"),
+                ("ref", "1a"),
+                ("name", "Piste 1"),
+            ],
+        },
+    ]);
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: String::new(),
+                difficulty: Difficulty::Novice,
+            },
+            lines: vec![line00],
+            areas: vec![],
+        },
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: "1a".to_owned(),
+                name: "Piste 1".to_owned(),
+                difficulty: Difficulty::Novice,
+            },
+            lines: vec![],
+            areas: vec![area01],
+        },
+    ];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(to_set(actual), to_set(expected));
 }
 
 #[rstest]
