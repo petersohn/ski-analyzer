@@ -574,3 +574,51 @@ fn different_name(_init: Init, line0: Line, area00: Line) {
     let actual = PisteOut::list(&pistes);
     assert_eq!(to_set(actual), to_set(expected));
 }
+
+#[rstest]
+fn not_intersecting_line_and_area(_init: Init, line0: Line, area00: Line) {
+    let line00 = line0[LINE0_MIDPOINT..].to_vec();
+    let document = create_document(vec![
+        WayDef {
+            line: line00.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "advanced"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: area00.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "advanced"),
+                ("name", "Piste 1"),
+            ],
+        },
+    ]);
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: "Piste 1".to_owned(),
+                difficulty: Difficulty::Advanced,
+            },
+            lines: vec![line00],
+            areas: vec![],
+        },
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: "Piste 1".to_owned(),
+                difficulty: Difficulty::Advanced,
+            },
+            lines: vec![],
+            areas: vec![area00],
+        },
+    ];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(actual, expected);
+}
