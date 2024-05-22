@@ -631,6 +631,74 @@ fn orphaned_unnamed_line(_init: Init, line0: Line, area01: Line) {
 }
 
 #[rstest]
+fn merge_unnamed_line_and_area(
+    _init: Init,
+    line0: Line,
+    area00: Line,
+    area01: Line,
+) {
+    let line00 = line0[..LINE0_MIDPOINT].to_vec();
+    let line01 = line0[LINE0_MIDPOINT..].to_vec();
+    let document = create_document(vec![
+        WayDef {
+            line: line00.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+            ],
+        },
+        WayDef {
+            line: line01.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+            ],
+        },
+        WayDef {
+            line: area00.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+            ],
+        },
+        WayDef {
+            line: area01.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+                ("name", "Piste 1"),
+            ],
+        },
+    ]);
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: String::new(),
+                difficulty: Difficulty::Intermediate,
+            },
+            lines: vec![line00],
+            areas: vec![area00],
+        },
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: "Piste 1".to_owned(),
+                difficulty: Difficulty::Intermediate,
+            },
+            lines: vec![line01],
+            areas: vec![area01],
+        },
+    ];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(to_set(actual), to_set(expected));
+}
+
+#[rstest]
 fn different_difficulty(_init: Init, line0: Line, area00: Line) {
     let document = create_document(vec![
         WayDef {
@@ -770,4 +838,69 @@ fn not_intersecting_line_and_area(_init: Init, line0: Line, area00: Line) {
     ];
     let actual = PisteOut::list(&pistes);
     assert_eq!(actual, expected);
+}
+
+#[rstest]
+fn use_larger_overlap(_init: Init, line0: Line, area00: Line, area01: Line) {
+    let splitpoint = LINE0_MIDPOINT - 1;
+    let line00 = line0[..splitpoint].to_vec();
+    let line01 = line0[splitpoint..].to_vec();
+    let document = create_document(vec![
+        WayDef {
+            line: line00.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+            ],
+        },
+        WayDef {
+            line: line01.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+            ],
+        },
+        WayDef {
+            line: area00.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: area01.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "intermediate"),
+                ("name", "Piste 2"),
+            ],
+        },
+    ]);
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: "Piste 1".to_owned(),
+                difficulty: Difficulty::Intermediate,
+            },
+            lines: vec![line00],
+            areas: vec![area00],
+        },
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: "Piste 2".to_owned(),
+                difficulty: Difficulty::Intermediate,
+            },
+            lines: vec![line01],
+            areas: vec![area01],
+        },
+    ];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(to_set(actual), to_set(expected));
 }
