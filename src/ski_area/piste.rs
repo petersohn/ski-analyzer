@@ -55,7 +55,7 @@ struct PartialPisteId {
 #[derive(Default, Debug)]
 struct PartialPistes {
     line_entities: Vec<BoundedGeometry<LineString>>,
-    area_entities: Vec<BoundedGeometry<Polygon>>,
+    area_entities: Vec<BoundedGeometry<MultiPolygon>>,
 }
 
 struct UnnamedPiste<T, C = f64>
@@ -72,7 +72,7 @@ fn parse_partial_piste(
     way: &Way,
     result: &mut HashMap<PisteMetadata, PartialPistes>,
     unnamed_lines: &mut Vec<UnnamedPiste<LineString>>,
-    unnamed_areas: &mut Vec<UnnamedPiste<Polygon>>,
+    unnamed_areas: &mut Vec<UnnamedPiste<MultiPolygon>>,
 ) -> Result<()> {
     let metadata = parse_metadata(&way.tags);
     let coords = parse_way(&doc, &way)?;
@@ -83,7 +83,9 @@ fn parse_partial_piste(
         if is_area {
             unnamed_areas.push(UnnamedPiste {
                 difficulty: metadata.difficulty,
-                geometry: BoundedGeometry::new(Polygon::new(line, Vec::new()))?,
+                geometry: BoundedGeometry::new(MultiPolygon::new(vec![
+                    Polygon::new(line, Vec::new()),
+                ]))?,
             });
         } else {
             unnamed_lines.push(UnnamedPiste {
@@ -97,9 +99,9 @@ fn parse_partial_piste(
     let partial_piste = result.entry(metadata).or_default();
 
     if is_area {
-        partial_piste
-            .area_entities
-            .push(BoundedGeometry::new(Polygon::new(line, Vec::new()))?);
+        partial_piste.area_entities.push(BoundedGeometry::new(
+            MultiPolygon::new(vec![Polygon::new(line, Vec::new())]),
+        )?);
     } else {
         partial_piste
             .line_entities
@@ -113,7 +115,7 @@ fn parse_partial_pistes(
 ) -> (
     HashMap<PisteMetadata, PartialPistes>,
     Vec<UnnamedPiste<LineString>>,
-    Vec<UnnamedPiste<Polygon>>,
+    Vec<UnnamedPiste<MultiPolygon>>,
 ) {
     let mut result = HashMap::new();
     let mut unnamed_lines = Vec::new();
@@ -139,7 +141,7 @@ fn parse_partial_pistes(
 }
 
 fn get_intersection_length(
-    area: &BoundedGeometry<Polygon>,
+    area: &BoundedGeometry<MultiPolygon>,
     line: &BoundedGeometry<LineString>,
 ) -> f64 {
     if !area.bounding_rect.intersects(&line.bounding_rect) {
@@ -252,10 +254,10 @@ fn line_to_piste(line: BoundedGeometry<LineString>) -> PisteData {
     }
 }
 
-fn area_to_piste(area: BoundedGeometry<Polygon>) -> PisteData {
+fn area_to_piste(area: BoundedGeometry<MultiPolygon>) -> PisteData {
     PisteData {
         bounding_rect: area.bounding_rect,
-        areas: MultiPolygon::new(vec![area.item]),
+        areas: area.item,
         lines: MultiLineString::new(Vec::new()),
     }
 }
@@ -352,7 +354,7 @@ fn create_pistes(
 
 fn merge_unnamed_pistes(
     unnamed_lines: Vec<UnnamedPiste<LineString>>,
-    unnamed_areas: Vec<UnnamedPiste<Polygon>>,
+    unnamed_areas: Vec<UnnamedPiste<MultiPolygon>>,
 ) -> Vec<Piste> {
     let mut pistes: HashMap<Difficulty, Vec<PisteData>> = HashMap::new();
     for line in unnamed_lines {
@@ -383,7 +385,7 @@ fn merge_unnamed_pistes(
 
 fn handle_unnamed_entities(
     mut unnamed_lines: Vec<UnnamedPiste<LineString>>,
-    mut unnamed_areas: Vec<UnnamedPiste<Polygon>>,
+    mut unnamed_areas: Vec<UnnamedPiste<MultiPolygon>>,
     partial_pistes: &mut HashMap<PisteMetadata, PartialPistes>,
 ) -> Vec<Piste> {
     let mut changed = true;
