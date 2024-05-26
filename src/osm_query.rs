@@ -45,9 +45,19 @@ pub fn query(query: &str) -> Result<Vec<u8>> {
 }
 
 pub fn query_ski_area(name: &str) -> Result<Vec<u8>> {
-    let query_string = String::from(
-        r###"[out:json];(way[landuse="winter_sports"][name~""###,
-    ) + name
-        + r###"",i]->.a;(way(area.a)["aerialway"];way(area.a)["piste:type"="downhill"];);node(w););out;"###;
+    let query_string = format!(
+        r###"[out:json];
+(
+    way[landuse="winter_sports"][name~"{}",i]->.a;
+    (
+        way(area.a)["aerialway"];
+        way(area.a)["piste:type"="downhill"];
+        rel(area.a)["piste:type"="downhill"];
+    );
+    >;
+);
+out;"###,
+        name
+    );
     query(query_string.as_str())
 }
