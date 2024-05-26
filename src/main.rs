@@ -14,6 +14,9 @@ mod osm_query;
 mod osm_reader;
 mod ski_area;
 
+#[cfg(test)]
+mod osm_reader_test;
+
 #[derive(Parser)]
 struct Args {
     #[command(subcommand)]

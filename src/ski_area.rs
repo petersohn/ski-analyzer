@@ -14,6 +14,7 @@ use crate::osm_reader::{get_tag, Document};
 
 mod lift;
 mod piste;
+
 #[cfg(test)]
 mod piste_test;
 
