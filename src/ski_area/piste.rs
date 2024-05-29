@@ -75,7 +75,7 @@ fn parse_partial_piste(
     unnamed_areas: &mut Vec<UnnamedPiste<MultiPolygon>>,
 ) -> Result<()> {
     let metadata = parse_metadata(&way.tags);
-    let coords = parse_way(&doc, &way)?;
+    let coords = parse_way(&doc, &way.nodes)?;
     let line = LineString::new(coords);
     let is_area = get_tag(&way.tags, "area") == "yes";
 

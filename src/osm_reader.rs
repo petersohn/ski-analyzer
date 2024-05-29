@@ -142,6 +142,16 @@ impl Elements {
         }
     }
 
+    pub fn get_way<'a>(&'a self, id: &u64) -> Result<&'a Way> {
+        match self.ways.get(&id) {
+            None => Err(Error::new(
+                ErrorType::OSMError,
+                format!("way not found: {}", id),
+            )),
+            Some(val) => Ok(&val),
+        }
+    }
+
     pub fn iterate_nodes<'a, F>(&'a self, ids: &[u64], mut f: F) -> Result<()>
     where
         F: FnMut(&'a Node) -> Result<()>,
@@ -250,10 +260,10 @@ pub fn parse_yesno(value: &str) -> Result<Option<bool>> {
     }
 }
 
-pub fn parse_way(doc: &Document, way: &Way) -> Result<Vec<Coord>> {
+pub fn parse_way(doc: &Document, nodes: &Vec<u64>) -> Result<Vec<Coord>> {
     let mut coords: Vec<Coord> = Vec::new();
-    coords.reserve(way.nodes.len());
-    doc.elements.iterate_nodes(&way.nodes, |node: &Node| {
+    coords.reserve(nodes.len());
+    doc.elements.iterate_nodes(&nodes, |node: &Node| {
         coords.push(node.into());
         Ok(())
     })?;

@@ -10,6 +10,7 @@ use std::io::{Read, Write};
 mod collection;
 mod config;
 mod error;
+mod multipolygon;
 mod osm_query;
 mod osm_reader;
 mod ski_area;

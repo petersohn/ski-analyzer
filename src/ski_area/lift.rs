@@ -201,7 +201,7 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
         }
     }
 
-    let mut line_points = parse_way(&doc, &way)?;
+    let mut line_points = parse_way(&doc, &way.nodes)?;
     let mut begin_altitude = parse_ele(&begin_node.tags);
     let mut end_altitude = parse_ele(&end_node.tags);
 
