@@ -227,3 +227,57 @@ fn one_outer_and_two_inner_rings() {
         expected
     );
 }
+
+// https://wiki.openstreetmap.org/wiki/Relation:multipolygon#Multiple_ways_forming_a_ring
+#[test]
+fn multiple_ways_forming_a_ring() {
+    let doc = r::Document {
+        elements: r::Elements {
+            nodes: HashMap::from([
+                (0, node(8.0, 2.0)),
+                (1, node(12.0, 4.0)),
+                (2, node(13.0, 8.0)),
+                (3, node(8.0, 11.0)),
+                (4, node(5.0, 7.0)),
+                (10, node(8.0, 5.0)),
+                (11, node(10.0, 6.0)),
+                (12, node(9.0, 8.0)),
+                (13, node(7.0, 7.0)),
+            ]),
+            ways: HashMap::from([
+                (100, way(&[4, 0, 1])),
+                (101, way(&[1, 2, 3, 4])),
+                (102, way(&[10, 11, 12, 13, 10])),
+            ]),
+            relations: HashMap::from([(200, mp(&[100, 101], &[102]))]),
+        },
+    };
+
+    let actual =
+        parse_multipolygon(&doc, doc.elements.relations.get(&200).unwrap())
+            .unwrap();
+    let expected = MultiPolygon(vec![Polygon::new(
+        line(&[
+            (8.0, 2.0),
+            (12.0, 4.0),
+            (13.0, 8.0),
+            (8.0, 11.0),
+            (5.0, 7.0),
+            (8.0, 2.0),
+        ]),
+        vec![line(&[
+            (8.0, 5.0),
+            (10.0, 6.0),
+            (9.0, 8.0),
+            (7.0, 7.0),
+            (8.0, 5.0),
+        ])],
+    )]);
+
+    assert!(
+        is_equal(&actual, &expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
