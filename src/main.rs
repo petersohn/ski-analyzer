@@ -16,6 +16,8 @@ mod osm_reader;
 mod ski_area;
 
 #[cfg(test)]
+mod multipolygon_test;
+#[cfg(test)]
 mod osm_reader_test;
 
 #[derive(Parser)]

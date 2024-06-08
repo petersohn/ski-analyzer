@@ -1,6 +1,7 @@
-use geo::{LineString, MultiPolygon, Polygon};
+use geo::{Contains, LineString, MultiPolygon, Polygon, Relate};
+use topological_sort::TopologicalSort;
 
-use super::osm_reader::{parse_way, Document, Relation, Way};
+use super::osm_reader::{parse_way, Document, Relation};
 use crate::error::{Error, ErrorType, Result};
 
 use std::cmp::{max, min};
@@ -66,6 +67,26 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
     Ok(result)
 }
 
+fn sort_outer_polygons(input: &Vec<Polygon>) -> Vec<Polygon> {
+    let mut ordering: TopologicalSort<usize> = TopologicalSort::new();
+    for i in 0..input.len() {
+        ordering.insert(i);
+    }
+
+    for i in 0..(input.len() - 1) {
+        for j in (i + 1)..input.len() {
+            let int = input[i].relate(&input[j]);
+            if int.matches("TFFT*F***").unwrap() {
+                ordering.add_dependency(i, j);
+            } else if int.matches("TT*F**FF*").unwrap() {
+                ordering.add_dependency(j, i);
+            }
+        }
+    }
+
+    ordering.map(|i| input[i].clone()).collect()
+}
+
 pub fn parse_multipolygon(
     doc: &Document,
     input: &Relation,
@@ -86,8 +107,26 @@ pub fn parse_multipolygon(
         };
     }
 
-    let outers = find_rings(&doc, outer_ways)?;
+    let mut outers = sort_outer_polygons(&find_rings(&doc, outer_ways)?);
     let inners = find_rings(&doc, inner_ways)?;
+    let mut remaining = inners.len();
 
-    Err(Error::new_s(ErrorType::LogicError, "x"))
+    for inner in inners {
+        for outer in &mut outers {
+            if outer.contains(&inner) {
+                outer.interiors_push(inner.into_inner().0);
+                remaining -= 1;
+                break;
+            }
+        }
+    }
+
+    if remaining != 0 {
+        Err(Error::new(
+            ErrorType::OSMError,
+            format!("Multipolygon has {} orphaned inner rings.", remaining),
+        ))
+    } else {
+        Ok(MultiPolygon(outers))
+    }
 }
