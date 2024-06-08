@@ -160,3 +160,70 @@ fn one_outer_and_one_inner_ring() {
         expected
     );
 }
+
+// https://wiki.openstreetmap.org/wiki/Relation:multipolygon#One_outer_and_two_inner_rings
+#[test]
+fn one_outer_and_two_inner_rings() {
+    let doc = r::Document {
+        elements: r::Elements {
+            nodes: HashMap::from([
+                (0, node(8.0, 2.0)),
+                (1, node(12.0, 4.0)),
+                (2, node(13.0, 8.0)),
+                (3, node(8.0, 11.0)),
+                (4, node(5.0, 7.0)),
+                (10, node(8.0, 3.0)),
+                (11, node(10.0, 4.0)),
+                (12, node(9.0, 6.0)),
+                (13, node(7.0, 5.0)),
+                (20, node(9.0, 7.0)),
+                (21, node(11.0, 7.0)),
+                (22, node(10.0, 9.0)),
+                (23, node(8.0, 8.0)),
+            ]),
+            ways: HashMap::from([
+                (100, way(&[0, 1, 2, 3, 4, 0])),
+                (101, way(&[10, 11, 12, 13, 10])),
+                (102, way(&[20, 21, 22, 23, 20])),
+            ]),
+            relations: HashMap::from([(200, mp(&[100], &[101, 102]))]),
+        },
+    };
+
+    let actual =
+        parse_multipolygon(&doc, doc.elements.relations.get(&200).unwrap())
+            .unwrap();
+    let expected = MultiPolygon(vec![Polygon::new(
+        line(&[
+            (8.0, 2.0),
+            (12.0, 4.0),
+            (13.0, 8.0),
+            (8.0, 11.0),
+            (5.0, 7.0),
+            (8.0, 2.0),
+        ]),
+        vec![
+            line(&[
+                (8.0, 3.0),
+                (10.0, 4.0),
+                (9.0, 6.0),
+                (7.0, 5.0),
+                (8.0, 3.0),
+            ]),
+            line(&[
+                (9.0, 7.0),
+                (11.0, 7.0),
+                (10.0, 9.0),
+                (8.0, 8.0),
+                (9.0, 7.0),
+            ]),
+        ],
+    )]);
+
+    assert!(
+        is_equal(&actual, &expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
