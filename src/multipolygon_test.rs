@@ -108,6 +108,7 @@ fn line(points: &[(f64, f64)]) -> LineString {
     )
 }
 
+// https://wiki.openstreetmap.org/wiki/Relation:multipolygon#One_outer_and_one_inner_ring
 #[test]
 fn one_outer_and_one_inner_ring() {
     let doc = r::Document {
