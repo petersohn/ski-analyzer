@@ -125,10 +125,10 @@ fn one_outer_and_one_inner_ring() {
                 (13, node(7.0, 7.0)),
             ]),
             ways: HashMap::from([
-                (102, way(&[0, 1, 2, 3, 4, 0])),
-                (103, way(&[10, 11, 12, 13, 10])),
+                (101, way(&[0, 1, 2, 3, 4, 0])),
+                (102, way(&[10, 11, 12, 13, 10])),
             ]),
-            relations: HashMap::from([(200, mp(&[102], &[103]))]),
+            relations: HashMap::from([(200, mp(&[101], &[102]))]),
         },
     };
 
@@ -182,11 +182,11 @@ fn one_outer_and_two_inner_rings() {
                 (23, node(8.0, 8.0)),
             ]),
             ways: HashMap::from([
-                (102, way(&[0, 1, 2, 3, 4, 0])),
-                (103, way(&[10, 11, 12, 13, 10])),
-                (104, way(&[20, 21, 22, 23, 20])),
+                (101, way(&[0, 1, 2, 3, 4, 0])),
+                (102, way(&[10, 11, 12, 13, 10])),
+                (103, way(&[20, 21, 22, 23, 20])),
             ]),
-            relations: HashMap::from([(200, mp(&[102], &[103, 104]))]),
+            relations: HashMap::from([(200, mp(&[101], &[102, 103]))]),
         },
     };
 
@@ -495,6 +495,65 @@ fn island_within_a_hole() {
             vec![],
         ),
     ]);
+
+    assert!(
+        is_equal(&actual, &expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+// https://wiki.openstreetmap.org/wiki/Relation:multipolygon#Touching_inner_rings
+#[test]
+fn touching_inner_rings() {
+    let doc = r::Document {
+        elements: r::Elements {
+            nodes: HashMap::from([
+                (0, node(8.0, 2.0)),
+                (1, node(12.0, 4.0)),
+                (2, node(13.0, 8.0)),
+                (3, node(8.0, 11.0)),
+                (4, node(5.0, 7.0)),
+                (10, node(8.0, 5.0)),
+                (11, node(10.0, 6.0)),
+                (12, node(9.5, 7.0)),
+                (13, node(7.5, 6.0)),
+                (14, node(9.0, 8.0)),
+                (15, node(7.0, 7.0)),
+            ]),
+            ways: HashMap::from([
+                (101, way(&[0, 1, 2, 3, 4, 0])),
+                (102, way(&[10, 11, 12, 13, 10])),
+                (103, way(&[13, 12, 14, 15, 13])),
+            ]),
+            relations: HashMap::from([(200, mp(&[101], &[102, 103]))]),
+        },
+    };
+
+    let actual =
+        parse_multipolygon(&doc, doc.elements.relations.get(&200).unwrap())
+            .unwrap();
+    let expected = MultiPolygon(vec![Polygon::new(
+        line(&[
+            (8.0, 2.0),
+            (12.0, 4.0),
+            (13.0, 8.0),
+            (8.0, 11.0),
+            (5.0, 7.0),
+            (8.0, 2.0),
+        ]),
+        vec![
+            line(&[
+                (8.0, 5.0),
+                (10.0, 6.0),
+                (9.5, 7.0),
+                (7.5, 6.0),
+                (8.0, 5.0),
+            ]),
+            line(&[(7.5, 6.0), (9.5, 7.0), (9.0, 8.0), (7.0, 7.0), (7.5, 6.0)]),
+        ],
+    )]);
 
     assert!(
         is_equal(&actual, &expected),
