@@ -281,3 +281,155 @@ fn multiple_ways_forming_a_ring() {
         expected
     );
 }
+
+// https://wiki.openstreetmap.org/wiki/Relation:multipolygon#Two_disjunct_outer_rings
+#[test]
+fn two_disjunct_outer_rings() {
+    let doc = r::Document {
+        elements: r::Elements {
+            nodes: HashMap::from([
+                (0, node(4.0, 2.0)),
+                (1, node(8.0, 4.0)),
+                (2, node(9.0, 8.0)),
+                (3, node(4.0, 11.0)),
+                (4, node(1.0, 7.0)),
+                (10, node(11.0, 2.0)),
+                (11, node(15.0, 5.0)),
+                (12, node(12.0, 11.0)),
+                (13, node(10.0, 8.0)),
+                (14, node(9.0, 4.0)),
+            ]),
+            ways: HashMap::from([
+                (100, way(&[0, 1, 2, 3, 4, 0])),
+                (101, way(&[10, 11, 12, 13, 14, 10])),
+            ]),
+            relations: HashMap::from([(200, mp(&[100, 101], &[]))]),
+        },
+    };
+
+    let actual =
+        parse_multipolygon(&doc, doc.elements.relations.get(&200).unwrap())
+            .unwrap();
+    let expected = MultiPolygon(vec![
+        Polygon::new(
+            line(&[
+                (4.0, 2.0),
+                (8.0, 4.0),
+                (9.0, 8.0),
+                (4.0, 11.0),
+                (1.0, 7.0),
+                (4.0, 2.0),
+            ]),
+            vec![],
+        ),
+        Polygon::new(
+            line(&[
+                (11.0, 2.0),
+                (15.0, 5.0),
+                (12.0, 11.0),
+                (10.0, 8.0),
+                (9.0, 4.0),
+                (11.0, 2.0),
+            ]),
+            vec![],
+        ),
+    ]);
+
+    assert!(
+        is_equal(&actual, &expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+// https://wiki.openstreetmap.org/wiki/Relation:multipolygon#Two_disjunct_outer_rings_and_multiple_ways_forming_a_ring
+#[test]
+fn two_disjunct_outer_rings_and_multiple_ways_forming_a_ring() {
+    let doc = r::Document {
+        elements: r::Elements {
+            nodes: HashMap::from([
+                (0, node(4.0, 2.0)),
+                (1, node(8.0, 4.0)),
+                (2, node(9.0, 8.0)),
+                (3, node(4.0, 11.0)),
+                (4, node(1.0, 7.0)),
+                (10, node(11.0, 2.0)),
+                (11, node(15.0, 5.0)),
+                (12, node(12.0, 11.0)),
+                (13, node(10.0, 8.0)),
+                (14, node(9.0, 4.0)),
+                (20, node(3.0, 6.0)),
+                (21, node(6.0, 4.0)),
+                (22, node(7.0, 6.0)),
+                (23, node(6.0, 9.0)),
+                (24, node(4.0, 9.0)),
+                (30, node(10.0, 4.0)),
+                (31, node(12.0, 4.0)),
+                (32, node(14.0, 6.0)),
+                (33, node(12.0, 8.0)),
+                (34, node(10.0, 7.0)),
+            ]),
+            ways: HashMap::from([
+                (100, way(&[0, 1, 2, 3, 4, 0])),
+                (101, way(&[20, 21, 22])),
+                (102, way(&[22, 23, 24, 20])),
+                (103, way(&[10, 11, 12, 13, 14, 10])),
+                (104, way(&[30, 31, 32, 33, 34, 30])),
+            ]),
+            relations: HashMap::from([(
+                200,
+                mp(&[100, 103], &[101, 102, 104]),
+            )]),
+        },
+    };
+
+    let actual =
+        parse_multipolygon(&doc, doc.elements.relations.get(&200).unwrap())
+            .unwrap();
+    let expected = MultiPolygon(vec![
+        Polygon::new(
+            line(&[
+                (4.0, 2.0),
+                (8.0, 4.0),
+                (9.0, 8.0),
+                (4.0, 11.0),
+                (1.0, 7.0),
+                (4.0, 2.0),
+            ]),
+            vec![line(&[
+                (3.0, 6.0),
+                (6.0, 4.0),
+                (7.0, 6.0),
+                (6.0, 9.0),
+                (4.0, 9.0),
+                (3.0, 6.0),
+            ])],
+        ),
+        Polygon::new(
+            line(&[
+                (11.0, 2.0),
+                (15.0, 5.0),
+                (12.0, 11.0),
+                (10.0, 8.0),
+                (9.0, 4.0),
+                (11.0, 2.0),
+            ]),
+            vec![line(&[
+                (10.0, 4.0),
+                (12.0, 4.0),
+                (14.0, 6.0),
+                (12.0, 8.0),
+                (10.0, 7.0),
+                (10.0, 4.0),
+            ])],
+        ),
+    ]);
+
+    assert!(
+        is_equal(&actual, &expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
