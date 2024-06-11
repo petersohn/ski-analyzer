@@ -4,30 +4,9 @@ use topological_sort::TopologicalSort;
 use super::osm_reader::{parse_way, Document, Relation};
 use crate::error::{Error, ErrorType, Result};
 
-use std::cmp::{max, min};
+use std::collections::HashMap;
 
 type Line = Vec<u64>;
-
-fn find_ring(lines: &mut Vec<Line>) -> Option<Line> {
-    for i in 0..lines.len() {
-        for j in 0..lines.len() {
-            if i == j {
-                continue;
-            }
-
-            if lines[i].last().unwrap() == lines[j].first().unwrap() {
-                let mut ret = Line::new();
-                ret.append(&mut lines[i]);
-                ret.pop();
-                ret.append(&mut lines[j]);
-                lines.remove(max(i, j));
-                lines.remove(min(i, j));
-                return Some(ret);
-            }
-        }
-    }
-    None
-}
 
 fn create_polygon(doc: &Document, line: &Line) -> Result<Polygon> {
     Ok(Polygon::new(
@@ -37,7 +16,7 @@ fn create_polygon(doc: &Document, line: &Line) -> Result<Polygon> {
 }
 
 fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
-    let mut result: Vec<Polygon> = Vec::new();
+    let mut result = Vec::new();
     let mut lines: Vec<Line> = Vec::new();
     for way in ways {
         if way.len() < 2 {
@@ -53,15 +32,81 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
         }
     }
 
-    while let Some(line) = find_ring(&mut lines) {
-        result.push(create_polygon(&doc, &line)?);
+    let mut endpoints: HashMap<u64, Vec<(usize, bool)>> = HashMap::new();
+
+    let mut push = |id, i| endpoints.entry(id).or_default().push(i);
+    fn pop(
+        e: &mut HashMap<u64, Vec<(usize, bool)>>,
+        id: &u64,
+        i1: usize,
+        i2: usize,
+    ) {
+        if {
+            let v = e.get_mut(id).unwrap();
+            v.retain(|x| x.0 != i1 && x.0 != i2);
+            v.is_empty()
+        } {
+            e.remove(id);
+        }
     }
 
-    if !lines.is_empty() {
-        return Err(Error::new_s(
-            ErrorType::OSMError,
-            "Not all multipolygon ways are closed",
-        ));
+    for i in 0..lines.len() {
+        push(*lines[i].first().unwrap(), (i, false));
+        push(*lines[i].last().unwrap(), (i, true));
+    }
+
+    while !endpoints.is_empty() {
+        let key = endpoints.iter().next().unwrap().0.clone();
+        let mut value = endpoints.remove(&key).unwrap();
+        if value.len() < 2 {
+            return Err(Error::new(
+                ErrorType::OSMError,
+                format!(
+                    "Unmatched endpoints in multipolygon: {:?}",
+                    value
+                        .iter()
+                        .map(|i| &lines[i.0])
+                        .collect::<Vec<&Vec<u64>>>()
+                ),
+            ));
+        }
+        let first = value.pop().unwrap();
+        let second = value.pop().unwrap();
+        if !value.is_empty() {
+            endpoints.insert(key, value);
+        }
+
+        if first.1 == second.1 {
+            lines[first.0].reverse();
+        }
+        let (idx1, idx2) = if second.1 {
+            (second.0, first.0)
+        } else {
+            (first.0, second.0)
+        };
+
+        let mut head: Line = Line::new();
+        let mut tail: Line = Line::new();
+        head.append(&mut lines[idx1]);
+        tail.append(&mut lines[idx2]);
+        assert_eq!(head.last(), tail.first());
+        let middle_id = head.pop().unwrap();
+        head.append(&mut tail);
+        let first_id = *head.first().unwrap();
+        let last_id = *head.last().unwrap();
+        if first_id == last_id {
+            result.push(create_polygon(&doc, &head)?);
+            pop(&mut endpoints, &first_id, idx1, idx2);
+        } else {
+            lines[idx1] = head;
+            for i in endpoints.get_mut(&last_id).unwrap().iter_mut() {
+                if i.0 == idx2 {
+                    *i = (idx1, true);
+                    break;
+                }
+            }
+        }
+        pop(&mut endpoints, &middle_id, idx1, idx2);
     }
 
     Ok(result)
