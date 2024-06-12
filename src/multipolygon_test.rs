@@ -1,6 +1,6 @@
 use super::multipolygon::parse_multipolygon;
 use super::osm_reader as r;
-use geo::{coord, LineString, MultiPolygon, Polygon};
+use geo::{coord, Coord, LineString, MultiPolygon, Polygon};
 use std::collections::HashMap;
 
 fn is_equal_l(lhs: &LineString, rhs: &LineString) -> bool {
@@ -8,21 +8,26 @@ fn is_equal_l(lhs: &LineString, rhs: &LineString) -> bool {
         return false;
     }
 
-    if lhs.0 == rhs.0 {
+    let mut rhs_ = rhs.0.clone();
+
+    let check = |rot: &mut Vec<Coord>| {
+        for _ in 0..rot.len() - 1 {
+            if lhs.0 == *rot {
+                return true;
+            }
+            rot.pop();
+            rot.rotate_right(1);
+            rot.push(rot[0]);
+        }
+        false
+    };
+
+    if check(&mut rhs_) {
         return true;
     }
 
-    let mut rot = rhs.0.clone();
-    for _ in 0..rhs.0.len() - 2 {
-        rot.pop();
-        rot.rotate_right(1);
-        rot.push(rot[0]);
-        if lhs.0 == rot {
-            return true;
-        }
-    }
-
-    false
+    rhs_.reverse();
+    check(&mut rhs_)
 }
 
 fn is_equal_set<T, Op>(lhs: &[T], rhs: &[T], op: Op) -> bool
@@ -247,6 +252,60 @@ fn multiple_ways_forming_a_ring() {
             ways: HashMap::from([
                 (101, way(&[4, 0, 1])),
                 (102, way(&[1, 2, 3, 4])),
+                (103, way(&[10, 11, 12, 13, 10])),
+            ]),
+            relations: HashMap::from([(200, mp(&[101, 102], &[103]))]),
+        },
+    };
+
+    let actual =
+        parse_multipolygon(&doc, doc.elements.relations.get(&200).unwrap())
+            .unwrap();
+    let expected = MultiPolygon(vec![Polygon::new(
+        line(&[
+            (8.0, 2.0),
+            (12.0, 4.0),
+            (13.0, 8.0),
+            (8.0, 11.0),
+            (5.0, 7.0),
+            (8.0, 2.0),
+        ]),
+        vec![line(&[
+            (8.0, 5.0),
+            (10.0, 6.0),
+            (9.0, 8.0),
+            (7.0, 7.0),
+            (8.0, 5.0),
+        ])],
+    )]);
+
+    assert!(
+        is_equal(&actual, &expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+// https://wiki.openstreetmap.org/wiki/Relation:multipolygon#Multiple_ways_forming_a_ring
+#[test]
+fn multiple_ways_forming_a_ring_with_different_directions() {
+    let doc = r::Document {
+        elements: r::Elements {
+            nodes: HashMap::from([
+                (0, node(8.0, 2.0)),
+                (1, node(12.0, 4.0)),
+                (2, node(13.0, 8.0)),
+                (3, node(8.0, 11.0)),
+                (4, node(5.0, 7.0)),
+                (10, node(8.0, 5.0)),
+                (11, node(10.0, 6.0)),
+                (12, node(9.0, 8.0)),
+                (13, node(7.0, 7.0)),
+            ]),
+            ways: HashMap::from([
+                (101, way(&[4, 0, 1])),
+                (102, way(&[4, 3, 2, 1])),
                 (103, way(&[10, 11, 12, 13, 10])),
             ]),
             relations: HashMap::from([(200, mp(&[101, 102], &[103]))]),
@@ -604,24 +663,24 @@ fn complex_combination() {
             ways: HashMap::from([
                 (101, way(&[0, 1])),
                 (102, way(&[1, 2])),
-                (103, way(&[2, 3, 4])),
+                (103, way(&[4, 3, 2])),
                 (104, way(&[4, 5, 0])),
                 (105, way(&[10, 11, 12, 13])),
                 (106, way(&[13, 14, 10])),
                 (107, way(&[20, 21])),
-                (108, way(&[21, 22])),
+                (108, way(&[22, 21])),
                 (109, way(&[22, 23])),
                 (110, way(&[23, 20])),
                 (111, way(&[30, 31, 32, 30])),
                 (112, way(&[40, 41])),
-                (113, way(&[41, 42])),
-                (114, way(&[42, 43])),
+                (113, way(&[42, 41])),
+                (114, way(&[43, 42])),
                 (115, way(&[43, 40])),
                 (116, way(&[50, 51])),
                 (117, way(&[51, 52, 53])),
                 (118, way(&[53, 54])),
                 (119, way(&[54, 50])),
-                (120, way(&[60, 61, 62, 63, 60])),
+                (120, way(&[60, 63, 62, 61, 60])),
             ]),
             relations: HashMap::from([(
                 200,

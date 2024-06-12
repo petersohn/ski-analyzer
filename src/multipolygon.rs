@@ -62,7 +62,8 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
             endpoints.insert(key, value);
         }
 
-        if first.1 == second.1 {
+        let reverse = first.1 == second.1;
+        if reverse {
             lines[first.0].reverse();
         }
         let (idx1, idx2) = if second.1 {
@@ -90,11 +91,17 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
             }
             head.clear();
         } else {
-            for i in endpoints.get_mut(&last_id).unwrap().iter_mut() {
-                if i.0 == idx2 {
-                    *i = (idx1, true);
-                    break;
+            let mut replace = |id, idx, value| {
+                for i in endpoints.get_mut(id).unwrap().iter_mut() {
+                    if i.0 == idx {
+                        *i = value;
+                        break;
+                    }
                 }
+            };
+            replace(&last_id, idx2, (idx1, true));
+            if reverse {
+                replace(&first_id, idx1, (idx1, false));
             }
         }
     }
