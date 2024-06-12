@@ -35,20 +35,6 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
     let mut endpoints: HashMap<u64, Vec<(usize, bool)>> = HashMap::new();
 
     let mut push = |id, i| endpoints.entry(id).or_default().push(i);
-    fn pop(
-        e: &mut HashMap<u64, Vec<(usize, bool)>>,
-        id: &u64,
-        i1: usize,
-        i2: usize,
-    ) {
-        if {
-            let v = e.get_mut(id).unwrap();
-            v.retain(|x| x.0 != i1 && x.0 != i2);
-            v.is_empty()
-        } {
-            e.remove(id);
-        }
-    }
 
     for i in 0..lines.len() {
         push(*lines[i].first().unwrap(), (i, false));
@@ -85,20 +71,25 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
             (first.0, second.0)
         };
 
-        let mut head: Line = Line::new();
         let mut tail: Line = Line::new();
-        head.append(&mut lines[idx1]);
         tail.append(&mut lines[idx2]);
+        let head = &mut lines[idx1];
         assert_eq!(head.last(), tail.first());
-        let middle_id = head.pop().unwrap();
+        head.pop();
         head.append(&mut tail);
         let first_id = *head.first().unwrap();
         let last_id = *head.last().unwrap();
         if first_id == last_id {
             result.push(create_polygon(&doc, &head)?);
-            pop(&mut endpoints, &first_id, idx1, idx2);
+            if {
+                let v = endpoints.get_mut(&first_id).unwrap();
+                v.retain(|x| x.0 != idx1 && x.0 != idx2);
+                v.is_empty()
+            } {
+                endpoints.remove(&first_id);
+            }
+            head.clear();
         } else {
-            lines[idx1] = head;
             for i in endpoints.get_mut(&last_id).unwrap().iter_mut() {
                 if i.0 == idx2 {
                     *i = (idx1, true);
@@ -106,7 +97,6 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
                 }
             }
         }
-        pop(&mut endpoints, &middle_id, idx1, idx2);
     }
 
     Ok(result)
