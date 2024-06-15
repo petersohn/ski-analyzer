@@ -408,7 +408,7 @@ fn create_pistes(
     let mut result = Vec::new();
     result.reserve(partial_pistes.len());
     let config = get_config();
-    for (metadata, partial_piste) in partial_pistes.into_iter() {
+    for (metadata, partial_piste) in partial_pistes {
         if partial_piste.line_entities.len() == 0
             && partial_piste.area_entities.len() == 0
         {
