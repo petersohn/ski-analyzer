@@ -156,16 +156,24 @@ fn parse_partial_pistes(
             continue;
         }
 
-        match || -> Result<BoundedGeometry<MultiPolygon>> {
-            Ok(BoundedGeometry::new(parse_multipolygon(&doc, &relation)?)?)
-        }() {
-            Ok(geometry) => add_piste(
-                parse_metadata(&relation.tags),
-                PisteGeometry::Area(geometry),
-                &mut result,
-                &mut unnamed_lines,
-                &mut unnamed_areas,
-            ),
+        match parse_multipolygon(&doc, &relation) {
+            Ok(mp) => {
+                let metadata = parse_metadata(&relation.tags);
+                for p in mp.0 {
+                    match BoundedGeometry::new(MultiPolygon::new(vec![p])) {
+                        Ok(geometry) => add_piste(
+                            metadata.clone(),
+                            PisteGeometry::Area(geometry),
+                            &mut result,
+                            &mut unnamed_lines,
+                            &mut unnamed_areas,
+                        ),
+                        Err(err) => {
+                            eprintln!("{}: {}", id, err)
+                        }
+                    };
+                }
+            }
             Err(err) => {
                 eprintln!("{}: error parsing multipolygon: {}", id, err)
             }

@@ -1,9 +1,11 @@
 use super::piste::parse_pistes;
 use super::{Difficulty, Piste, PisteMetadata};
 use crate::config::{set_config, Config};
-use crate::osm_reader::{Document, Node, Tags, Way};
+use crate::osm_reader::{
+    Document, Node, Relation, RelationMember, RelationMembers, Tags, Way,
+};
 use geo::{Coord, LineString, MultiLineString, MultiPolygon, Polygon};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
 use rstest::{fixture, rstest};
@@ -38,6 +40,7 @@ struct WayDef {
 #[derive(Default)]
 struct DocumentBuilder {
     id: u64,
+    node_cache: HashMap<Point, u64>,
     document: Document,
 }
 
@@ -51,7 +54,11 @@ impl DocumentBuilder {
         self.id
     }
 
-    fn add_node(&mut self, p: Point) -> u64 {
+    fn add_node(&mut self, p: &Point) -> u64 {
+        if let Some(id) = self.node_cache.get(p) {
+            return *id;
+        }
+
         let id = self.get_id();
         self.document.elements.nodes.insert(
             id,
@@ -61,15 +68,12 @@ impl DocumentBuilder {
                 tags: Tags::new(),
             },
         );
+        self.node_cache.insert(*p, id);
         id
     }
 
-    fn add_way(&mut self, line: Line, tags: &TagsDef) {
-        let mut nodes: Vec<u64> = Vec::new();
-        nodes.reserve(line.len());
-        for p in line {
-            nodes.push(self.add_node(p));
-        }
+    fn add_way(&mut self, line: &[Point], tags: &TagsDef) -> u64 {
+        let nodes = line.into_iter().map(|p| self.add_node(p)).collect();
 
         let id = self.get_id();
         self.document.elements.ways.insert(
@@ -79,13 +83,44 @@ impl DocumentBuilder {
                 tags: to_tags(&tags),
             },
         );
+        id
+    }
+
+    fn to_member(data: &(u64, &str)) -> RelationMember {
+        RelationMember {
+            ref_: data.0,
+            role: data.1.to_string(),
+        }
+    }
+
+    fn add_relation(
+        &mut self,
+        nodes: &[(u64, &str)],
+        ways: &[(u64, &str)],
+        tags: &TagsDef,
+    ) -> u64 {
+        let members = RelationMembers {
+            nodes: nodes.iter().map(DocumentBuilder::to_member).collect(),
+            ways: ways.iter().map(DocumentBuilder::to_member).collect(),
+        };
+
+        let id = self.get_id();
+        self.document.elements.relations.insert(
+            id,
+            Relation {
+                members,
+                tags: to_tags(&tags),
+            },
+        );
+
+        id
     }
 }
 
 fn create_document(ways: Vec<WayDef>) -> Document {
     let mut builder = DocumentBuilder::new();
     for way in ways {
-        builder.add_way(way.line, &way.tags);
+        builder.add_way(&way.line, &way.tags);
     }
     builder.document
 }
@@ -104,12 +139,15 @@ fn to_lines(lines: &MultiLineString) -> Vec<Line> {
     result
 }
 
-fn to_line_a(area: &Polygon) -> Line {
-    to_line(area.exterior())
+fn to_line_a(area: &Polygon) -> Area {
+    Area {
+        exterior: to_line(area.exterior()),
+        interiors: area.interiors().iter().map(to_line).collect(),
+    }
 }
 
-fn to_lines_a(areas: &MultiPolygon) -> Vec<Line> {
-    let mut result: Vec<Line> = areas.iter().map(to_line_a).collect();
+fn to_lines_a(areas: &MultiPolygon) -> Vec<Area> {
+    let mut result: Vec<Area> = areas.iter().map(to_line_a).collect();
     result.sort();
     result
 }
@@ -121,10 +159,32 @@ where
     vec.into_iter().collect()
 }
 
+#[derive(PartialEq, Eq, Debug, PartialOrd, Ord, Hash)]
+struct Area {
+    exterior: Line,
+    interiors: Vec<Line>,
+}
+
+impl Area {
+    fn simple(exterior: Line) -> Self {
+        Area {
+            exterior,
+            interiors: Vec::new(),
+        }
+    }
+
+    fn multi(exterior: Line, interiors: Vec<Line>) -> Self {
+        Area {
+            exterior,
+            interiors,
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Debug, Hash)]
 struct PisteOut {
     metadata: PisteMetadata,
-    areas: Vec<Line>,
+    areas: Vec<Area>,
     lines: Vec<Line>,
 }
 
@@ -257,6 +317,97 @@ fn area01() -> Line {
         (65249574, 453209220),
         (65251761, 453208964),
         (65255638, 453210864),
+    ]
+}
+
+#[fixture]
+fn line1() -> Line {
+    vec![
+        (65303747, 453196734),
+        (65304339, 453202588),
+        (65303208, 453204805),
+        (65303397, 453205894),
+        (65302758, 453206639),
+        (65301197, 453207041),
+        (65296050, 453207657),
+        (65291501, 453210284),
+        (65278849, 453221287),
+        (65269053, 453227548),
+        (65269514, 453230572),
+        (65270658, 453231341),
+        (65273029, 453231763),
+        (65275646, 453231524),
+        (65280598, 453230043),
+        (65286126, 453224605),
+        (65291243, 453220060),
+        (65296630, 453218640),
+        (65310097, 453217314),
+        (65319928, 453211443),
+        (65328143, 453205667),
+        (65336532, 453197864),
+        (65344572, 453191747),
+        (65353989, 453189747),
+    ]
+}
+
+#[fixture]
+fn area10() -> Line {
+    vec![
+        (65307853, 453202675),
+        (65307246, 453203286),
+        (65302674, 453207889),
+        (65298072, 453211301),
+        (65297386, 453215220),
+        (65296942, 453217890),
+        (65304135, 453217580),
+        (65310778, 453216418),
+        (65321086, 453209964),
+        (65327094, 453205294),
+        (65335942, 453197697),
+        (65343907, 453191417),
+        (65350165, 453189883),
+        (65350800, 453190529),
+        (65348423, 453191520),
+        (65344624, 453193104),
+        (65334205, 453200526),
+        (65325193, 453208879),
+        (65311605, 453217813),
+        (65294792, 453219732),
+        (65291264, 453220817),
+        (65287157, 453224383),
+        (65280724, 453231053),
+        (65275646, 453231524),
+        (65272505, 453231437),
+        (65269514, 453230572),
+        (65268049, 453228542),
+        (65268323, 453227151),
+        (65271419, 453224247),
+        (65278944, 453219499),
+        (65282830, 453215119),
+        (65286385, 453211592),
+        (65292394, 453208491),
+        (65297217, 453206767),
+        (65300084, 453206612),
+        (65296225, 453204712),
+        (65291295, 453202203),
+        (65298653, 453198428),
+        (65302131, 453198196),
+        (65302543, 453200982),
+        (65305151, 453202559),
+        (65307853, 453202675),
+    ]
+}
+
+#[fixture]
+fn area11() -> Line {
+    vec![
+        (65292294, 453218060),
+        (65289396, 453213190),
+        (65279254, 453222061),
+        (65273741, 453225540),
+        (65284131, 453225490),
+        (65290280, 453219775),
+        (65292294, 453218060),
     ]
 }
 
@@ -430,7 +581,7 @@ fn find_areas_to_line(_init: Init, line0: Line, area00: Line, area01: Line) {
             difficulty: Difficulty::Easy,
         },
         lines: vec![line0],
-        areas: vec![area00, area01],
+        areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
     let actual = PisteOut::list(&pistes);
     assert_eq!(actual, expected);
@@ -476,7 +627,7 @@ fn find_lines_to_area(_init: Init, line0: Line, area00: Line) {
             difficulty: Difficulty::Advanced,
         },
         lines: vec![line00, line01],
-        areas: vec![area00],
+        areas: vec![Area::simple(area00)],
     }];
     let actual = PisteOut::list(&pistes);
     assert_eq!(actual, expected);
@@ -528,7 +679,7 @@ fn merge_unnamed_pistes(_init: Init, line0: Line, area00: Line, area01: Line) {
             difficulty: Difficulty::Intermediate,
         },
         lines: vec![line00, line01],
-        areas: vec![area00, area01],
+        areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
     let actual = PisteOut::list(&pistes);
     assert_eq!(actual, expected);
@@ -575,7 +726,7 @@ fn orphaned_unnamed_area(_init: Init, line0: Line, area01: Line) {
                 difficulty: Difficulty::Intermediate,
             },
             lines: vec![],
-            areas: vec![area01],
+            areas: vec![Area::simple(area01)],
         },
     ];
     let actual = PisteOut::list(&pistes);
@@ -623,7 +774,7 @@ fn orphaned_unnamed_line(_init: Init, line0: Line, area01: Line) {
                 difficulty: Difficulty::Novice,
             },
             lines: vec![],
-            areas: vec![area01],
+            areas: vec![Area::simple(area01)],
         },
     ];
     let actual = PisteOut::list(&pistes);
@@ -682,7 +833,7 @@ fn merge_unnamed_line_and_area(
                 difficulty: Difficulty::Intermediate,
             },
             lines: vec![line00],
-            areas: vec![area00],
+            areas: vec![Area::simple(area00)],
         },
         PisteOut {
             metadata: PisteMetadata {
@@ -691,7 +842,7 @@ fn merge_unnamed_line_and_area(
                 difficulty: Difficulty::Intermediate,
             },
             lines: vec![line01],
-            areas: vec![area01],
+            areas: vec![Area::simple(area01)],
         },
     ];
     let actual = PisteOut::list(&pistes);
@@ -738,7 +889,7 @@ fn different_difficulty(_init: Init, line0: Line, area00: Line) {
                 difficulty: Difficulty::Intermediate,
             },
             lines: vec![],
-            areas: vec![area00],
+            areas: vec![Area::simple(area00)],
         },
     ];
     let actual = PisteOut::list(&pistes);
@@ -785,7 +936,7 @@ fn different_name(_init: Init, line0: Line, area00: Line) {
                 difficulty: Difficulty::Intermediate,
             },
             lines: vec![],
-            areas: vec![area00],
+            areas: vec![Area::simple(area00)],
         },
     ];
     let actual = PisteOut::list(&pistes);
@@ -833,7 +984,7 @@ fn not_intersecting_line_and_area(_init: Init, line0: Line, area00: Line) {
                 difficulty: Difficulty::Advanced,
             },
             lines: vec![],
-            areas: vec![area00],
+            areas: vec![Area::simple(area00)],
         },
     ];
     let actual = PisteOut::list(&pistes);
@@ -889,7 +1040,7 @@ fn use_larger_overlap(_init: Init, line0: Line, area00: Line, area01: Line) {
                 difficulty: Difficulty::Intermediate,
             },
             lines: vec![line00],
-            areas: vec![area00],
+            areas: vec![Area::simple(area00)],
         },
         PisteOut {
             metadata: PisteMetadata {
@@ -898,7 +1049,94 @@ fn use_larger_overlap(_init: Init, line0: Line, area00: Line, area01: Line) {
                 difficulty: Difficulty::Intermediate,
             },
             lines: vec![line01],
-            areas: vec![area01],
+            areas: vec![Area::simple(area01)],
+        },
+    ];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(to_set(actual), to_set(expected));
+}
+
+#[rstest]
+fn multipolygon_piste(_init: Init, line1: Line, area10: Line, area11: Line) {
+    let mut builder = DocumentBuilder::new();
+    builder.add_way(
+        &line1,
+        &vec![
+            ("piste:type", "downhill"),
+            ("piste:difficulty", "intermediate"),
+            ("name", "Piste 1"),
+        ],
+    );
+    let outer = builder.add_way(&area10, &vec![]);
+    let inner = builder.add_way(&area11, &vec![]);
+    builder.add_relation(
+        &[],
+        &[(inner, "inner"), (outer, "outer")],
+        &vec![
+            ("type", "multipolygon"),
+            ("piste:type", "downhill"),
+            ("piste:difficulty", "intermediate"),
+            ("name", "Piste 1"),
+        ],
+    );
+    let document = builder.document;
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![PisteOut {
+        metadata: PisteMetadata {
+            ref_: String::new(),
+            name: "Piste 1".to_owned(),
+            difficulty: Difficulty::Intermediate,
+        },
+        lines: vec![line1],
+        areas: vec![Area::multi(area10, vec![area11])],
+    }];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(to_set(actual), to_set(expected));
+}
+
+#[rstest]
+fn multiple_polygons_in_multipolygon(
+    _init: Init,
+    area00: Line,
+    area10: Line,
+    area11: Line,
+) {
+    let mut builder = DocumentBuilder::new();
+    let outer0 = builder.add_way(&area00, &vec![]);
+    let outer1 = builder.add_way(&area10, &vec![]);
+    let inner1 = builder.add_way(&area11, &vec![]);
+    builder.add_relation(
+        &[],
+        &[(outer0, "outer"), (inner1, "inner"), (outer1, "outer")],
+        &vec![
+            ("type", "multipolygon"),
+            ("piste:type", "downhill"),
+            ("piste:difficulty", "easy"),
+            ("name", "Piste 1"),
+        ],
+    );
+    let document = builder.document;
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: "Piste 1".to_owned(),
+                difficulty: Difficulty::Easy,
+            },
+            lines: vec![],
+            areas: vec![Area::simple(area00)],
+        },
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: String::new(),
+                name: "Piste 1".to_owned(),
+                difficulty: Difficulty::Easy,
+            },
+            lines: vec![],
+            areas: vec![Area::multi(area10, vec![area11])],
         },
     ];
     let actual = PisteOut::list(&pistes);
