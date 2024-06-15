@@ -13,6 +13,7 @@ use crate::config::get_config;
 // use crate::error::{Error, ErrorType, Result};
 use crate::collection::max_if;
 use crate::error::Result;
+use crate::multipolygon::parse_multipolygon;
 use crate::osm_reader::{get_tag, parse_way, Document, Tags, Way};
 
 fn parse_metadata(tags: &Tags) -> PisteMetadata {
@@ -67,47 +68,57 @@ where
     geometry: BoundedGeometry<T, C>,
 }
 
-fn parse_partial_piste(
-    doc: &Document,
-    way: &Way,
+enum PisteGeometry {
+    Line(BoundedGeometry<LineString>),
+    Area(BoundedGeometry<MultiPolygon>),
+}
+
+fn add_piste(
+    metadata: PisteMetadata,
+    geometry: PisteGeometry,
     result: &mut HashMap<PisteMetadata, PartialPistes>,
     unnamed_lines: &mut Vec<UnnamedPiste<LineString>>,
     unnamed_areas: &mut Vec<UnnamedPiste<MultiPolygon>>,
-) -> Result<()> {
-    let metadata = parse_metadata(&way.tags);
-    let coords = parse_way(&doc, &way.nodes)?;
-    let line = LineString::new(coords);
-    let is_area = get_tag(&way.tags, "area") == "yes";
-
+) {
     if metadata.ref_ == "" && metadata.name == "" {
-        if is_area {
-            unnamed_areas.push(UnnamedPiste {
-                difficulty: metadata.difficulty,
-                geometry: BoundedGeometry::new(MultiPolygon::new(vec![
-                    Polygon::new(line, Vec::new()),
-                ]))?,
-            });
-        } else {
-            unnamed_lines.push(UnnamedPiste {
-                difficulty: metadata.difficulty,
-                geometry: BoundedGeometry::new(line)?,
-            });
-        }
-        return Ok(());
+        match geometry {
+            PisteGeometry::Area(a) => {
+                unnamed_areas.push(UnnamedPiste {
+                    difficulty: metadata.difficulty,
+                    geometry: a,
+                });
+            }
+            PisteGeometry::Line(l) => {
+                unnamed_lines.push(UnnamedPiste {
+                    difficulty: metadata.difficulty,
+                    geometry: l,
+                });
+            }
+        };
+        return;
     }
 
     let partial_piste = result.entry(metadata).or_default();
 
-    if is_area {
-        partial_piste.area_entities.push(BoundedGeometry::new(
-            MultiPolygon::new(vec![Polygon::new(line, Vec::new())]),
-        )?);
-    } else {
-        partial_piste
-            .line_entities
-            .push(BoundedGeometry::new(line)?);
+    match geometry {
+        PisteGeometry::Area(a) => partial_piste.area_entities.push(a),
+        PisteGeometry::Line(l) => partial_piste.line_entities.push(l),
     }
-    Ok(())
+}
+
+fn parse_partial_piste(doc: &Document, way: &Way) -> Result<PisteGeometry> {
+    let coords = parse_way(&doc, &way.nodes)?;
+    let line = LineString::new(coords);
+
+    let geometry = if get_tag(&way.tags, "area") == "yes" {
+        PisteGeometry::Area(BoundedGeometry::new(MultiPolygon::new(vec![
+            Polygon::new(line, Vec::new()),
+        ]))?)
+    } else {
+        PisteGeometry::Line(BoundedGeometry::new(line)?)
+    };
+
+    Ok(geometry)
 }
 
 fn parse_partial_pistes(
@@ -126,15 +137,39 @@ fn parse_partial_pistes(
             continue;
         }
 
-        if let Err(err) = parse_partial_piste(
-            &doc,
-            &way,
-            &mut result,
-            &mut unnamed_lines,
-            &mut unnamed_areas,
-        ) {
-            eprintln!("{}: error parsing piste: {}", id, err);
+        match parse_partial_piste(&doc, &way) {
+            Ok(geometry) => add_piste(
+                parse_metadata(&way.tags),
+                geometry,
+                &mut result,
+                &mut unnamed_lines,
+                &mut unnamed_areas,
+            ),
+            Err(err) => eprintln!("{}: error parsing piste: {}", id, err),
+        };
+    }
+
+    for (id, relation) in &doc.elements.relations {
+        if get_tag(&relation.tags, "type") != "multipolygon"
+            || get_tag(&relation.tags, "piste:type") != "downhill"
+        {
+            continue;
         }
+
+        match || -> Result<BoundedGeometry<MultiPolygon>> {
+            Ok(BoundedGeometry::new(parse_multipolygon(&doc, &relation)?)?)
+        }() {
+            Ok(geometry) => add_piste(
+                parse_metadata(&relation.tags),
+                PisteGeometry::Area(geometry),
+                &mut result,
+                &mut unnamed_lines,
+                &mut unnamed_areas,
+            ),
+            Err(err) => {
+                eprintln!("{}: error parsing multipolygon: {}", id, err)
+            }
+        };
     }
 
     (result, unnamed_lines, unnamed_areas)
