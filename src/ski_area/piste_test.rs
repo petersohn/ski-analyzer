@@ -1142,3 +1142,55 @@ fn multiple_polygons_in_multipolygon(
     let actual = PisteOut::list(&pistes);
     assert_eq!(to_set(actual), to_set(expected));
 }
+
+#[rstest]
+fn metadata_from_route(_init: Init, line0: Line, line1: Line) {
+    let mut builder = DocumentBuilder::new();
+    let l0 = builder.add_way(
+        &line0,
+        &vec![
+            ("piste:type", "downhill"),
+            ("piste:difficulty", "intermediate"),
+            ("name", "Piste 1d"),
+            ("ref", "1d"),
+        ],
+    );
+    let l1 = builder.add_way(&line1, &vec![("piste:type", "downhill")]);
+    builder.add_relation(
+        &[],
+        &[(l0, ""), (l1, "")],
+        &vec![
+            ("type", "route"),
+            ("route", "piste"),
+            ("piste:type", "downhill"),
+            ("piste:difficulty", "easy"),
+            ("name", "Piste 1"),
+            ("ref", "1"),
+        ],
+    );
+    let document = builder.document;
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: "1".to_owned(),
+                name: "Piste 1".to_owned(),
+                difficulty: Difficulty::Easy,
+            },
+            lines: vec![line1],
+            areas: vec![],
+        },
+        PisteOut {
+            metadata: PisteMetadata {
+                ref_: "1d".to_owned(),
+                name: "Piste 1d".to_owned(),
+                difficulty: Difficulty::Intermediate,
+            },
+            lines: vec![line0],
+            areas: vec![],
+        },
+    ];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(to_set(actual), to_set(expected));
+}

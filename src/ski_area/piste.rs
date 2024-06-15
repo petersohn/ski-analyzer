@@ -121,6 +121,48 @@ fn parse_partial_piste(doc: &Document, way: &Way) -> Result<PisteGeometry> {
     Ok(geometry)
 }
 
+fn merge_route_metadata(
+    id: u64,
+    tags: &Tags,
+    route_index: &HashMap<u64, PisteMetadata>,
+) -> PisteMetadata {
+    let mut metadata = parse_metadata(tags);
+
+    if let Some(md) = route_index.get(&id) {
+        let mut discrepancy = false;
+        if !md.ref_.is_empty() {
+            if metadata.ref_.is_empty() {
+                metadata.ref_ = md.ref_.clone();
+            } else if metadata.ref_ != md.ref_ {
+                discrepancy = true;
+            }
+        }
+        if !md.name.is_empty() {
+            if metadata.name.is_empty() {
+                metadata.name = md.name.clone();
+            } else if metadata.name != md.name {
+                discrepancy = true;
+            }
+        }
+        if md.difficulty != Difficulty::Unknown {
+            if metadata.difficulty == Difficulty::Unknown {
+                metadata.difficulty = md.difficulty.clone();
+            } else if metadata.difficulty != md.difficulty {
+                discrepancy = true;
+            }
+        }
+
+        if discrepancy && get_config().is_vv() {
+            eprintln!(
+                "Route metadata discrepancy: route={:?}, way={:?}",
+                md, metadata
+            );
+        }
+    }
+
+    metadata
+}
+
 fn parse_partial_pistes(
     doc: &Document,
 ) -> (
@@ -131,6 +173,33 @@ fn parse_partial_pistes(
     let mut result = HashMap::new();
     let mut unnamed_lines = Vec::new();
     let mut unnamed_areas = Vec::new();
+    let mut route_index: HashMap<u64, PisteMetadata> = HashMap::new();
+
+    let config = get_config();
+
+    for (id, relation) in &doc.elements.relations {
+        if get_tag(&relation.tags, "type") != "route"
+            || get_tag(&relation.tags, "route") != "piste"
+            || get_tag(&relation.tags, "piste:type") != "downhill"
+        {
+            continue;
+        }
+
+        let metadata = parse_metadata(&relation.tags);
+        if metadata.ref_.is_empty()
+            && metadata.name.is_empty()
+            && metadata.difficulty == Difficulty::Unknown
+        {
+            if config.is_vv() {
+                eprintln!("{}: route has no meaningful metadata.", id);
+            }
+            continue;
+        }
+
+        for member in &relation.members.ways {
+            route_index.insert(member.ref_, metadata.clone());
+        }
+    }
 
     for (id, way) in &doc.elements.ways {
         if get_tag(&way.tags, "piste:type") != "downhill" {
@@ -139,7 +208,7 @@ fn parse_partial_pistes(
 
         match parse_partial_piste(&doc, &way) {
             Ok(geometry) => add_piste(
-                parse_metadata(&way.tags),
+                merge_route_metadata(*id, &way.tags, &route_index),
                 geometry,
                 &mut result,
                 &mut unnamed_lines,
