@@ -584,7 +584,7 @@ fn merge_empty_refs(input: Vec<Piste>) -> Vec<Piste> {
         }
     }
 
-    if refless.len() == 0 {
+    if refless.is_empty() {
         return result;
     }
 

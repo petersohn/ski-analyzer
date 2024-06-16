@@ -1,11 +1,12 @@
 use clap::{Parser, Subcommand};
 use config::{get_config, set_config, Config};
+use gpx;
 use osm_reader::Document;
 use ski_area::SkiArea;
 
 use std::error::Error;
 use std::fs::OpenOptions;
-use std::io::{Read, Write};
+use std::io::{BufReader, Read, Write};
 
 mod collection;
 mod config;
@@ -50,6 +51,9 @@ enum Command {
         /// Pretty print result
         #[arg(short, long)]
         pretty: bool,
+    },
+    Gpx {
+        input: String,
     },
 }
 
@@ -96,6 +100,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             } else {
                 serde_json::to_writer(file, &ski_area)?;
             }
+        }
+        Command::Gpx { input } => {
+            let file = OpenOptions::new().read(true).open(input)?;
+            let reader = BufReader::new(file);
+            let gpx = gpx::read(reader)?;
+            println!("{:#?}", gpx);
         }
     };
 
