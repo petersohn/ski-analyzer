@@ -11,6 +11,7 @@ use std::io::{BufReader, Read, Write};
 mod collection;
 mod config;
 mod error;
+mod gpx_analyzer;
 mod multipolygon;
 mod osm_query;
 mod osm_reader;
