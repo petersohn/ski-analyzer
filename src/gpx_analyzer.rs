@@ -31,6 +31,8 @@ fn get_segments<'g>(gpx: &'g Gpx) -> Vec<Vec<&'g Waypoint>> {
     let mut result = Vec::new();
     let config = get_config();
 
+    struct BadPrecisionDebug {}
+
     for track in &gpx.tracks {
         for segment in &track.segments {
             let mut add = |current: &mut Vec<&'g Waypoint>| {
@@ -38,9 +40,6 @@ fn get_segments<'g>(gpx: &'g Gpx) -> Vec<Vec<&'g Waypoint>> {
                     let mut to_add = Vec::new();
                     to_add.append(current);
                     result.push(to_add);
-                    true
-                } else {
-                    false
                 }
             };
             let mut current = Vec::new();
@@ -72,7 +71,12 @@ fn get_segments<'g>(gpx: &'g Gpx) -> Vec<Vec<&'g Waypoint>> {
                     if config.is_vv() {
                         if let Some(begin) = bad_precision_begin {
                             if let Some(end) = bad_precision_end {
-                                eprintln!("Bad precision between {} and {}: {} - {} m", begin.format()?, end.format()?, min_precision, max_precision);
+                                eprintln!(
+                                    "Bad precision between {} and {}: {} - {} m",
+                                    begin.format().unwrap(),
+                                    end.format().unwrap(),
+                                    min_precision,
+                                    max_precision);
                             }
                         }
                     }
