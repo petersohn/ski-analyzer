@@ -1,8 +1,10 @@
+use gpx_analyzer::analyze_route;
+use osm_reader::Document;
+use ski_area::SkiArea;
+
 use clap::{Parser, Subcommand};
 use config::{get_config, set_config, Config};
 use gpx;
-use osm_reader::Document;
-use ski_area::SkiArea;
 
 use std::error::Error;
 use std::fs::OpenOptions;
@@ -54,7 +56,13 @@ enum Command {
         pretty: bool,
     },
     Gpx {
+        /// GPX file name
+        #[arg(short, long)]
         input: String,
+
+        /// Ski area to use (previously output from ParseOsm)
+        #[arg(short, long)]
+        area: String,
     },
 }
 
@@ -102,11 +110,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                 serde_json::to_writer(file, &ski_area)?;
             }
         }
-        Command::Gpx { input } => {
-            let file = OpenOptions::new().read(true).open(input)?;
-            let reader = BufReader::new(file);
-            let gpx = gpx::read(reader)?;
-            println!("{:#?}", gpx);
+        Command::Gpx { input, area } => {
+            let gpx: gpx::Gpx = {
+                let file = OpenOptions::new().read(true).open(input)?;
+                let reader = BufReader::new(file);
+                gpx::read(reader)?
+            };
+
+            // println!("{:#?}", gpx);
+
+            let ski_area: SkiArea = {
+                let file = OpenOptions::new().read(true).open(area)?;
+                let reader = BufReader::new(file);
+                serde_json::from_reader(reader)?
+            };
+
+            let result = analyze_route(&ski_area, &gpx);
         }
     };
 

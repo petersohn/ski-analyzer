@@ -1,8 +1,8 @@
 use gpx::{Gpx, Time, Waypoint};
 use time::OffsetDateTime;
 
-use super::ski_area::{Lift, SkiArea};
 use crate::config::get_config;
+use crate::ski_area::{Lift, SkiArea};
 
 #[derive(Debug)]
 pub enum LiftEnd {
@@ -16,8 +16,9 @@ pub struct UseLift<'s> {
     lift: &'s Lift,
     begin_time: OffsetDateTime,
     end_time: OffsetDateTime,
-    begin_station: LiftEnd,
-    end_station: LiftEnd,
+    begin_station: Option<LiftEnd>,
+    end_station: Option<LiftEnd>,
+    is_reverse: bool,
 }
 
 #[derive(Debug)]
@@ -36,11 +37,13 @@ fn get_segments<'g>(gpx: &'g Gpx) -> Vec<Vec<&'g Waypoint>> {
     for track in &gpx.tracks {
         for segment in &track.segments {
             let mut add = |current: &mut Vec<&'g Waypoint>| {
-                if !current.is_empty() {
+                let is_new = !current.is_empty();
+                if is_new {
                     let mut to_add = Vec::new();
                     to_add.append(current);
                     result.push(to_add);
                 }
+                is_new
             };
             let mut current = Vec::new();
 
@@ -77,7 +80,9 @@ fn get_segments<'g>(gpx: &'g Gpx) -> Vec<Vec<&'g Waypoint>> {
                                     end.format().unwrap(),
                                     min_precision,
                                     max_precision);
+                                bad_precision_end = None;
                             }
+                            bad_precision_begin = None;
                         }
                     }
                     current.push(waypoint);
@@ -95,6 +100,9 @@ pub fn analyze_route<'s>(
     gpx: &Gpx,
 ) -> Vec<ActivityType<'s>> {
     let mut result = Vec::new();
+
+    let segments = get_segments(&gpx);
+    println!("{:#?}", segments);
 
     result
 }
