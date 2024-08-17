@@ -42,7 +42,7 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
     }
 
     while !endpoints.is_empty() {
-        let key = endpoints.iter().next().unwrap().0.clone();
+        let key = *endpoints.iter().next().unwrap().0;
         let mut value = endpoints.remove(&key).unwrap();
         if value.len() < 2 {
             return Err(Error::new(

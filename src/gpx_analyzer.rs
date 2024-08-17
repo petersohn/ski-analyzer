@@ -6,6 +6,8 @@ use crate::ski_area::{Lift, SkiArea};
 use segments::{get_segments, Segments};
 
 mod segments;
+#[cfg(test)]
+mod segments_test;
 
 #[derive(Debug)]
 pub enum LiftEnd {

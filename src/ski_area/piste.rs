@@ -146,7 +146,7 @@ fn merge_route_metadata(
         }
         if md.difficulty != Difficulty::Unknown {
             if metadata.difficulty == Difficulty::Unknown {
-                metadata.difficulty = md.difficulty.clone();
+                metadata.difficulty = md.difficulty;
             } else if metadata.difficulty != md.difficulty {
                 discrepancy = true;
             }

@@ -108,7 +108,7 @@ fn line(points: &[(f64, f64)]) -> LineString {
     LineString(
         points
             .iter()
-            .map(|(x, y)| coord! { x: x.clone(), y: y.clone() })
+            .map(|(x, y)| coord! { x: *x, y: *y })
             .collect(),
     )
 }
