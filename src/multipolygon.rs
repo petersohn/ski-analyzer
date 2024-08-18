@@ -109,7 +109,7 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
     Ok(result)
 }
 
-fn sort_outer_polygons(input: &Vec<Polygon>) -> Vec<Polygon> {
+fn sort_outer_polygons(mut input: Vec<Polygon>) -> Vec<Polygon> {
     let mut ordering: TopologicalSort<usize> = TopologicalSort::new();
     for i in 0..input.len() {
         ordering.insert(i);
@@ -126,7 +126,14 @@ fn sort_outer_polygons(input: &Vec<Polygon>) -> Vec<Polygon> {
         }
     }
 
-    ordering.map(|i| input[i].clone()).collect()
+    ordering
+        .map(|i| {
+            std::mem::replace(
+                &mut input[i],
+                Polygon::new(LineString::new(vec![]), vec![]),
+            )
+        })
+        .collect()
 }
 
 pub fn parse_multipolygon(
@@ -149,7 +156,7 @@ pub fn parse_multipolygon(
         };
     }
 
-    let mut outers = sort_outer_polygons(&find_rings(&doc, outer_ways)?);
+    let mut outers = sort_outer_polygons(find_rings(&doc, outer_ways)?);
     let inners = find_rings(&doc, inner_ways)?;
     let mut remaining = inners.len();
 
