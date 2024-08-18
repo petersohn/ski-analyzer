@@ -89,11 +89,11 @@ fn mp(outers: &[u64], inners: &[u64]) -> r::Relation {
     let ways = outers
         .iter()
         .map(|id| r::RelationMember {
-            ref_: id.clone(),
+            ref_: *id,
             role: String::from("outer"),
         })
         .chain(inners.iter().map(|id| r::RelationMember {
-            ref_: id.clone(),
+            ref_: *id,
             role: String::from("inner"),
         }))
         .collect();
