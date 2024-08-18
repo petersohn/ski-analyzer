@@ -22,8 +22,19 @@ enum LiftResult {
     Failure,
 }
 
-fn continue_lift<'s>(lift: &mut UseLift<'s>, point: &Waypoint) -> LiftResult {
+fn continue_lift<'s>(
+    lift: &mut UseLift<'s>,
+    point: &Waypoint,
+    first_point: bool,
+) -> LiftResult {
     LiftResult::NotFinished
+}
+
+fn handle_failed_lift<'s, 'g>(
+    previous: Option<&mut Activity<'s, 'g>>,
+    current: Activity<'s, 'g>,
+    starts_with_new_segment: bool,
+) {
 }
 
 pub fn find_lift_usage<'s, 'g>(
@@ -32,10 +43,8 @@ pub fn find_lift_usage<'s, 'g>(
 ) -> Vec<Activity<'s, 'g>> {
     let mut result = Vec::new();
 
-    let mut current: Activity<'s, 'g> = Activity {
-        type_: ActivityType::Unknown,
-        route: Vec::new(),
-    };
+    let mut current: Activity<'s, 'g> = Activity::default();
+    let mut starts_with_new_segment = false;
 
     let config = get_config();
 
@@ -43,7 +52,7 @@ pub fn find_lift_usage<'s, 'g>(
         let mut first_point = true;
         for point in segment {
             if let ActivityType::UseLift(lift) = &mut current.type_ {
-                match continue_lift(lift, point) {
+                match continue_lift(lift, point, first_point) {
                     LiftResult::NotFinished => (),
                     LiftResult::Finished => {}
                     LiftResult::Failure => {
@@ -53,6 +62,23 @@ pub fn find_lift_usage<'s, 'g>(
                                 format_time_option(lift.begin_time),
                                 format_time_option(to_odt(point.time)));
                         }
+                        current.type_ = ActivityType::Unknown;
+                        let previous = result.last_mut();
+                        match previous {
+                            Some(Activity {
+                                type_: ActivityType::Unknown,
+                                ref mut route,
+                            }) => {
+                                if !starts_with_new_segment {
+                                    route
+                                        .last_mut()
+                                        .unwrap()
+                                        .append(&mut current.route.remove(0));
+                                }
+                                route.append(&mut current.route);
+                            }
+                            _ => result.push(std::mem::take(&mut current)),
+                        };
                     }
                 }
             }

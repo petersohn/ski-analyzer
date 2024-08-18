@@ -28,12 +28,14 @@ pub struct UseLift<'s> {
     is_reverse: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum ActivityType<'s> {
+    #[default]
     Unknown,
     UseLift(UseLift<'s>),
 }
 
+#[derive(Debug, Default)]
 struct Activity<'s, 'g> {
     type_: ActivityType<'s>,
     route: Segments<'g>,
