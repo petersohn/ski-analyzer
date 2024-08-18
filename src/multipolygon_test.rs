@@ -42,15 +42,20 @@ where
     let mut rhss = rhs.to_vec();
 
     for l in lhs {
+        let mut found = false;
         for i in 0..rhss.len() {
             if op(&l, &rhss[i]) {
                 rhss.remove(i);
+                found = true;
                 break;
             }
         }
+        if !found {
+            return false;
+        }
     }
 
-    rhss.is_empty()
+    true
 }
 
 fn is_equal_p(lhs: &Polygon, rhs: &Polygon) -> bool {
