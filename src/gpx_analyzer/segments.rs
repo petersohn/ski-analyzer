@@ -1,17 +1,12 @@
+use super::{format_time_option, to_odt};
 use crate::config::get_config;
+
 use gpx::{Gpx, Time, Waypoint};
 
 pub type Segment<'g> = Vec<&'g Waypoint>;
 pub type Segments<'g> = Vec<Segment<'g>>;
 
 const PRECISION_LIMIT: f64 = 10.0;
-
-fn format_time_option(time: &Option<Time>) -> String {
-    match time {
-        Some(t) => format!("{}", t.format().unwrap()),
-        None => "unknown".to_string(),
-    }
-}
 
 pub fn get_segments<'g>(gpx: &'g Gpx) -> Segments<'g> {
     let mut result = Vec::new();
@@ -65,8 +60,8 @@ pub fn get_segments<'g>(gpx: &'g Gpx) -> Segments<'g> {
                         if let Some(bpd) = bad_precision_debug.as_ref() {
                             eprintln!(
                                 "Bad precision between {} and {}: {} - {} m",
-                                format_time_option(&bpd.begin),
-                                format_time_option(&bpd.end),
+                                format_time_option(to_odt(bpd.begin)),
+                                format_time_option(to_odt(bpd.end)),
                                 bpd.min_precision,
                                 bpd.max_precision
                             );
