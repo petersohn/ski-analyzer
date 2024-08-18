@@ -1,5 +1,5 @@
-use super::format_time_option;
 use super::segments::Segments;
+use super::{format_time_option, to_odt};
 use super::{Activity, ActivityType, LiftEnd, UseLift};
 use crate::config::get_config;
 use crate::ski_area::SkiArea;
@@ -48,7 +48,10 @@ pub fn find_lift_usage<'s, 'g>(
                     LiftResult::Finished => {}
                     LiftResult::Failure => {
                         if config.is_vv() {
-                            // eprintln!("Failed to parse lift after {} points, begin={} end={}", current.route.iter().map(|s| s.length()).fold(0, |a, b| a + b), format_time_option();
+                            eprintln!("Failed to parse lift after {} points, begin={} end={}",
+                                current.route.iter().map(|s| s.len()).fold(0, |a, b| a + b),
+                                format_time_option(lift.begin_time),
+                                format_time_option(to_odt(point.time)));
                         }
                     }
                 }

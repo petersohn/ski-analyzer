@@ -40,7 +40,7 @@ struct Activity<'s, 'g> {
 }
 
 fn to_odt(time: Option<Time>) -> Option<OffsetDateTime> {
-    time.map(|t| t.0)
+    time.map(|t| t.into())
 }
 
 fn format_time_option(time: Option<OffsetDateTime>) -> String {
