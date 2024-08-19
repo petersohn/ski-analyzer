@@ -3,6 +3,8 @@ use crate::config::get_config;
 
 use gpx::{Gpx, Time, Waypoint};
 
+use std::mem;
+
 pub type Segment<'g> = Vec<&'g Waypoint>;
 pub type Segments<'g> = Vec<Segment<'g>>;
 
@@ -23,9 +25,7 @@ pub fn get_segments<'g>(gpx: &'g Gpx) -> Segments<'g> {
         for segment in &track.segments {
             let mut add = |current: &mut Vec<&'g Waypoint>| {
                 if !current.is_empty() {
-                    let mut to_add = Vec::new();
-                    to_add.append(current);
-                    result.push(to_add);
+                    result.push(mem::take(current));
                 }
             };
             let mut current = Vec::new();
