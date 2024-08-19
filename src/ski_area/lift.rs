@@ -108,12 +108,12 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
     let mut stations = Stations::default();
 
     stations.add(begin_node);
-    doc.elements.iterate_nodes(&midpoints, |node: &Node| {
-        if is_station(&node) {
-            stations.add(node);
+    for node in doc.elements.iterate_nodes(midpoints.iter()) {
+        let n = node?;
+        if is_station(n) {
+            stations.add(n);
         }
-        Ok(())
-    })?;
+    }
     stations.add(end_node);
 
     let mut name = get_tag(&way.tags, "name").to_string();

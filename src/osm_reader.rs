@@ -1,6 +1,7 @@
 use geo::{Coord, Point};
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::result::Result as StdResult;
 
 use crate::error::{Error, ErrorType, Result};
@@ -152,14 +153,38 @@ impl Elements {
         }
     }
 
-    pub fn iterate_nodes<'a, F>(&'a self, ids: &[u64], mut f: F) -> Result<()>
+    pub fn iterate_nodes<'a, 'b, It>(
+        &'a self,
+        input: It,
+    ) -> NodesIterator<'a, 'b, It>
     where
-        F: FnMut(&'a Node) -> Result<()>,
+        It: Iterator<Item: Into<&'b u64>>,
     {
-        for id in ids {
-            f(self.get_node(id)?)?;
+        NodesIterator {
+            obj: self,
+            input,
+            phantom_data: PhantomData,
         }
-        Ok(())
+    }
+}
+
+pub struct NodesIterator<'a, 'b, It>
+where
+    It: Iterator<Item: Into<&'b u64>>,
+{
+    obj: &'a Elements,
+    input: It,
+    phantom_data: PhantomData<&'b u64>,
+}
+
+impl<'a, 'b, It> Iterator for NodesIterator<'a, 'b, It>
+where
+    It: Iterator<Item: Into<&'b u64>>,
+{
+    type Item = Result<&'a Node>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.input.next().map(|id| self.obj.get_node(id.into()))
     }
 }
 
@@ -263,10 +288,9 @@ pub fn parse_yesno(value: &str) -> Result<Option<bool>> {
 pub fn parse_way(doc: &Document, nodes: &Vec<u64>) -> Result<Vec<Coord>> {
     let mut coords: Vec<Coord> = Vec::new();
     coords.reserve(nodes.len());
-    doc.elements.iterate_nodes(&nodes, |node: &Node| {
-        coords.push(node.into());
-        Ok(())
-    })?;
+    for node in doc.elements.iterate_nodes(nodes.iter()) {
+        coords.push(node?.into());
+    }
     Ok(coords)
 }
 
