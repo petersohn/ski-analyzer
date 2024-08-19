@@ -68,9 +68,7 @@ pub struct Lift {
     pub name: String,
     pub type_: String,
     pub line: BoundedGeometry<LineString>,
-    pub begin_altitude: u32,
-    pub end_altitude: u32,
-    pub midstations: Vec<PointWithElevation>,
+    pub stations: Vec<PointWithElevation>,
     pub can_go_reverse: bool,
     pub can_disembark: bool,
 }

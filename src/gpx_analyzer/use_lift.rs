@@ -38,22 +38,16 @@ where
 }
 
 fn get_station(lift: &Lift, p: &Point) -> LiftEnd {
-    if is_near(&(*lift.line.item.0.first().unwrap()).into(), p) {
-        LiftEnd::BeginStation
-    } else if is_near(&(*lift.line.item.0.last().unwrap()).into(), p) {
-        LiftEnd::EndStation
-    } else {
-        lift.midstations
-            .iter()
-            .enumerate()
-            .filter(|(_, m)| is_near(&m.point, p))
-            .map(|(i, _)| LiftEnd::Midstation(i))
-            .next()
-            .unwrap_or(LiftEnd::Unknown)
-    }
+    lift.stations
+        .iter()
+        .enumerate()
+        .map(|(i, m)| (i, m.point.haversine_distance(p)))
+        .filter(|(_, m)| *m < MIN_DISTANCE)
+        .min_by(|(_, d1), (_, d2)| d1.total_cmp(d2))
+        .map(|(i, _)| i)
 }
 
-fn find_nearby_lift<'s>(
+fn find_nearby_lifts<'s>(
     ski_area: &'s SkiArea,
     p: &Point,
 ) -> Vec<(&'s Lift, LiftEnd)> {

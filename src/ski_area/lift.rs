@@ -76,33 +76,45 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
         ));
     }
 
-    let Some((begin_id, rest)) = way.nodes.split_first() else {
-        return Err(Error::new_s(ErrorType::OSMError, "empty lift"));
-    };
-    let Some((end_id, midpoints)) = rest.split_last() else {
+    if way.nodes.len() < 2 {
         return Err(Error::new_s(
             ErrorType::OSMError,
-            "lift has a single point",
+            "Lift doesn't have enought points",
         ));
-    };
+    }
 
-    let mut midstations = Vec::new();
-    let mut midstation_nodes: Vec<&Node> = Vec::new();
-    doc.elements.iterate_nodes(&midpoints, |node: &Node| {
-        if is_station(&node) {
-            midstations.push(PointWithElevation {
-                point: node.into(),
-                elevation: parse_ele(&node.tags),
-            });
-            midstation_nodes.push(&node);
-        }
-        Ok(())
-    })?;
-
+    let (begin_id, rest) = way.nodes.split_first().unwrap();
+    let (end_id, midpoints) = rest.split_last().unwrap();
     let begin_node = doc.elements.get_node(begin_id)?;
     let begin_access = get_access(&begin_node)?;
     let end_node = doc.elements.get_node(end_id)?;
     let end_access = get_access(&end_node)?;
+
+    #[derive(Default)]
+    struct Stations<'a> {
+        stations: Vec<PointWithElevation>,
+        station_nodes: Vec<&'a Node>,
+    }
+    impl<'a> Stations<'a> {
+        fn add(&mut self, node: &'a Node) {
+            self.stations.push(PointWithElevation {
+                point: node.into(),
+                elevation: parse_ele(&node.tags),
+            });
+            self.station_nodes.push(node);
+        }
+    }
+
+    let mut stations = Stations::default();
+
+    stations.add(begin_node);
+    doc.elements.iterate_nodes(&midpoints, |node: &Node| {
+        if is_station(&node) {
+            stations.add(node);
+        }
+        Ok(())
+    })?;
+    stations.add(end_node);
 
     let mut name = get_tag(&way.tags, "name").to_string();
     let ref_ = get_tag(&way.tags, "ref").to_string();
@@ -174,14 +186,7 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
 
     if is_unusual && config.is_vv() {
         let mut accesses: Vec<&str> = Vec::new();
-        accesses.reserve(midstation_nodes.len() + 2);
-        let begin_access_s = begin_access.to_string();
-        accesses.push(&begin_access_s);
-        for node in midstation_nodes {
-            accesses.push(get_tag(&node.tags, "aerialway:access"));
-        }
-        let end_access_s = end_access.to_string();
-        accesses.push(&end_access_s);
+        accesses.reserve(stations.station_nodes.len());
         eprintln!(
             "{} {}: Unusual station combination: {:?}",
             id, ref_name, accesses
@@ -202,15 +207,12 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
     }
 
     let mut line_points = parse_way(&doc, &way.nodes)?;
-    let mut begin_altitude = parse_ele(&begin_node.tags);
-    let mut end_altitude = parse_ele(&end_node.tags);
 
     if reverse {
         if config.is_vv() {
             eprintln!("{} {}: lift goes in reverse", id, ref_name);
         }
         line_points.reverse();
-        std::mem::swap(&mut begin_altitude, &mut end_altitude);
     }
 
     let line = BoundedGeometry::new(LineString::new(line_points))?;
@@ -221,9 +223,7 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
         name,
         type_: aerialway_type.clone(),
         line,
-        begin_altitude,
-        end_altitude,
-        midstations,
+        stations: stations.stations,
         can_go_reverse,
         can_disembark,
     }))

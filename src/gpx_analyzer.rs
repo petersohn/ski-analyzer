@@ -12,21 +12,15 @@ mod segments;
 mod segments_test;
 mod use_lift;
 
-#[derive(Debug)]
-pub enum LiftEnd {
-    Unknown,
-    BeginStation,
-    EndStation,
-    Midstation(usize),
-}
+pub type LiftEnd = Option<usize>;
 
 #[derive(Debug)]
 pub struct UseLift<'s> {
     lift: &'s Lift,
     begin_time: Option<OffsetDateTime>,
     end_time: Option<OffsetDateTime>,
-    begin_station: Option<LiftEnd>,
-    end_station: Option<LiftEnd>,
+    begin_station: LiftEnd,
+    end_station: LiftEnd,
     is_reverse: bool,
 }
 
