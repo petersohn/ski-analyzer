@@ -126,6 +126,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             };
 
             let result = analyze_route(&ski_area, &gpx);
+            println!("{:#?}", result);
         }
     };
 

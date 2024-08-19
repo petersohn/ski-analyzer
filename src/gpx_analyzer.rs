@@ -3,6 +3,7 @@ use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;
 
 use crate::ski_area::{Lift, SkiArea};
+use use_lift::find_lift_usage;
 
 use segments::{get_segments, Segments};
 
@@ -14,6 +15,7 @@ mod use_lift;
 #[derive(Debug)]
 pub enum LiftEnd {
     Unknown,
+    BeginStation,
     EndStation,
     Midstation(usize),
 }
@@ -36,7 +38,7 @@ pub enum ActivityType<'s> {
 }
 
 #[derive(Debug, Default)]
-struct Activity<'s, 'g> {
+pub struct Activity<'s, 'g> {
     type_: ActivityType<'s>,
     route: Segments<'g>,
 }
@@ -52,14 +54,12 @@ fn format_time_option(time: Option<OffsetDateTime>) -> String {
     }
 }
 
-pub fn analyze_route<'s>(
+pub fn analyze_route<'s, 'g>(
     ski_area: &'s SkiArea,
-    gpx: &Gpx,
-) -> Vec<ActivityType<'s>> {
-    let mut result = Vec::new();
-
+    gpx: &'g Gpx,
+) -> Vec<Activity<'s, 'g>> {
     let segments = get_segments(&gpx);
-    println!("{:#?}", segments);
-
+    // println!("{:#?}", segments);
+    let result = use_lift::find_lift_usage(ski_area, &segments);
     result
 }
