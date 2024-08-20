@@ -62,3 +62,12 @@ pub fn init() -> Init {
     }
     Init {}
 }
+
+#[macro_export]
+macro_rules! assert_eq_pretty {
+    ($left:expr, $right:expr) => {
+        assert_eq!($left, $right, "\n{:#?}\n{:#?}", $left, $right);
+    };
+}
+
+pub use assert_eq_pretty;
