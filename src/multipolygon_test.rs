@@ -1,6 +1,7 @@
 use super::multipolygon::parse_multipolygon;
 use super::osm_reader as r;
-use geo::{coord, Coord, LineString, MultiPolygon, Polygon};
+use crate::test_util::{line, node, way};
+use geo::{Coord, LineString, MultiPolygon, Polygon};
 use std::collections::HashMap;
 
 fn is_equal_l(lhs: &LineString, rhs: &LineString) -> bool {
@@ -70,21 +71,6 @@ fn is_equal(lhs: &MultiPolygon, rhs: &MultiPolygon) -> bool {
     is_equal_set(&lhs.0, &rhs.0, is_equal_p)
 }
 
-fn node(x: f64, y: f64) -> r::Node {
-    r::Node {
-        lat: y,
-        lon: x,
-        tags: HashMap::new(),
-    }
-}
-
-fn way(ids: &[u64]) -> r::Way {
-    r::Way {
-        nodes: Vec::from(ids),
-        tags: HashMap::new(),
-    }
-}
-
 fn mp(outers: &[u64], inners: &[u64]) -> r::Relation {
     let ways = outers
         .iter()
@@ -107,15 +93,6 @@ fn mp(outers: &[u64], inners: &[u64]) -> r::Relation {
             String::from("multipolygon"),
         )]),
     }
-}
-
-fn line(points: &[(f64, f64)]) -> LineString {
-    LineString(
-        points
-            .iter()
-            .map(|(x, y)| coord! { x: *x, y: *y })
-            .collect(),
-    )
 }
 
 // https://wiki.openstreetmap.org/wiki/Relation:multipolygon#One_outer_and_one_inner_ring

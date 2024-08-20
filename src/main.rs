@@ -23,6 +23,8 @@ mod ski_area;
 mod multipolygon_test;
 #[cfg(test)]
 mod osm_reader_test;
+#[cfg(test)]
+mod test_util;
 
 #[derive(Parser)]
 struct Args {

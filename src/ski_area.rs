@@ -16,12 +16,20 @@ mod lift;
 mod piste;
 
 #[cfg(test)]
+mod lift_test;
+#[cfg(test)]
 mod piste_test;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct PointWithElevation {
     pub point: Point,
     pub elevation: u32,
+}
+
+impl PointWithElevation {
+    pub fn new(point: Point, elevation: u32) -> Self {
+        Self { point, elevation }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -62,7 +70,18 @@ where
         self.bounding_rect.bounding_rect()
     }
 }
-#[derive(Serialize, Deserialize, Debug)]
+
+impl<T, C> PartialEq for BoundedGeometry<T, C>
+where
+    C: CoordNum,
+    T: BoundingRect<C> + PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.item == other.item
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Lift {
     pub ref_: String,
     pub name: String,

@@ -1,10 +1,9 @@
 use super::segments::{get_segments, Segments};
-use crate::config::{set_config, Config};
+use crate::test_util::{init, Init};
 
 use geo::point;
 use gpx::{Gpx, Track, TrackSegment, Waypoint};
-
-use rstest::{fixture, rstest};
+use rstest::rstest;
 
 fn segment(input: &[(f64, f64, Option<f64>)]) -> TrackSegment {
     let mut result = TrackSegment::new();
@@ -45,17 +44,6 @@ fn get_wp(
     id: usize,
 ) -> &Waypoint {
     &gpx.tracks[track_id].segments[segment_id].points[id]
-}
-
-struct Init;
-
-#[fixture]
-fn init() -> Init {
-    match set_config(Config { verbose: 2 }) {
-        Ok(()) => (),
-        Err(_) => (),
-    }
-    Init {}
 }
 
 #[rstest]

@@ -97,10 +97,10 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
     }
     impl<'a> Stations<'a> {
         fn add(&mut self, node: &'a Node) {
-            self.stations.push(PointWithElevation {
-                point: node.into(),
-                elevation: parse_ele(&node.tags),
-            });
+            self.stations.push(PointWithElevation::new(
+                node.into(),
+                parse_ele(&node.tags),
+            ));
             self.station_nodes.push(node);
         }
     }

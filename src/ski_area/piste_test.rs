@@ -1,14 +1,14 @@
 use super::piste::parse_pistes;
 use super::{Difficulty, Piste, PisteMetadata};
-use crate::config::{set_config, Config};
 use crate::osm_reader::{
     Document, Node, Relation, RelationMember, RelationMembers, Tags, Way,
 };
+use crate::test_util::{init, Init};
+
 use geo::{Coord, LineString, MultiLineString, MultiPolygon, Polygon};
+use rstest::{fixture, rstest};
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
-
-use rstest::{fixture, rstest};
 
 type Point = (i64, i64);
 type Line = Vec<Point>;
@@ -200,17 +200,6 @@ impl PisteOut {
     fn list(pistes: &Vec<Piste>) -> Vec<PisteOut> {
         pistes.iter().map(PisteOut::new).collect()
     }
-}
-
-struct Init;
-
-#[fixture]
-fn init() -> Init {
-    match set_config(Config { verbose: 2 }) {
-        Ok(()) => (),
-        Err(_) => (),
-    }
-    Init {}
 }
 
 #[fixture]
