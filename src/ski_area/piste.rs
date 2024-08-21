@@ -32,10 +32,12 @@ fn parse_metadata(tags: &Tags) -> PisteMetadata {
     let difficulty = match Difficulty::from_str(&difficulty_str) {
         Ok(difficulty) => difficulty,
         Err(_) => {
-            eprintln!(
-                "{} {}: invalid difficulty: {}",
-                name, ref_, difficulty_str
-            );
+            if get_config().is_vv() {
+                eprintln!(
+                    "{} {}: invalid difficulty: {}",
+                    name, ref_, difficulty_str
+                );
+            }
             Difficulty::Unknown
         }
     };
@@ -45,12 +47,6 @@ fn parse_metadata(tags: &Tags) -> PisteMetadata {
         name: name.to_string(),
         difficulty,
     }
-}
-
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
-struct PartialPisteId {
-    id: String,
-    is_ref: bool,
 }
 
 #[derive(Default, Debug)]
@@ -470,12 +466,16 @@ fn merge_unnamed_pistes(
 ) -> Vec<Piste> {
     let mut pistes: HashMap<Difficulty, Vec<PisteData>> = HashMap::new();
     for line in unnamed_lines {
-        let v = pistes.entry(line.difficulty).or_default();
-        v.push(line_to_piste(line.geometry));
+        pistes
+            .entry(line.difficulty)
+            .or_default()
+            .push(line_to_piste(line.geometry));
     }
     for area in unnamed_areas {
-        let v = pistes.entry(area.difficulty).or_default();
-        v.push(area_to_piste(area.geometry));
+        pistes
+            .entry(area.difficulty)
+            .or_default()
+            .push(area_to_piste(area.geometry));
     }
 
     for mut datas in pistes.values_mut() {
@@ -577,8 +577,7 @@ fn merge_empty_refs(input: Vec<Piste>) -> Vec<Piste> {
 
     for piste in input {
         if piste.metadata.ref_ == "" {
-            let datas = refless.entry(piste.metadata).or_default();
-            datas.push(piste.data);
+            refless.entry(piste.metadata).or_default().push(piste.data);
         } else {
             result.push(piste);
         }
