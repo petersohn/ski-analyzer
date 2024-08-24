@@ -29,7 +29,7 @@ fn get_station(lift: &Lift, p: &Point) -> LiftEnd {
         .map(|(i, _)| i)
 }
 
-fn get_distance_inner(lift: &Lift, p: &Point) -> Option<(usize, Line, Point)> {
+fn get_distance_from_begin(lift: &Lift, p: &Point) -> Option<f64> {
     let (segment, line, p2, distance) = lift
         .line
         .item
@@ -50,31 +50,27 @@ fn get_distance_inner(lift: &Lift, p: &Point) -> Option<(usize, Line, Point)> {
         })
         .min_by(|(_, _, _, d1), (_, _, _, d2)| d1.total_cmp(d2))?;
     if distance > MIN_DISTANCE {
-        None
-    } else {
-        Some((segment, line, p2))
+        return None;
     }
-}
-
-fn get_distance_from_begin(lift: &Lift, p: &Point) -> Option<f64> {
-    get_distance_inner(lift, p).map(|(segment, line, p2)| {
+    Some(
         lift.line
             .item
             .lines()
             .take(segment)
             .fold(0.0, |acc, l| acc + l.haversine_length())
-            + p2.haversine_distance(&line.start.into())
-    })
+            + p2.haversine_distance(&line.start.into()),
+    )
 }
 
-fn find_nearby_lifts<'s>(ski_area: &'s SkiArea, p: &Point) -> Vec<&'s Lift> {
+fn find_nearby_lifts<'s, 'g>(
+    ski_area: &'s SkiArea,
+    point: &'g Waypoint,
+) -> Vec<LiftCandidate<'s, 'g>> {
     ski_area
         .lifts
         .iter()
-        .filter(|l| {
-            l.line.bounding_rect().intersects(p)
-                && get_distance_inner(&l, p).is_some()
-        })
+        .filter(|l| l.line.bounding_rect().intersects(&point.point()))
+        .filter_map(|l| LiftCandidate::new(l, (0, 0), point))
         .collect()
 }
 
@@ -90,6 +86,7 @@ struct LiftCandidate<'s, 'g> {
     route: Segments<'g>,
     previous_cutoff: (usize, usize),
     result: LiftResult,
+    lift_length: f64,
     avg_distance: Avg<f64>,
     current_ratio: f64,
     direction_known: bool,
@@ -100,23 +97,28 @@ impl<'s, 'g> LiftCandidate<'s, 'g> {
         lift: &'s Lift,
         previous_cutoff: (usize, usize),
         point: &'g Waypoint,
-    ) -> Self {
-        LiftCandidate {
-            data: UseLift {
-                lift,
-                begin_time: point.time.map(|t| t.into()),
-                end_time: None,
-                begin_station: get_station(lift, &point.point()),
-                end_station: None,
-                is_reverse: false,
-            },
-            route: vec![vec![point]],
-            previous_cutoff,
-            result: LiftResult::NotFinished,
-            avg_distance: Avg::new(),
-            current_ratio: get_ratio(lift, &p.point()),
-            direction_known: false,
-        }
+    ) -> Option<Self> {
+        let p = point.point();
+        get_distance_from_begin(lift, &p).map(|distance| {
+            let lift_length = lift.line.item.haversine_length();
+            LiftCandidate {
+                data: UseLift {
+                    lift,
+                    begin_time: point.time.map(|t| t.into()),
+                    end_time: None,
+                    begin_station: get_station(lift, &p),
+                    end_station: None,
+                    is_reverse: false,
+                },
+                route: vec![vec![point]],
+                previous_cutoff,
+                result: LiftResult::NotFinished,
+                lift_length,
+                avg_distance: Avg::new(),
+                current_ratio: distance / lift_length,
+                direction_known: false,
+            }
+        })
     }
 
     fn continue_lift(&mut self, point: &'g Waypoint) -> LiftResult {
