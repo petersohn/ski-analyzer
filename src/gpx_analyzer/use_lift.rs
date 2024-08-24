@@ -62,18 +62,6 @@ fn get_distance_from_begin(lift: &Lift, p: &Point) -> Option<f64> {
     )
 }
 
-fn find_nearby_lifts<'s, 'g>(
-    ski_area: &'s SkiArea,
-    point: &'g Waypoint,
-) -> Vec<LiftCandidate<'s, 'g>> {
-    ski_area
-        .lifts
-        .iter()
-        .filter(|l| l.line.bounding_rect().intersects(&point.point()))
-        .filter_map(|l| LiftCandidate::new(l, (0, 0), point))
-        .collect()
-}
-
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum LiftResult {
     NotFinished,
@@ -119,6 +107,19 @@ impl<'s, 'g> LiftCandidate<'s, 'g> {
                 direction_known: false,
             }
         })
+    }
+
+    fn find(
+        ski_area: &'s SkiArea,
+        previous_cutoff: (usize, usize),
+        point: &'g Waypoint,
+    ) -> Vec<LiftCandidate<'s, 'g>> {
+        ski_area
+            .lifts
+            .iter()
+            .filter(|l| l.line.bounding_rect().intersects(&point.point()))
+            .filter_map(|l| LiftCandidate::new(l, previous_cutoff, point))
+            .collect()
     }
 
     fn continue_lift(&mut self, point: &'g Waypoint) -> LiftResult {
