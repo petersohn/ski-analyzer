@@ -1,6 +1,7 @@
 use super::segments::Segments;
 use super::{format_time_option, to_odt};
 use super::{Activity, ActivityType, LiftEnd, UseLift};
+use crate::collection::Avg;
 use crate::config::get_config;
 use crate::ski_area::{Lift, SkiArea};
 
@@ -8,7 +9,7 @@ use std::fmt::Debug;
 
 use geo::{
     BoundingRect, Closest, HaversineClosestPoint, HaversineDistance,
-    Intersects, Point,
+    HaversineLength, Intersects, Line, Point,
 };
 use gpx::Waypoint;
 
@@ -16,25 +17,6 @@ const MIN_DISTANCE: f64 = 10.0;
 
 fn is_near(p1: &Point, p2: &Point) -> bool {
     p1.haversine_distance(p2) < MIN_DISTANCE
-}
-
-fn is_near_line<T>(t: &T, p: &Point) -> bool
-where
-    T: HaversineClosestPoint<f64> + Debug,
-{
-    match t.haversine_closest_point(p) {
-        Closest::Intersection(_) => true,
-        Closest::SinglePoint(p2) => is_near(p, &p2),
-        Closest::Indeterminate => {
-            if get_config().is_vv() {
-                eprintln!(
-                    "Cannot determine distance between {:?} and {:?}",
-                    p, t
-                );
-            }
-            false
-        }
-    }
 }
 
 fn get_station(lift: &Lift, p: &Point) -> LiftEnd {
@@ -47,25 +29,102 @@ fn get_station(lift: &Lift, p: &Point) -> LiftEnd {
         .map(|(i, _)| i)
 }
 
-fn find_nearby_lifts<'s>(
-    ski_area: &'s SkiArea,
-    p: &Point,
-) -> Vec<(&'s Lift, LiftEnd)> {
+fn get_distance_inner(lift: &Lift, p: &Point) -> Option<(usize, Line, Point)> {
+    let (segment, line, p2, distance) = lift
+        .line
+        .item
+        .lines()
+        .enumerate()
+        .map(|(i, line)| {
+            let p2 = match line.haversine_closest_point(p) {
+                Closest::Intersection(p2) => p2,
+                Closest::SinglePoint(p2) => p2,
+                Closest::Indeterminate => {
+                    panic!(
+                        "Cannot determine distance between {:?} and {:?}",
+                        p, line
+                    );
+                }
+            };
+            (i, line, p2, p.haversine_distance(&p2))
+        })
+        .min_by(|(_, _, _, d1), (_, _, _, d2)| d1.total_cmp(d2))?;
+    if distance > MIN_DISTANCE {
+        None
+    } else {
+        Some((segment, line, p2))
+    }
+}
+
+fn get_distance_from_begin(lift: &Lift, p: &Point) -> Option<f64> {
+    get_distance_inner(lift, p).map(|(segment, line, p2)| {
+        lift.line
+            .item
+            .lines()
+            .take(segment)
+            .fold(0.0, |acc, l| acc + l.haversine_length())
+            + p2.haversine_distance(&line.start.into())
+    })
+}
+
+fn find_nearby_lifts<'s>(ski_area: &'s SkiArea, p: &Point) -> Vec<&'s Lift> {
     ski_area
         .lifts
         .iter()
         .filter(|l| {
             l.line.bounding_rect().intersects(p)
-                && is_near_line(&l.line.item, p)
+                && get_distance_inner(&l, p).is_some()
         })
-        .map(|l| (l, get_station(l, p)))
         .collect()
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum LiftResult {
     NotFinished,
     Finished,
     Failure,
+}
+
+struct LiftCandidate<'s, 'g> {
+    data: UseLift<'s>,
+    route: Segments<'g>,
+    previous_cutoff: (usize, usize),
+    result: LiftResult,
+    avg_distance: Avg<f64>,
+    current_ratio: f64,
+    direction_known: bool,
+}
+
+impl<'s, 'g> LiftCandidate<'s, 'g> {
+    fn new(
+        lift: &'s Lift,
+        previous_cutoff: (usize, usize),
+        point: &'g Waypoint,
+    ) -> Self {
+        LiftCandidate {
+            data: UseLift {
+                lift,
+                begin_time: point.time.map(|t| t.into()),
+                end_time: None,
+                begin_station: get_station(lift, &point.point()),
+                end_station: None,
+                is_reverse: false,
+            },
+            route: vec![vec![point]],
+            previous_cutoff,
+            result: LiftResult::NotFinished,
+            avg_distance: Avg::new(),
+            current_ratio: get_ratio(lift, &p.point()),
+            direction_known: false,
+        }
+    }
+
+    fn continue_lift(&mut self, point: &'g Waypoint) -> LiftResult {
+        if self.result != LiftResult::NotFinished {
+            return self.result;
+        }
+        LiftResult::NotFinished
+    }
 }
 
 fn continue_lift<'s>(

@@ -17,6 +17,7 @@ clap = { version = "4.5.3", features = ["derive"] }
 topological-sort = "0.2.2"
 gpx = "0.10.0"
 time = { version = "0.3.36", features = ["formatting"] }
+num = "0.4.3"
 
 [dev-dependencies]
 rstest = "0.19.0"
