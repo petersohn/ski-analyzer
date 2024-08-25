@@ -135,7 +135,7 @@ impl<'s> LiftCandidate<'s> {
         coordinate: SegmentCoordinate,
     ) -> LiftResult {
         if self.result != LiftResult::NotFinished {
-            return self.result;
+            panic!("Already finished");
         }
         let p = point.point();
         let distance = match get_distance_from_begin(self.data.lift, &p) {
@@ -233,10 +233,9 @@ pub fn find_lift_usage<'s, 'g>(
     let mut finished_candidates: Candidates = Vec::new();
 
     for segment in segments {
-        let segment_id = current_route.len();
         let mut route_segment: Segment = Vec::new();
         for point in segment {
-            let coordinate = (segment_id, route_segment.len());
+            let coordinate = (current_route.len(), route_segment.len());
             let (mut finished, unfinished): (Candidates, Candidates) =
                 candidates
                     .into_iter()
@@ -249,6 +248,9 @@ pub fn find_lift_usage<'s, 'g>(
             finished_candidates.append(&mut finished);
 
             if candidates.is_empty() && !finished_candidates.is_empty() {
+                if !current_route.is_empty() {
+                    current_route.push(take(&mut route_segment));
+                }
                 let mut to_add: Vec<Activity<'s, 'g>> = Vec::new();
                 for (type_, coord) in
                     commit_lift_candidates(take(&mut finished_candidates))
