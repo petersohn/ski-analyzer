@@ -157,6 +157,7 @@ impl<'s, 'g> LiftCandidate<'s, 'g> {
                 return self.transition(LiftResult::Failure);
             }
         }
+        self.avg_distance.add(distance);
         self.data.end_station = get_station(self.data.lift, &p);
         self.data.end_time = point.time.map(|t| t.into());
         LiftResult::NotFinished
