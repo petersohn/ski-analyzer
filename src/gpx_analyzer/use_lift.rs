@@ -258,6 +258,12 @@ pub fn find_lift_usage<'s, 'g>(
                     let route = split_route(&mut current_route, coord);
                     to_add.push(Activity { type_, route });
                 }
+                if !current_route.is_empty() {
+                    to_add.push(Activity {
+                        type_: ActivityType::Unknown,
+                        route: take(&mut current_route),
+                    });
+                }
                 result.reserve(to_add.len());
                 to_add.into_iter().rev().for_each(|r| result.push(r));
             }
