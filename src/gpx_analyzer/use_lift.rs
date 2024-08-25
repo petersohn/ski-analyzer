@@ -76,7 +76,7 @@ struct LiftCandidate<'s, 'g> {
     result: LiftResult,
     lift_length: f64,
     avg_distance: Avg<f64>,
-    current_ratio: f64,
+    distance_from_begin: f64,
     direction_known: bool,
 }
 
@@ -89,13 +89,14 @@ impl<'s, 'g> LiftCandidate<'s, 'g> {
         let p = point.point();
         get_distance_from_begin(lift, &p).map(|distance| {
             let lift_length = lift.line.item.haversine_length();
+            let station = get_station(lift, &p);
             LiftCandidate {
                 data: UseLift {
                     lift,
                     begin_time: point.time.map(|t| t.into()),
                     end_time: None,
-                    begin_station: get_station(lift, &p),
-                    end_station: None,
+                    begin_station: station,
+                    end_station: station,
                     is_reverse: false,
                 },
                 route: vec![vec![point]],
@@ -103,30 +104,67 @@ impl<'s, 'g> LiftCandidate<'s, 'g> {
                 result: LiftResult::NotFinished,
                 lift_length,
                 avg_distance: Avg::new(),
-                current_ratio: distance / lift_length,
+                distance_from_begin: distance,
                 direction_known: false,
             }
         })
     }
 
-    fn find(
-        ski_area: &'s SkiArea,
+    fn find<It>(
+        it: It,
         previous_cutoff: (usize, usize),
         point: &'g Waypoint,
-    ) -> Vec<LiftCandidate<'s, 'g>> {
-        ski_area
-            .lifts
-            .iter()
-            .filter(|l| l.line.bounding_rect().intersects(&point.point()))
+    ) -> Vec<LiftCandidate<'s, 'g>>
+    where
+        It: Iterator<Item = &'s Lift>,
+    {
+        it.filter(|l| l.line.bounding_rect().intersects(&point.point()))
             .filter_map(|l| LiftCandidate::new(l, previous_cutoff, point))
             .collect()
     }
 
-    fn continue_lift(&mut self, point: &'g Waypoint) -> LiftResult {
+    fn add_point(
+        &mut self,
+        point: &'g Waypoint,
+        is_new_segment: bool,
+    ) -> LiftResult {
         if self.result != LiftResult::NotFinished {
             return self.result;
         }
+        let p = point.point();
+        let distance = match get_distance_from_begin(self.data.lift, &p) {
+            Some(d) => d,
+            None => {
+                if is_new_segment // We might have lost some data
+                    || self.data.lift.can_disembark // You fell out of a draglift
+                    || self.data.end_station.is_some()
+                {
+                    return self.transition(LiftResult::Finished);
+                } else {
+                    return self.transition(LiftResult::Failure);
+                }
+            }
+        };
+        if (distance - self.distance_from_begin).abs() > MIN_DISTANCE {
+            let reverse = distance < self.distance_from_begin;
+            if !self.direction_known {
+                if reverse && !self.data.lift.can_go_reverse {
+                    return self.transition(LiftResult::Failure);
+                }
+                self.direction_known = true;
+                self.data.is_reverse = reverse;
+            } else if reverse != self.data.is_reverse {
+                return self.transition(LiftResult::Failure);
+            }
+        }
+        self.data.end_station = get_station(self.data.lift, &p);
+        self.data.end_time = point.time.map(|t| t.into());
         LiftResult::NotFinished
+    }
+
+    fn transition(&mut self, result: LiftResult) -> LiftResult {
+        self.result = result;
+        result
     }
 }
 
