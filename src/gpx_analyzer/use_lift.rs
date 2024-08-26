@@ -194,12 +194,62 @@ impl<'s> LiftCandidate<'s> {
     fn commit(self) -> UseLift<'s> {
         self.data
     }
+
+    fn found_station_count(&self) -> u32 {
+        self.data.begin_station.is_some() as u32
+            + self.data.end_station.is_some() as u32
+    }
+
+    fn can_go_after(&self, other: &LiftCandidate) -> bool {
+        self.possible_begins.last().unwrap()
+            >= other.possible_ends.first().unwrap()
+    }
 }
 
 fn commit_lift_candidates<'s>(
-    candidates: Vec<LiftCandidate<'s>>,
+    mut candidates: Vec<LiftCandidate<'s>>,
 ) -> Vec<(ActivityType<'s>, SegmentCoordinate)> {
-    vec![]
+    candidates.sort_by(|lhs, rhs| {
+        (lhs.found_station_count(), -lhs.lift_length)
+            .partial_cmp(&(rhs.found_station_count(), -rhs.lift_length))
+            .unwrap()
+    });
+
+    let mut candidates2 = Vec::new();
+    for c in candidates.into_iter() {
+        if candidates2
+            .iter()
+            .all(|c2| c.can_go_after(&c2) || c2.can_go_after(&c))
+        {
+            candidates2.push(c);
+        }
+    }
+
+    candidates2.sort_by(|lhs, rhs| {
+        rhs.possible_begins[0].cmp(&lhs.possible_begins[0])
+    });
+
+    let mut result = Vec::new();
+    let mut current = candidates2.pop().unwrap();
+    let mut coord = current.possible_begins[0];
+    while let Some(next) = candidates2.pop() {
+        let current_end = *current.possible_ends.last().unwrap();
+        let next_begin = *next.possible_begins.first().unwrap();
+        result.push((ActivityType::UseLift(current.commit()), coord));
+        coord = if current_end < next_begin {
+            result.push((ActivityType::Unknown, current_end));
+            next_begin
+        } else {
+            *next
+                .possible_begins
+                .iter()
+                .rfind(|c| **c <= current_end)
+                .unwrap()
+        };
+        current = next;
+    }
+    result.push((ActivityType::UseLift(current.commit()), coord));
+    result
 }
 
 fn split_route<'g>(
