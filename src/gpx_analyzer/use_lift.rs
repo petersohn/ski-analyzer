@@ -1,8 +1,6 @@
 use super::segments::{Segment, Segments};
-use super::{format_time_option, to_odt};
 use super::{Activity, ActivityType, LiftEnd, UseLift};
 use crate::collection::Avg;
-use crate::config::get_config;
 use crate::ski_area::{Lift, SkiArea};
 
 use std::fmt::Debug;
@@ -10,15 +8,11 @@ use std::mem::take;
 
 use geo::{
     BoundingRect, Closest, HaversineClosestPoint, HaversineDistance,
-    HaversineLength, Intersects, Line, Point,
+    HaversineLength, Intersects, Point,
 };
 use gpx::Waypoint;
 
 const MIN_DISTANCE: f64 = 10.0;
-
-fn is_near(p1: &Point, p2: &Point) -> bool {
-    p1.haversine_distance(p2) < MIN_DISTANCE
-}
 
 fn get_station(lift: &Lift, p: &Point) -> LiftEnd {
     lift.stations
