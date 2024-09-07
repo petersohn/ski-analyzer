@@ -11,7 +11,7 @@ fn segment(input: &[(f64, f64, Option<f64>)]) -> TrackSegment {
         .iter()
         .map(|(x, y, h)| {
             let mut result = Waypoint::new(point! { x: *x, y: *y });
-            result.hdop = h.clone();
+            result.hdop = *h;
             result
         })
         .collect();

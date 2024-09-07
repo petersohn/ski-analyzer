@@ -11,6 +11,8 @@ mod segments;
 #[cfg(test)]
 mod segments_test;
 mod use_lift;
+#[cfg(test)]
+mod use_lift_test;
 
 pub type LiftEnd = Option<usize>;
 
@@ -54,6 +56,6 @@ pub fn analyze_route<'s, 'g>(
 ) -> Vec<Activity<'s, 'g>> {
     let segments = get_segments(&gpx);
     // println!("{:#?}", segments);
-    let result = use_lift::find_lift_usage(ski_area, &segments);
+    let result = find_lift_usage(ski_area, &segments);
     result
 }
