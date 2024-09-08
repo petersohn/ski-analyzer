@@ -161,13 +161,17 @@ impl<'s> LiftCandidate<'s> {
         let distance = match get_distance_from_begin(self.data.lift, &p) {
             Some(d) => d,
             None => {
-                if !self.possible_ends.is_empty()
-                    && (coordinate.1 == 0 // We might have lost some data
-                    || self.data.lift.can_disembark // You fell out of a draglift
-                    || self.data.end_station.is_some())
+                eprintln!("Leave {:?}", coordinate);
+                if coordinate.1 == 0 // We might have lost some data
+                    // You fell out of a draglift
+                    || (self.data.lift.can_disembark
+                        && !self.possible_ends.is_empty())
+                    || self.data.end_station.is_some()
                 {
+                    eprintln!("good");
                     return self.transition(LiftResult::Finished);
                 } else {
+                    eprintln!("bad");
                     return self.transition(LiftResult::Failure);
                 }
             }
