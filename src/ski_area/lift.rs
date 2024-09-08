@@ -1,15 +1,27 @@
 use geo::LineString;
+use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 
 use std::str::FromStr;
 
-use super::{BoundedGeometry, Lift, PointWithElevation};
+use super::{BoundedGeometry, PointWithElevation};
 
 use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{
     get_tag, parse_ele, parse_way, parse_yesno, Document, Node, Way,
 };
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct Lift {
+    pub ref_: String,
+    pub name: String,
+    pub type_: String,
+    pub line: BoundedGeometry<LineString>,
+    pub stations: Vec<PointWithElevation>,
+    pub can_go_reverse: bool,
+    pub can_disembark: bool,
+}
 
 #[derive(PartialEq, Eq, EnumString, strum_macros::Display)]
 #[strum(serialize_all = "lowercase")]

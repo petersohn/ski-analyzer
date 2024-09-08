@@ -2,19 +2,76 @@ use geo::{
     BooleanOps, BoundingRect, Coord, CoordNum, HaversineLength, Intersects,
     LineString, MultiLineString, MultiPolygon, Polygon, Rect,
 };
+use serde::{Deserialize, Serialize};
+use strum_macros::EnumString;
 
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
-use super::{BoundedGeometry, Difficulty, Piste, PisteData, PisteMetadata};
-
+use super::BoundedGeometry;
 use crate::config::get_config;
 // use crate::error::{Error, ErrorType, Result};
 use crate::collection::max_if;
 use crate::error::Result;
 use crate::multipolygon::parse_multipolygon;
 use crate::osm_reader::{get_tag, parse_way, Document, Tags, Way};
+
+#[derive(
+    Serialize,
+    Deserialize,
+    Copy,
+    Clone,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash,
+    EnumString,
+    strum_macros::Display,
+)]
+#[strum(serialize_all = "lowercase")]
+pub enum Difficulty {
+    #[strum(serialize = "")]
+    Unknown,
+    Novice,
+    Easy,
+    Intermediate,
+    Advanced,
+    Expert,
+    Freeride,
+}
+
+#[derive(PartialEq, Eq, Hash, Clone, Serialize, Deserialize, Debug)]
+pub struct PisteMetadata {
+    pub ref_: String,
+    pub name: String,
+    pub difficulty: Difficulty,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PisteData {
+    pub bounding_rect: Rect,
+    pub areas: MultiPolygon,
+    pub lines: MultiLineString,
+}
+
+impl geo::Intersects for PisteData {
+    fn intersects(&self, other: &PisteData) -> bool {
+        self.bounding_rect.intersects(&other.bounding_rect)
+            && (self.areas.intersects(&other.areas)
+                || self.areas.intersects(&other.lines)
+                || self.lines.intersects(&other.areas)
+                || self.lines.intersects(&other.lines))
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Piste {
+    #[serde(flatten)]
+    pub metadata: PisteMetadata,
+    #[serde(flatten)]
+    pub data: PisteData,
+}
 
 fn parse_metadata(tags: &Tags) -> PisteMetadata {
     let mut name = get_tag(&tags, "piste:name");

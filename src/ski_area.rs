@@ -1,10 +1,5 @@
-use geo::{
-    BoundingRect, CoordFloat, CoordNum, HaversineBearing, HaversineDestination,
-    HaversineDistance, LineString, MultiLineString, MultiPolygon, Point, Rect,
-};
-use num_traits::cast::FromPrimitive;
+use geo::Point;
 use serde::{Deserialize, Serialize};
-use strum_macros::EnumString;
 
 use lift::parse_lift;
 use piste::parse_pistes;
@@ -13,6 +8,7 @@ use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{get_tag, Document};
 
+mod bounded_geometry;
 mod lift;
 mod piste;
 
@@ -20,6 +16,10 @@ mod piste;
 mod lift_test;
 #[cfg(test)]
 mod piste_test;
+
+pub use bounded_geometry::BoundedGeometry;
+pub use lift::Lift;
+pub use piste::{Difficulty, Piste, PisteData, PisteMetadata};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct PointWithElevation {
@@ -31,136 +31,6 @@ impl PointWithElevation {
     pub fn new(point: Point, elevation: u32) -> Self {
         Self { point, elevation }
     }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct BoundedGeometry<T, C = f64>
-where
-    C: CoordNum,
-    T: BoundingRect<C>,
-{
-    pub item: T,
-    pub bounding_rect: Rect<C>,
-}
-
-impl<T, C> BoundedGeometry<T, C>
-where
-    C: CoordNum,
-    T: BoundingRect<C>,
-{
-    pub fn new(item: T) -> Result<Self> {
-        let bounding_rect = item.bounding_rect().into().ok_or(Error::new_s(
-            ErrorType::LogicError,
-            "cannot calculate bounding rect",
-        ))?;
-        Ok(BoundedGeometry {
-            item,
-            bounding_rect,
-        })
-    }
-
-    pub fn expand(&mut self, amount: C)
-    where
-        C: CoordFloat + FromPrimitive,
-    {
-        let min_p = Point::from(self.bounding_rect.min());
-        let max_p = Point::from(self.bounding_rect.max());
-        let bearing = min_p.haversine_bearing(max_p);
-        let distance = min_p.haversine_distance(&max_p);
-        self.bounding_rect = Rect::new(
-            min_p.haversine_destination(bearing, -amount).into(),
-            max_p.haversine_destination(bearing, distance + amount),
-        );
-    }
-}
-
-impl<T, C> BoundingRect<C> for BoundedGeometry<T, C>
-where
-    C: CoordNum,
-    T: BoundingRect<C>,
-{
-    type Output = Rect<C>;
-
-    fn bounding_rect(&self) -> Self::Output {
-        self.bounding_rect.bounding_rect()
-    }
-}
-
-impl<T, C> PartialEq for BoundedGeometry<T, C>
-where
-    C: CoordNum,
-    T: BoundingRect<C> + PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.item == other.item
-    }
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-pub struct Lift {
-    pub ref_: String,
-    pub name: String,
-    pub type_: String,
-    pub line: BoundedGeometry<LineString>,
-    pub stations: Vec<PointWithElevation>,
-    pub can_go_reverse: bool,
-    pub can_disembark: bool,
-}
-
-#[derive(
-    Serialize,
-    Deserialize,
-    Copy,
-    Clone,
-    Debug,
-    PartialEq,
-    Eq,
-    Hash,
-    EnumString,
-    strum_macros::Display,
-)]
-#[strum(serialize_all = "lowercase")]
-pub enum Difficulty {
-    #[strum(serialize = "")]
-    Unknown,
-    Novice,
-    Easy,
-    Intermediate,
-    Advanced,
-    Expert,
-    Freeride,
-}
-
-#[derive(PartialEq, Eq, Hash, Clone, Serialize, Deserialize, Debug)]
-pub struct PisteMetadata {
-    pub ref_: String,
-    pub name: String,
-    pub difficulty: Difficulty,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PisteData {
-    pub bounding_rect: Rect,
-    pub areas: MultiPolygon,
-    pub lines: MultiLineString,
-}
-
-impl geo::Intersects for PisteData {
-    fn intersects(&self, other: &PisteData) -> bool {
-        self.bounding_rect.intersects(&other.bounding_rect)
-            && (self.areas.intersects(&other.areas)
-                || self.areas.intersects(&other.lines)
-                || self.lines.intersects(&other.areas)
-                || self.lines.intersects(&other.lines))
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Piste {
-    #[serde(flatten)]
-    pub metadata: PisteMetadata,
-    #[serde(flatten)]
-    pub data: PisteData,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

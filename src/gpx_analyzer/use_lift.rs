@@ -1,7 +1,7 @@
 use super::segments::{Segment, Segments};
-use super::{Activity, ActivityType, LiftEnd, UseLift};
 use crate::collection::Avg;
 use crate::ski_area::{Lift, SkiArea};
+use time::OffsetDateTime;
 
 use std::fmt::Debug;
 use std::mem::take;
@@ -13,6 +13,31 @@ use geo::{
 use gpx::Waypoint;
 
 const MIN_DISTANCE: f64 = 10.0;
+
+pub type LiftEnd = Option<usize>;
+
+#[derive(Debug)]
+pub struct UseLift<'s> {
+    pub lift: &'s Lift,
+    pub begin_time: Option<OffsetDateTime>,
+    pub end_time: Option<OffsetDateTime>,
+    pub begin_station: LiftEnd,
+    pub end_station: LiftEnd,
+    pub is_reverse: bool,
+}
+
+#[derive(Debug, Default)]
+pub enum ActivityType<'s> {
+    #[default]
+    Unknown,
+    UseLift(UseLift<'s>),
+}
+
+#[derive(Debug, Default)]
+pub struct Activity<'s, 'g> {
+    pub type_: ActivityType<'s>,
+    pub route: Segments<'g>,
+}
 
 fn get_station(lift: &Lift, p: &Point) -> LiftEnd {
     lift.stations

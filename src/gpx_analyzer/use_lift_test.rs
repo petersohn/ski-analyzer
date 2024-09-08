@@ -1,4 +1,4 @@
-use super::segments::{Segment, Segments};
+use super::segments::Segments;
 use super::test_util::{ptrize, SegmentsPtr};
 use super::use_lift::find_lift_usage;
 use super::{Activity, ActivityType, LiftEnd, UseLift};

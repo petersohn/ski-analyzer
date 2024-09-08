@@ -2,10 +2,10 @@ use gpx::{Gpx, Time};
 use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;
 
-use crate::ski_area::{Lift, SkiArea};
+use crate::ski_area::SkiArea;
 use use_lift::find_lift_usage;
 
-use segments::{get_segments, Segments};
+use segments::get_segments;
 
 mod segments;
 mod use_lift;
@@ -17,30 +17,7 @@ mod test_util;
 #[cfg(test)]
 mod use_lift_test;
 
-pub type LiftEnd = Option<usize>;
-
-#[derive(Debug)]
-pub struct UseLift<'s> {
-    lift: &'s Lift,
-    begin_time: Option<OffsetDateTime>,
-    end_time: Option<OffsetDateTime>,
-    begin_station: LiftEnd,
-    end_station: LiftEnd,
-    is_reverse: bool,
-}
-
-#[derive(Debug, Default)]
-pub enum ActivityType<'s> {
-    #[default]
-    Unknown,
-    UseLift(UseLift<'s>),
-}
-
-#[derive(Debug, Default)]
-pub struct Activity<'s, 'g> {
-    type_: ActivityType<'s>,
-    route: Segments<'g>,
-}
+pub use use_lift::{Activity, ActivityType, LiftEnd, UseLift};
 
 fn to_odt(time: Option<Time>) -> Option<OffsetDateTime> {
     time.map(|t| t.into())
