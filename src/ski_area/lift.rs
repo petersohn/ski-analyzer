@@ -213,7 +213,8 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
         line_points.reverse();
     }
 
-    let line = BoundedGeometry::new(LineString::new(line_points))?;
+    let mut line = BoundedGeometry::new(LineString::new(line_points))?;
+    line.expand(10.0);
     let can_disembark = DRAGLIFT_TYPES.contains(&aerialway_type.as_str());
 
     Ok(Some(Lift {

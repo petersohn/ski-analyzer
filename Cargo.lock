@@ -823,6 +823,7 @@ dependencies = [
  "geo",
  "gpx",
  "num",
+ "num-traits",
  "rstest",
  "serde",
  "serde_json",

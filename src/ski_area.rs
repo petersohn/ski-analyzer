@@ -1,7 +1,8 @@
 use geo::{
-    BoundingRect, CoordNum, LineString, MultiLineString, MultiPolygon, Point,
-    Rect,
+    BoundingRect, CoordFloat, CoordNum, HaversineBearing, HaversineDestination,
+    HaversineDistance, LineString, MultiLineString, MultiPolygon, Point, Rect,
 };
+use num_traits::cast::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 
@@ -56,6 +57,20 @@ where
             item,
             bounding_rect,
         })
+    }
+
+    pub fn expand(&mut self, amount: C)
+    where
+        C: CoordFloat + FromPrimitive,
+    {
+        let min_p = Point::from(self.bounding_rect.min());
+        let max_p = Point::from(self.bounding_rect.max());
+        let bearing = min_p.haversine_bearing(max_p);
+        let distance = min_p.haversine_distance(&max_p);
+        self.bounding_rect = Rect::new(
+            min_p.haversine_destination(bearing, -amount).into(),
+            max_p.haversine_destination(bearing, distance + amount),
+        );
     }
 }
 

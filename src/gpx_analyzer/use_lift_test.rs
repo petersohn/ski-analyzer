@@ -18,7 +18,7 @@ fn line(input: &[(f64, f64)]) -> LineString {
 
 fn lift(
     name: String,
-    line: LineString,
+    line_: LineString,
     midstations: &[usize],
     can_go_reverse: bool,
     can_disembark: bool,
@@ -26,17 +26,19 @@ fn lift(
     let stations = [0]
         .iter()
         .chain(midstations.iter())
-        .chain([line.0.len() - 1].iter())
+        .chain([line_.0.len() - 1].iter())
         .map(|i| PointWithElevation {
-            point: line[*i].into(),
+            point: line_[*i].into(),
             elevation: 0,
         })
         .collect();
+    let mut line = BoundedGeometry::new(line_).unwrap();
+    line.expand(10.0);
     Lift {
         ref_: String::new(),
         name,
         type_: String::new(),
-        line: BoundedGeometry::new(line).unwrap(),
+        line,
         stations,
         can_go_reverse,
         can_disembark,
