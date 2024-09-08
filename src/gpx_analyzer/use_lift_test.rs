@@ -1,6 +1,6 @@
-use super::segments::Segments;
 use super::test_util::{ptrize, SegmentsPtr};
 use super::use_lift::find_lift_usage;
+use super::Segments;
 use super::{Activity, ActivityType, LiftEnd, UseLift};
 use crate::ski_area::{BoundedGeometry, Lift, PointWithElevation, SkiArea};
 use crate::test_util::{init, Init};

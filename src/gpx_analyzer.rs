@@ -17,6 +17,7 @@ mod test_util;
 #[cfg(test)]
 mod use_lift_test;
 
+pub use segments::{Segment, Segments};
 pub use use_lift::{Activity, ActivityType, LiftEnd, UseLift};
 
 fn to_odt(time: Option<Time>) -> Option<OffsetDateTime> {
