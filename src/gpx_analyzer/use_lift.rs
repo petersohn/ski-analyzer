@@ -1,4 +1,4 @@
-use super::segments::{Segment, Segments};
+use super::{Segment, Segments};
 use crate::collection::Avg;
 use crate::ski_area::{Lift, SkiArea};
 use time::OffsetDateTime;
