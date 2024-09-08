@@ -190,6 +190,42 @@ fn simple_segment() -> TrackSegment {
     ])
 }
 
+#[fixture]
+fn get_out_segment() -> TrackSegment {
+    segment(&[
+        (6.653481, 45.3867157, None),
+        (6.653287, 45.386661, None),
+        (6.6532186, 45.3864822, None),
+        (6.6531804, 45.3860627, None),
+        (6.6532004, 45.3857871, None),
+        (6.6531734, 45.3855073, None),
+        (6.6531621, 45.3851792, None),
+        (6.6531452, 45.384639, None),
+        (6.6531242, 45.3841532, None),
+        (6.6531254, 45.3835527, None),
+        (6.6531127, 45.3831058, None),
+        (6.6530854, 45.3826733, None),
+        (6.6530683, 45.3820477, None),
+        (6.6530599, 45.3815762, None),
+        (6.6530097, 45.3809965, None),
+        (6.652996, 45.3805637, None),
+        (6.6530062, 45.3800431, None),
+        (6.6530017, 45.3795234, None),
+        (6.652965, 45.3789977, None),
+        (6.6529807, 45.3785376, None),
+        (6.6529697, 45.3780693, None),
+        (6.6529628, 45.3775987, None),
+        (6.6529522, 45.3772738, None),
+        (6.6529497, 45.3768569, None),
+        (6.6529415, 45.3763606, None),
+        (6.6529365, 45.3759643, None),
+        (6.6529269, 45.3757525, None),
+        (6.6529863, 45.3757313, None),
+        (6.6531311, 45.375765, None),
+        (6.6533365, 45.3758586, None),
+    ])
+}
+
 #[rstest]
 fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
     let s =
@@ -278,6 +314,67 @@ fn simple_reverse_good(
                 begin_station: Some(1),
                 end_station: Some(0),
                 is_reverse: true,
+            }),
+            route: get_segment_part(&segments, (0, 2), (0, 28)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 28), (0, 30)),
+        },
+    ];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+#[rstest]
+fn get_out_bad(_init: Init, line00: LineString, get_out_segment: TrackSegment) {
+    let s =
+        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
+    let g = make_gpx(vec![get_out_segment]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![Activity {
+        type_: ActivityType::Unknown,
+        route: get_segment_part(&segments, (0, 0), (0, 30)),
+    }];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+#[rstest]
+fn get_out_good(
+    _init: Init,
+    line00: LineString,
+    get_out_segment: TrackSegment,
+) {
+    let s =
+        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, true)]);
+    let g = make_gpx(vec![get_out_segment]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 0), (0, 2)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[0],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(0),
+                end_station: None,
+                is_reverse: false,
             }),
             route: get_segment_part(&segments, (0, 2), (0, 28)),
         },
