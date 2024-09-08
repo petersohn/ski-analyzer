@@ -1,6 +1,7 @@
-use super::segments::Segments;
+use super::segments::{Segment, Segments};
+use super::test_util::{ptrize, SegmentsPtr};
 use super::use_lift::find_lift_usage;
-use super::{Activity, ActivityType};
+use super::{Activity, ActivityType, LiftEnd, UseLift};
 use crate::ski_area::{BoundedGeometry, Lift, PointWithElevation, SkiArea};
 use crate::test_util::{init, Init};
 
@@ -77,6 +78,56 @@ fn get_segments<'g>(gpx: &'g Gpx) -> Segments<'g> {
         .map(|t| t.segments.iter().map(|s| s.points.iter().collect()))
         .flatten()
         .collect()
+}
+
+#[derive(PartialEq, Eq)]
+pub struct UseLiftPtr {
+    lift: *const Lift,
+    begin_time: Option<OffsetDateTime>,
+    end_time: Option<OffsetDateTime>,
+    begin_station: LiftEnd,
+    end_station: LiftEnd,
+    is_reverse: bool,
+}
+
+type ComparableActivity = (Option<UseLiftPtr>, SegmentsPtr);
+
+fn ptrize_activities(input: &[Activity]) -> Vec<ComparableActivity> {
+    input
+        .iter()
+        .map(|a| {
+            let type_ = match &a.type_ {
+                ActivityType::UseLift(u) => Some(UseLiftPtr {
+                    lift: u.lift,
+                    begin_time: u.begin_time,
+                    end_time: u.end_time,
+                    begin_station: u.begin_station,
+                    end_station: u.end_station,
+                    is_reverse: u.is_reverse,
+                }),
+                _ => None,
+            };
+            (type_, ptrize(&a.route))
+        })
+        .collect()
+}
+
+fn get_segment_part<'g>(
+    segments: &Segments<'g>,
+    begin: (usize, usize),
+    end: (usize, usize),
+) -> Segments<'g> {
+    if begin.0 == end.0 {
+        return vec![segments[begin.0].get(begin.1..end.1).unwrap().into()];
+    }
+    let mut result = Vec::new();
+    result.reserve(end.0 - begin.0 + 1);
+    result.push(segments[begin.0].get(begin.1..).unwrap().into());
+    for i in (begin.0 + 1)..end.0 {
+        result.push(segments[i].clone());
+    }
+    result.push(segments[end.0].get(0..end.1).unwrap().into());
+    result
 }
 
 #[fixture]
@@ -161,6 +212,34 @@ fn simple(_init: Init, line00: LineString) {
         (6.652673, 45.3728196, None),
         (6.6524959, 45.3727732, None),
     ])]);
+    let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &get_segments(&g));
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 0), (0, 2)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[0],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(0),
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (0, 2), (0, 52)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 52), (0, 54)),
+        },
+    ];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
 }

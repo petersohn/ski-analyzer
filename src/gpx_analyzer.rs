@@ -8,9 +8,12 @@ use use_lift::find_lift_usage;
 use segments::{get_segments, Segments};
 
 mod segments;
+mod use_lift;
+
 #[cfg(test)]
 mod segments_test;
-mod use_lift;
+#[cfg(test)]
+mod test_util;
 #[cfg(test)]
 mod use_lift_test;
 

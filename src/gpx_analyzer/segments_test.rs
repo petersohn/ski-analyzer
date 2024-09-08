@@ -1,4 +1,5 @@
-use super::segments::{get_segments, Segments};
+use super::segments::get_segments;
+use super::test_util::ptrize;
 use crate::test_util::{init, Init};
 
 use geo::point;
@@ -28,13 +29,6 @@ fn make_gpx(input: Vec<Track>) -> Gpx {
     let mut result = Gpx::default();
     result.tracks = input;
     result
-}
-
-fn ptrize(segments: &Segments) -> Vec<Vec<*const Waypoint>> {
-    segments
-        .iter()
-        .map(|s| s.iter().map(|w| -> *const Waypoint { *w }).collect())
-        .collect()
 }
 
 fn get_wp(

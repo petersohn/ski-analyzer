@@ -292,7 +292,7 @@ pub fn find_lift_usage<'s, 'g>(
             finished_candidates.append(&mut finished);
 
             if candidates.is_empty() && !finished_candidates.is_empty() {
-                if !current_route.is_empty() {
+                if !route_segment.is_empty() {
                     current_route.push(take(&mut route_segment));
                 }
                 let mut to_add: Vec<Activity<'s, 'g>> = Vec::new();
@@ -301,6 +301,7 @@ pub fn find_lift_usage<'s, 'g>(
                         .into_iter()
                         .rev()
                 {
+                    eprintln!("Commit {:?}", current_route);
                     let route = split_route(&mut current_route, coord);
                     to_add.push(Activity { type_, route });
                 }
@@ -332,6 +333,13 @@ pub fn find_lift_usage<'s, 'g>(
             route_segment.push(point);
         }
         current_route.push(route_segment);
+    }
+
+    if !current_route.is_empty() {
+        result.push(Activity {
+            type_: ActivityType::Unknown,
+            route: current_route,
+        });
     }
 
     result
