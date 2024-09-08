@@ -1,6 +1,6 @@
 use geo::{
-    BoundingRect, CoordFloat, CoordNum, HaversineBearing, HaversineDestination,
-    HaversineDistance, Point, Rect,
+    coord, BoundingRect, CoordFloat, CoordNum, HaversineDestination, Point,
+    Rect,
 };
 use num_traits::cast::FromPrimitive;
 use serde::{Deserialize, Serialize};
@@ -39,11 +39,15 @@ where
     {
         let min_p = Point::from(self.bounding_rect.min());
         let max_p = Point::from(self.bounding_rect.max());
-        let bearing = min_p.haversine_bearing(max_p);
-        let distance = min_p.haversine_distance(&max_p);
+        let min_x =
+            min_p.haversine_destination(C::from(-90.0).unwrap(), amount);
+        let min_y =
+            min_p.haversine_destination(C::from(180.0).unwrap(), amount);
+        let max_x = max_p.haversine_destination(C::from(90.0).unwrap(), amount);
+        let max_y = max_p.haversine_destination(C::from(0.0).unwrap(), amount);
         self.bounding_rect = Rect::new(
-            min_p.haversine_destination(bearing, -amount).into(),
-            max_p.haversine_destination(bearing, distance + amount),
+            coord! { x: min_x.x(), y: min_y.y() },
+            coord! { x: max_x.x(), y: max_y.y() },
         );
     }
 }

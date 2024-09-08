@@ -69,6 +69,7 @@ fn get_distance_from_begin(lift: &Lift, p: &Point) -> Option<f64> {
             (i, line, p2, p.haversine_distance(&p2))
         })
         .min_by(|(_, _, _, d1), (_, _, _, d2)| d1.total_cmp(d2))?;
+    eprintln!("{} {:?} => {}", lift.name, p, distance);
     if distance > MIN_DISTANCE {
         return None;
     }
@@ -121,7 +122,7 @@ impl<'s> LiftCandidate<'s> {
                     begin_time: point.time.map(|t| t.into()),
                     end_time: None,
                     begin_station: station,
-                    end_station: station,
+                    end_station: None,
                     is_reverse: false,
                 },
                 possible_begins: vec![coordinate],
@@ -160,9 +161,10 @@ impl<'s> LiftCandidate<'s> {
         let distance = match get_distance_from_begin(self.data.lift, &p) {
             Some(d) => d,
             None => {
-                if coordinate.1 == 0 // We might have lost some data
+                if !self.possible_ends.is_empty()
+                    && (coordinate.1 == 0 // We might have lost some data
                     || self.data.lift.can_disembark // You fell out of a draglift
-                    || self.data.end_station.is_some()
+                    || self.data.end_station.is_some())
                 {
                     return self.transition(LiftResult::Finished);
                 } else {
@@ -326,7 +328,6 @@ pub fn find_lift_usage<'s, 'g>(
                         .into_iter()
                         .rev()
                 {
-                    eprintln!("Commit {:?}", current_route);
                     let route = split_route(&mut current_route, coord);
                     to_add.push(Activity { type_, route });
                 }

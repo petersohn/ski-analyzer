@@ -154,11 +154,9 @@ fn line01() -> LineString {
     ])
 }
 
-#[rstest]
-fn simple(_init: Init, line00: LineString) {
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
-    let g = make_gpx(vec![segment(&[
+#[fixture]
+fn simple_segment() -> TrackSegment {
+    segment(&[
         (6.6534126, 45.3866878, None),
         (6.6532833, 45.386625, None),
         (6.6532399, 45.3865363, None),
@@ -189,7 +187,14 @@ fn simple(_init: Init, line00: LineString) {
         (6.6528336, 45.3728979, None),
         (6.652673, 45.3728196, None),
         (6.6524959, 45.3727732, None),
-    ])]);
+    ])
+}
+
+#[rstest]
+fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
+    let s =
+        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
+    let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
 
     let actual = find_lift_usage(&s, &segments);
@@ -206,6 +211,73 @@ fn simple(_init: Init, line00: LineString) {
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (0, 2), (0, 28)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 28), (0, 30)),
+        },
+    ];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+#[rstest]
+fn simple_reverse_bad(
+    _init: Init,
+    line00: LineString,
+    mut simple_segment: TrackSegment,
+) {
+    let s =
+        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
+    simple_segment.points.reverse();
+    let g = make_gpx(vec![simple_segment]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![Activity {
+        type_: ActivityType::Unknown,
+        route: get_segment_part(&segments, (0, 0), (0, 30)),
+    }];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+#[rstest]
+fn simple_reverse_good(
+    _init: Init,
+    line00: LineString,
+    mut simple_segment: TrackSegment,
+) {
+    let s =
+        ski_area(vec![lift("Lift 1".to_string(), line00, &[], true, false)]);
+    simple_segment.points.reverse();
+    let g = make_gpx(vec![simple_segment]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 0), (0, 2)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[0],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(1),
+                end_station: Some(0),
+                is_reverse: true,
             }),
             route: get_segment_part(&segments, (0, 2), (0, 28)),
         },
