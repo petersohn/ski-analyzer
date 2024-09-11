@@ -132,6 +132,7 @@ fn get_segment_part<'g>(
     result
 }
 
+// https://www.openstreetmap.org/way/107110280
 #[fixture]
 fn line00() -> LineString {
     line(&[
@@ -143,6 +144,7 @@ fn line00() -> LineString {
     ])
 }
 
+// https://www.openstreetmap.org/way/107110291
 #[fixture]
 fn line01() -> LineString {
     line(&[
@@ -151,6 +153,19 @@ fn line01() -> LineString {
         (6.6530649, 45.3852277),
         (6.6528845, 45.3799605),
         (6.652721, 45.3729675),
+    ])
+}
+
+// https://www.openstreetmap.org/way/29409793
+#[fixture]
+fn line10() -> LineString {
+    line(&[
+        (6.651274, 45.3723031),
+        (6.6499512, 45.3720526),
+        (6.6489541, 45.3718638),
+        (6.6471142, 45.3715154),
+        (6.6467345, 45.3714435),
+        (6.6451561, 45.371145),
     ])
 }
 
@@ -249,6 +264,35 @@ fn get_in_segment_2() -> TrackSegment {
         (6.6524674, 45.3726633, None),
         (6.651844, 45.3725326, None),
         (6.6516495, 45.3726068, None),
+    ])
+}
+
+#[fixture]
+fn multiple_distinct_lifts_segment() -> TrackSegment {
+    segment(&[
+        (6.6535797, 45.3867922, None),
+        (6.6533896, 45.3866573, None),
+        (6.6532362, 45.3865374, None),
+        (6.6531589, 45.3851786, None),
+        (6.6531593, 45.3838609, None),
+        (6.6530879, 45.3823978, None),
+        (6.6529727, 45.3806109, None),
+        (6.6529487, 45.3786397, None),
+        (6.652905, 45.3765097, None),
+        (6.6529288, 45.3745468, None),
+        (6.6528969, 45.3736829, None),
+        (6.6528515, 45.3729283, None),
+        (6.6526247, 45.3727509, None),
+        (6.6522609, 45.3726189, None),
+        (6.6518038, 45.372672, None),
+        (6.6513602, 45.3723656, None),
+        (6.6506546, 45.3722414, None),
+        (6.6493521, 45.3719711, None),
+        (6.6479469, 45.3716735, None),
+        (6.6463922, 45.3714093, None),
+        (6.6452047, 45.3711732, None),
+        (6.6445702, 45.3712323, None),
+        (6.643845, 45.3714483, None),
     ])
 }
 
@@ -520,6 +564,65 @@ fn get_in_good_multisegment(
         Activity {
             type_: ActivityType::Unknown,
             route: get_segment_part(&segments, (1, 8), (1, 11)),
+        },
+    ];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+#[rstest]
+fn multiple_distinct_lifts(
+    _init: Init,
+    line00: LineString,
+    line10: LineString,
+    multiple_distinct_lifts_segment: TrackSegment,
+) {
+    let s = ski_area(vec![
+        lift("Lift 1".to_string(), line00, &[], false, false),
+        lift("Lift 2".to_string(), line10, &[], false, false),
+    ]);
+    let g = make_gpx(vec![multiple_distinct_lifts_segment]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 0), (0, 2)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[0],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(0),
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (0, 2), (0, 12)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 12), (0, 15)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[1],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(0),
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (0, 15), (0, 21)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 21), (0, 23)),
         },
     ];
     assert!(
