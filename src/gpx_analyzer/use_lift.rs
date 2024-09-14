@@ -114,8 +114,10 @@ impl<'s> LiftCandidate<'s> {
             let lift_length = lift.line.item.haversine_length();
             let station = get_station(lift, &p);
             if station.is_none() && coordinate.1 != 0 {
+                eprintln!("{} Nope", lift.name);
                 return None;
             }
+            eprintln!("{} New", lift.name);
             Some(LiftCandidate {
                 data: UseLift {
                     lift,

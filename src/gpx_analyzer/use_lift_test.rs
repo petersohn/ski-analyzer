@@ -233,25 +233,19 @@ fn get_out_segment() -> TrackSegment {
 }
 
 #[fixture]
-fn get_in_segment_1() -> TrackSegment {
+fn get_in_segment() -> TrackSegment {
     segment(&[
         (6.6534183, 45.3787864, None),
         (6.6534981, 45.3795387, None),
         (6.6535018, 45.3802503, None),
-    ])
-}
-
-#[fixture]
-fn get_in_segment_2() -> TrackSegment {
-    segment(&[
-        (6.6530102, 45.3803286, None),
-        (6.6530205, 45.3792403, None),
-        (6.6530292, 45.3778787, None),
-        (6.6529536, 45.3770397, None),
-        (6.6529802, 45.3757476, None),
-        (6.6529682, 45.3745421, None),
-        (6.6529395, 45.3734143, None),
-        (6.6528926, 45.3729088, None),
+        (6.6529284, 45.3799891, None),
+        (6.6529246, 45.3792279, None),
+        (6.6528963, 45.3778658, None),
+        (6.6528719, 45.3770813, None),
+        (6.6528515, 45.3757549, None),
+        (6.6528537, 45.3745336, None),
+        (6.6528411, 45.3734302, None),
+        (6.6528215, 45.3729541, None),
         (6.6524674, 45.3726633, None),
         (6.651844, 45.3725326, None),
         (6.6516495, 45.3726068, None),
@@ -498,16 +492,10 @@ fn get_out_good_multisegment(
 }
 
 #[rstest]
-fn get_in_bad(
-    _init: Init,
-    line00: LineString,
-    mut get_in_segment_1: TrackSegment,
-    mut get_in_segment_2: TrackSegment,
-) {
+fn get_in_bad(_init: Init, line00: LineString, get_in_segment: TrackSegment) {
     let s =
         ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
-    get_in_segment_1.points.append(&mut get_in_segment_2.points);
-    let g = make_gpx(vec![get_in_segment_1]);
+    let g = make_gpx(vec![get_in_segment]);
     let segments = get_segments(&g);
 
     let actual = find_lift_usage(&s, &segments);
@@ -527,12 +515,15 @@ fn get_in_bad(
 fn get_in_good_multisegment(
     _init: Init,
     line00: LineString,
-    get_in_segment_1: TrackSegment,
-    get_in_segment_2: TrackSegment,
+    mut get_in_segment: TrackSegment,
 ) {
+    let mut get_in_segment_2 = TrackSegment::new();
+    get_in_segment_2
+        .points
+        .append(&mut get_in_segment.points.drain(3..).collect());
     let s =
         ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
-    let g = make_gpx(vec![get_in_segment_1, get_in_segment_2]);
+    let g = make_gpx(vec![get_in_segment, get_in_segment_2]);
     let segments = get_segments(&g);
 
     let actual = find_lift_usage(&s, &segments);
@@ -659,6 +650,96 @@ fn multiple_lifts_same_start_take_longer(
         Activity {
             type_: ActivityType::Unknown,
             route: get_segment_part(&segments, (0, 19), (0, 21)),
+        },
+    ];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+#[rstest]
+fn multiple_lifts_same_end_take_longer(
+    _init: Init,
+    line00: LineString,
+    mut line01: LineString,
+    simple_segment: TrackSegment,
+) {
+    line01.0.remove(0);
+    let s = ski_area(vec![
+        lift("Lift 1".to_string(), line00, &[], false, false),
+        lift("Lift 2".to_string(), line01, &[], false, false),
+    ]);
+    let g = make_gpx(vec![simple_segment]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 0), (0, 2)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[0],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(0),
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (0, 2), (0, 19)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 19), (0, 21)),
+        },
+    ];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+#[rstest]
+fn multiple_lifts_same_end_take_shorter(
+    _init: Init,
+    mut line00: LineString,
+    line01: LineString,
+    get_in_segment: TrackSegment,
+) {
+    line00.0.drain(0..3);
+    let s = ski_area(vec![
+        lift("Lift 1".to_string(), line00, &[], false, false),
+        lift("Lift 2".to_string(), line01, &[], false, false),
+    ]);
+    let g = make_gpx(vec![get_in_segment]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 0), (0, 3)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[0],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(0),
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (0, 3), (0, 11)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 11), (0, 14)),
         },
     ];
     assert!(
