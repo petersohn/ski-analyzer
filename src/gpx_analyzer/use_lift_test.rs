@@ -172,36 +172,27 @@ fn line10() -> LineString {
 #[fixture]
 fn simple_segment() -> TrackSegment {
     segment(&[
-        (6.6534126, 45.3866878, None),
-        (6.6532833, 45.386625, None),
-        (6.6532399, 45.3865363, None),
-        (6.6532228, 45.3862921, None),
-        (6.6531947, 45.3859249, None),
-        (6.6532034, 45.3855642, None),
-        (6.6531879, 45.3851181, None),
-        (6.6532009, 45.384639, None),
-        (6.653174, 45.3841198, None),
-        (6.6531506, 45.3836928, None),
-        (6.6531397, 45.3831716, None),
-        (6.6531375, 45.3826413, None),
-        (6.6531095, 45.382125, None),
-        (6.6530781, 45.3815575, None),
-        (6.6530651, 45.3810034, None),
-        (6.6530332, 45.3803867, None),
-        (6.6530319, 45.3797959, None),
-        (6.6530443, 45.3791876, None),
-        (6.6529942, 45.3785015, None),
-        (6.6529849, 45.3779231, None),
-        (6.652974, 45.3773365, None),
-        (6.6529653, 45.3767615, None),
-        (6.6529501, 45.3759228, None),
-        (6.6529276, 45.375154, None),
-        (6.6529115, 45.3743625, None),
-        (6.6528989, 45.3735875, None),
-        (6.6528952, 45.3730052, None),
-        (6.6528336, 45.3728979, None),
-        (6.652673, 45.3728196, None),
-        (6.6524959, 45.3727732, None),
+        (6.6535288, 45.3867302, None),
+        (6.6532869, 45.38669, None),
+        (6.6531776, 45.3865113, None),
+        (6.6531858, 45.3862492, None),
+        (6.6531677, 45.3856584, None),
+        (6.6531504, 45.3849873, None),
+        (6.6530808, 45.3843306, None),
+        (6.6530491, 45.383612, None),
+        (6.6530706, 45.3830916, None),
+        (6.6530409, 45.3821497, None),
+        (6.6530034, 45.3811047, None),
+        (6.6529511, 45.3799615, None),
+        (6.6529481, 45.3789123, None),
+        (6.652917, 45.3775815, None),
+        (6.6528976, 45.3767035, None),
+        (6.6528854, 45.3756355, None),
+        (6.65286, 45.374517, None),
+        (6.6528416, 45.373669, None),
+        (6.652823, 45.3729593, None),
+        (6.6526319, 45.372774, None),
+        (6.6521592, 45.3726268, None),
     ])
 }
 
@@ -318,11 +309,11 @@ fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
                 end_station: Some(1),
                 is_reverse: false,
             }),
-            route: get_segment_part(&segments, (0, 2), (0, 28)),
+            route: get_segment_part(&segments, (0, 2), (0, 19)),
         },
         Activity {
             type_: ActivityType::Unknown,
-            route: get_segment_part(&segments, (0, 28), (0, 30)),
+            route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
     assert!(
@@ -348,7 +339,7 @@ fn simple_reverse_bad(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![Activity {
         type_: ActivityType::Unknown,
-        route: get_segment_part(&segments, (0, 0), (0, 30)),
+        route: get_segment_part(&segments, (0, 0), (0, 21)),
     }];
     assert!(
         ptrize_activities(&actual) == ptrize_activities(&expected),
@@ -385,11 +376,11 @@ fn simple_reverse_good(
                 end_station: Some(0),
                 is_reverse: true,
             }),
-            route: get_segment_part(&segments, (0, 2), (0, 28)),
+            route: get_segment_part(&segments, (0, 2), (0, 19)),
         },
         Activity {
             type_: ActivityType::Unknown,
-            route: get_segment_part(&segments, (0, 28), (0, 30)),
+            route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
     assert!(
@@ -623,6 +614,51 @@ fn multiple_distinct_lifts(
         Activity {
             type_: ActivityType::Unknown,
             route: get_segment_part(&segments, (0, 21), (0, 23)),
+        },
+    ];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+#[rstest]
+fn multiple_lifts_same_start_take_longer(
+    _init: Init,
+    mut line00: LineString,
+    line01: LineString,
+    simple_segment: TrackSegment,
+) {
+    line00.0.pop();
+    let s = ski_area(vec![
+        lift("Lift 1".to_string(), line00, &[], false, false),
+        lift("Lift 2".to_string(), line01, &[], false, false),
+    ]);
+    let g = make_gpx(vec![simple_segment]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 0), (0, 2)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[1],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(0),
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (0, 2), (0, 19)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
     assert!(
