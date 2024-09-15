@@ -749,3 +749,51 @@ fn multiple_lifts_same_end_take_shorter(
         expected
     );
 }
+
+#[rstest]
+fn multiple_lifts_same_start_take_shorter(
+    _init: Init,
+    mut line00: LineString,
+    mut line01: LineString,
+    mut get_in_segment: TrackSegment,
+) {
+    line00.0.reverse();
+    line01.0.reverse();
+    get_in_segment.points.reverse();
+    line01.0.truncate(2);
+    let s = ski_area(vec![
+        lift("Lift 1".to_string(), line00, &[], false, false),
+        lift("Lift 2".to_string(), line01, &[], false, false),
+    ]);
+    let g = make_gpx(vec![get_in_segment]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 0), (0, 3)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[1],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(0),
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (0, 3), (0, 11)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 11), (0, 14)),
+        },
+    ];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
