@@ -200,7 +200,11 @@ impl<'s> LiftCandidate<'s> {
                 self.direction_known = true;
                 self.data.is_reverse = reverse;
             } else if reverse != self.data.is_reverse {
-                return self.transition(LiftResult::Failure);
+                if self.data.lift.can_disembark {
+                    return self.transition(LiftResult::Finished);
+                } else {
+                    return self.transition(LiftResult::Failure);
+                }
             }
             self.distance_from_begin = distance.from_begin;
         }
