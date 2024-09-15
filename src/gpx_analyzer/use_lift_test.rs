@@ -281,6 +281,17 @@ fn multiple_distinct_lifts_segment() -> TrackSegment {
     ])
 }
 
+//fn run(s: SkiArea, g: Gpx, expected: Vec<Activity>) {
+//    let segments = get_segments(&g);
+//    let actual = find_lift_usage(&s, &segments);
+//    assert!(
+//        ptrize_activities(&actual) == ptrize_activities(&expected),
+//        "Actual: {:#?}\nExpected: {:#?}",
+//        actual,
+//        expected
+//    );
+//}
+
 #[rstest]
 fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
     let s =
