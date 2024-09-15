@@ -40,50 +40,58 @@ pub struct SkiArea {
     pub pistes: Vec<Piste>,
 }
 
+fn find_name(doc: &Document) -> Result<String> {
+    let mut names: Vec<String> = doc
+        .elements
+        .ways
+        .iter()
+        .filter(|(_id, way)| get_tag(&way.tags, "landuse") == "winter_sports")
+        .map(|(_id, way)| get_tag(&way.tags, "name").to_string())
+        .collect();
+
+    if names.len() > 1 {
+        Err(Error::new(
+            ErrorType::InputError,
+            format!("ambiguous ski area: {:?}", names),
+        ))
+    } else {
+        names.pop().ok_or_else(|| {
+            Error::new_s(ErrorType::InputError, "ski area entity not found")
+        })
+    }
+}
+
+fn find_lifts(doc: &Document) -> Vec<Lift> {
+    doc.elements
+        .ways
+        .iter()
+        .filter_map(|(id, way)| {
+            parse_lift(&doc, &id, &way).unwrap_or_else(|e| {
+                eprintln!("Error parsing way {}: {}", id, e);
+                None
+            })
+        })
+        .collect()
+}
+
 impl SkiArea {
     pub fn parse(doc: &Document) -> Result<Self> {
-        let mut names: Vec<String> = Vec::new();
-        let mut lifts = Vec::new();
+        let name = find_name(doc)?;
         let config = get_config();
-
-        for (_id, way) in &doc.elements.ways {
-            if get_tag(&way.tags, "landuse") == "winter_sports" {
-                names.push(get_tag(&way.tags, "name").to_string());
-            }
-        }
-
-        if names.len() == 0 {
-            return Err(Error::new_s(
-                ErrorType::InputError,
-                "ski area entity not found",
-            ));
-        } else if names.len() > 1 {
-            return Err(Error::new(
-                ErrorType::InputError,
-                format!("ambiguous ski area: {:?}", names),
-            ));
-        }
-
-        for (id, way) in &doc.elements.ways {
-            match parse_lift(&doc, &id, &way) {
-                Err(e) => eprintln!("Error parsing way {}: {}", id, e),
-                Ok(None) => (),
-                Ok(Some(lift)) => lifts.push(lift),
-            }
-        }
+        let lifts = find_lifts(doc);
 
         if config.is_v() {
             eprintln!("Found {} lifts.", lifts.len());
         }
 
-        let pistes = parse_pistes(&doc);
+        let pistes = parse_pistes(doc);
 
         if config.is_v() {
             eprintln!("Found {} pistes.", pistes.len());
         }
 
         Ok(SkiArea {
-            name: names.remove(0),
+            name,
             lifts,
             pistes,
         })
