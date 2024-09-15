@@ -509,7 +509,7 @@ fn create_pistes(
         } else {
             result.push(Piste {
                 metadata,
-                data: datas.into_iter().next().unwrap(),
+                data: datas.pop().unwrap(),
             });
         }
     }
