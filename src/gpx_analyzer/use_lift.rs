@@ -104,7 +104,7 @@ struct LiftCandidate<'s> {
 }
 
 impl<'s> LiftCandidate<'s> {
-    fn new(
+    fn create(
         lift: &'s Lift,
         coordinate: SegmentCoordinate,
         point: &Waypoint,
@@ -147,7 +147,7 @@ impl<'s> LiftCandidate<'s> {
         It: Iterator<Item = &'s Lift>,
     {
         it.filter(|l| l.line.bounding_rect().intersects(&point.point()))
-            .filter_map(|l| LiftCandidate::new(l, coordinate, point))
+            .filter_map(|l| LiftCandidate::create(l, coordinate, point))
             .collect()
     }
 
