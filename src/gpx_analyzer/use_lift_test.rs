@@ -808,3 +808,87 @@ fn multiple_lifts_same_start_take_shorter(
         expected
     );
 }
+
+#[rstest]
+fn midstation_get_in(
+    _init: Init,
+    line00: LineString,
+    get_in_segment: TrackSegment,
+) {
+    let s =
+        ski_area(vec![lift("Lift 1".to_string(), line00, &[3], false, false)]);
+    let g = make_gpx(vec![get_in_segment]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 0), (0, 3)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[0],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(1),
+                end_station: Some(2),
+                is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (0, 3), (0, 11)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 11), (0, 14)),
+        },
+    ];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+#[rstest]
+fn midstation_get_out(
+    _init: Init,
+    mut line00: LineString,
+    mut get_in_segment: TrackSegment,
+) {
+    line00.0.reverse();
+    get_in_segment.points.reverse();
+    let s =
+        ski_area(vec![lift("Lift 1".to_string(), line00, &[1], false, false)]);
+    let g = make_gpx(vec![get_in_segment]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 0), (0, 3)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[0],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(0),
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (0, 3), (0, 11)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 11), (0, 14)),
+        },
+    ];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
