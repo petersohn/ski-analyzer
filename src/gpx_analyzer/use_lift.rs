@@ -49,38 +49,47 @@ fn get_station(lift: &Lift, p: &Point) -> LiftEnd {
         .map(|(i, _)| i)
 }
 
-fn get_distance_from_begin(lift: &Lift, p: &Point) -> Option<f64> {
-    let (segment, line, p2, distance) = lift
-        .line
-        .item
-        .lines()
-        .enumerate()
-        .map(|(i, line)| {
-            let p2 = match line.haversine_closest_point(p) {
-                Closest::Intersection(p2) => p2,
-                Closest::SinglePoint(p2) => p2,
-                Closest::Indeterminate => {
-                    panic!(
-                        "Cannot determine distance between {:?} and {:?}",
-                        p, line
-                    );
-                }
-            };
-            (i, line, p2, p.haversine_distance(&p2))
-        })
-        .min_by(|(_, _, _, d1), (_, _, _, d2)| d1.total_cmp(d2))?;
-    eprintln!("{} {:?} => {}", lift.name, p, distance);
-    if distance > MIN_DISTANCE {
-        return None;
-    }
-    Some(
-        lift.line
+struct Distance {
+    from_begin: f64,
+    from_line: f64,
+}
+
+impl Distance {
+    fn get(lift: &Lift, p: &Point) -> Option<Self> {
+        let (segment, line, p2, from_line) = lift
+            .line
             .item
             .lines()
-            .take(segment)
-            .fold(0.0, |acc, l| acc + l.haversine_length())
-            + p2.haversine_distance(&line.start.into()),
-    )
+            .enumerate()
+            .map(|(i, line)| {
+                let p2 = match line.haversine_closest_point(p) {
+                    Closest::Intersection(p2) => p2,
+                    Closest::SinglePoint(p2) => p2,
+                    Closest::Indeterminate => {
+                        panic!(
+                            "Cannot determine distance between {:?} and {:?}",
+                            p, line
+                        );
+                    }
+                };
+                (i, line, p2, p.haversine_distance(&p2))
+            })
+            .min_by(|(_, _, _, d1), (_, _, _, d2)| d1.total_cmp(d2))?;
+        eprintln!("{} {:?} => {}", lift.name, p, from_line);
+        if from_line > MIN_DISTANCE {
+            return None;
+        }
+        Some(Distance {
+            from_begin: lift
+                .line
+                .item
+                .lines()
+                .take(segment)
+                .fold(0.0, |acc, l| acc + l.haversine_length())
+                + p2.haversine_distance(&line.start.into()),
+            from_line,
+        })
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -92,6 +101,7 @@ enum LiftResult {
 
 type SegmentCoordinate = (usize, usize);
 
+#[derive(Debug)]
 struct LiftCandidate<'s> {
     data: UseLift<'s>,
     result: LiftResult,
@@ -110,7 +120,7 @@ impl<'s> LiftCandidate<'s> {
         point: &Waypoint,
     ) -> Option<Self> {
         let p = point.point();
-        get_distance_from_begin(lift, &p).and_then(|distance| {
+        Distance::get(lift, &p).and_then(|distance| {
             let lift_length = lift.line.item.haversine_length();
             let station = get_station(lift, &p);
             if station.is_none() && coordinate.1 != 0 {
@@ -118,6 +128,8 @@ impl<'s> LiftCandidate<'s> {
                 return None;
             }
             eprintln!("{} New", lift.name);
+            let mut avg_distance = Avg::new();
+            avg_distance.add(distance.from_line);
             Some(LiftCandidate {
                 data: UseLift {
                     lift,
@@ -131,8 +143,8 @@ impl<'s> LiftCandidate<'s> {
                 possible_ends: vec![],
                 result: LiftResult::NotFinished,
                 lift_length,
-                avg_distance: Avg::new(),
-                distance_from_begin: distance,
+                avg_distance,
+                distance_from_begin: distance.from_begin,
                 direction_known: false,
             })
         })
@@ -160,7 +172,7 @@ impl<'s> LiftCandidate<'s> {
             panic!("Already finished");
         }
         let p = point.point();
-        let distance = match get_distance_from_begin(self.data.lift, &p) {
+        let distance = match Distance::get(self.data.lift, &p) {
             Some(d) => d,
             None => {
                 eprintln!("Leave {:?}", coordinate);
@@ -178,8 +190,9 @@ impl<'s> LiftCandidate<'s> {
                 }
             }
         };
-        if (distance - self.distance_from_begin).abs() > MIN_DISTANCE {
-            let reverse = distance < self.distance_from_begin;
+        if (distance.from_begin - self.distance_from_begin).abs() > MIN_DISTANCE
+        {
+            let reverse = distance.from_begin < self.distance_from_begin;
             if !self.direction_known {
                 if reverse && !self.data.lift.can_go_reverse {
                     return self.transition(LiftResult::Failure);
@@ -189,8 +202,9 @@ impl<'s> LiftCandidate<'s> {
             } else if reverse != self.data.is_reverse {
                 return self.transition(LiftResult::Failure);
             }
+            self.distance_from_begin = distance.from_begin;
         }
-        self.avg_distance.add(distance);
+        self.avg_distance.add(distance.from_line);
         let station = get_station(self.data.lift, &p);
         match station {
             Some(s) => {
@@ -233,28 +247,61 @@ impl<'s> LiftCandidate<'s> {
     }
 }
 
-fn commit_lift_candidates<'s>(
+fn group_lift_candidates<'s>(
     mut candidates: Vec<LiftCandidate<'s>>,
+) -> Vec<Vec<LiftCandidate<'s>>> {
+    let mut result = Vec::new();
+    while let Some(candidate) = candidates.pop() {
+        let (mut group, rest): (
+            Vec<LiftCandidate<'s>>,
+            Vec<LiftCandidate<'s>>,
+        ) = candidates.into_iter().partition(|c| {
+            c.found_station_count() == candidate.found_station_count()
+                && (c.lift_length - candidate.lift_length).abs() < MIN_DISTANCE
+        });
+        group.push(candidate);
+        group.sort_by(|lhs, rhs| {
+            lhs.avg_distance
+                .get()
+                .partial_cmp(&rhs.avg_distance.get())
+                .unwrap()
+        });
+        result.push(group);
+        candidates = rest;
+    }
+    result
+}
+
+fn commit_lift_candidates<'s>(
+    candidates: Vec<LiftCandidate<'s>>,
 ) -> Vec<(ActivityType<'s>, SegmentCoordinate)> {
-    candidates.sort_by(|lhs, rhs| {
-        (lhs.found_station_count(), -lhs.lift_length)
-            .partial_cmp(&(rhs.found_station_count(), -rhs.lift_length))
+    let mut groups = group_lift_candidates(candidates);
+
+    groups.sort_by(|lhs, rhs| {
+        (lhs[0].found_station_count(), -lhs[0].lift_length)
+            .partial_cmp(&(rhs[0].found_station_count(), -rhs[0].lift_length))
             .unwrap()
     });
 
+    eprintln!("Commit 1 {:#?}", groups);
+
     let mut candidates2 = Vec::new();
-    for c in candidates.into_iter() {
-        if candidates2
-            .iter()
-            .all(|c2| c.can_go_after(&c2) || c2.can_go_after(&c))
-        {
-            candidates2.push(c);
+    for g in groups.into_iter() {
+        for c in g.into_iter() {
+            if candidates2
+                .iter()
+                .all(|c2| c.can_go_after(&c2) || c2.can_go_after(&c))
+            {
+                candidates2.push(c);
+            }
         }
     }
 
     candidates2.sort_by(|lhs, rhs| {
         rhs.possible_begins[0].cmp(&lhs.possible_begins[0])
     });
+
+    eprintln!("Commit 2 {:#?}", candidates2);
 
     let mut result = Vec::new();
     let mut current = candidates2.pop().unwrap();

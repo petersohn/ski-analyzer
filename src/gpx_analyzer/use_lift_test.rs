@@ -892,3 +892,47 @@ fn midstation_get_out(
         expected
     );
 }
+
+#[rstest]
+fn parallel_lifts(
+    _init: Init,
+    line00: LineString,
+    line01: LineString,
+    simple_segment: TrackSegment,
+) {
+    let s = ski_area(vec![
+        lift("Lift 1".to_string(), line00, &[], false, false),
+        lift("Lift 2".to_string(), line01, &[], false, false),
+    ]);
+    let g = make_gpx(vec![simple_segment]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+    let expected: Vec<Activity> = vec![
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 0), (0, 2)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[0],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(0),
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (0, 2), (0, 19)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 19), (0, 21)),
+        },
+    ];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
