@@ -163,6 +163,22 @@ impl<'s> LiftCandidate<'s> {
             .collect()
     }
 
+    fn leave(&mut self, coordinate: SegmentCoordinate) -> LiftResult {
+        eprintln!("Leave {:?}", coordinate);
+        if coordinate.1 == 0 // We might have lost some data
+                    // You fell out of a draglift
+                    || (self.data.lift.can_disembark
+                        && !self.possible_ends.is_empty())
+                    || self.data.end_station.is_some()
+        {
+            eprintln!("good");
+            self.transition(LiftResult::Finished)
+        } else {
+            eprintln!("bad");
+            self.transition(LiftResult::Failure)
+        }
+    }
+
     fn add_point(
         &mut self,
         point: &Waypoint,
@@ -174,21 +190,7 @@ impl<'s> LiftCandidate<'s> {
         let p = point.point();
         let distance = match Distance::get(self.data.lift, &p) {
             Some(d) => d,
-            None => {
-                eprintln!("Leave {:?}", coordinate);
-                if coordinate.1 == 0 // We might have lost some data
-                    // You fell out of a draglift
-                    || (self.data.lift.can_disembark
-                        && !self.possible_ends.is_empty())
-                    || self.data.end_station.is_some()
-                {
-                    eprintln!("good");
-                    return self.transition(LiftResult::Finished);
-                } else {
-                    eprintln!("bad");
-                    return self.transition(LiftResult::Failure);
-                }
-            }
+            None => return self.leave(coordinate),
         };
         if (distance.from_begin - self.distance_from_begin).abs() > MIN_DISTANCE
         {
@@ -200,11 +202,7 @@ impl<'s> LiftCandidate<'s> {
                 self.direction_known = true;
                 self.data.is_reverse = reverse;
             } else if reverse != self.data.is_reverse {
-                if self.data.lift.can_disembark {
-                    return self.transition(LiftResult::Finished);
-                } else {
-                    return self.transition(LiftResult::Failure);
-                }
+                return self.leave(coordinate);
             }
             self.distance_from_begin = distance.from_begin;
         }
@@ -287,8 +285,6 @@ fn commit_lift_candidates<'s>(
             .unwrap()
     });
 
-    eprintln!("Commit 1 {:#?}", groups);
-
     let mut candidates2 = Vec::new();
     for g in groups.into_iter() {
         for c in g.into_iter() {
@@ -304,8 +300,6 @@ fn commit_lift_candidates<'s>(
     candidates2.sort_by(|lhs, rhs| {
         rhs.possible_begins[0].cmp(&lhs.possible_begins[0])
     });
-
-    eprintln!("Commit 2 {:#?}", candidates2);
 
     let mut result = Vec::new();
     let mut current = candidates2.pop().unwrap();
@@ -363,7 +357,8 @@ pub fn find_lift_usage<'s, 'g>(
     for segment in segments {
         let mut route_segment: Segment = Vec::new();
         for point in segment {
-            let coordinate = (current_route.len(), route_segment.len());
+            let mut coordinate = (current_route.len(), route_segment.len());
+            eprintln!("-> {:?}", coordinate);
             let (mut finished, unfinished): (Candidates, Candidates) =
                 candidates
                     .into_iter()
@@ -380,6 +375,7 @@ pub fn find_lift_usage<'s, 'g>(
                     current_route.push(take(&mut route_segment));
                 }
                 let mut to_add: Vec<Activity<'s, 'g>> = Vec::new();
+                eprintln!("Commit {}", finished_candidates.len());
                 for (type_, coord) in
                     commit_lift_candidates(take(&mut finished_candidates))
                         .into_iter()
@@ -396,6 +392,7 @@ pub fn find_lift_usage<'s, 'g>(
                 }
                 result.reserve(to_add.len());
                 to_add.into_iter().rev().for_each(|r| result.push(r));
+                coordinate = (current_route.len(), route_segment.len());
             }
 
             let mut new_candidates = LiftCandidate::find(

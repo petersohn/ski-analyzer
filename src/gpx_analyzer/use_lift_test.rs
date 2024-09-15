@@ -333,6 +333,36 @@ fn zigzag_segment() -> TrackSegment {
     ])
 }
 
+#[fixture]
+fn restart_segment_1() -> TrackSegment {
+    segment(&[
+        (6.6535209, 45.3867218, None),
+        (6.6533266, 45.3866286, None),
+        (6.6531925, 45.3865133, None),
+        (6.6531977, 45.3862565, None),
+        (6.6531653, 45.3856013, None),
+        (6.6531452, 45.3848611, None),
+        (6.653079, 45.3834045, None),
+        (6.6529836, 45.3814095, None),
+        (6.6529546, 45.3800842, None),
+    ])
+}
+
+#[fixture]
+fn restart_segment_2() -> TrackSegment {
+    segment(&[
+        (6.6530334, 45.3830165, None),
+        (6.653021, 45.3814001, None),
+        (6.652934, 45.3793176, None),
+        (6.6529175, 45.3774651, None),
+        (6.6528885, 45.3754106, None),
+        (6.6528969, 45.3737299, None),
+        (6.6527973, 45.3729563, None),
+        (6.6526026, 45.3727424, None),
+        (6.6519628, 45.3725725, None),
+    ])
+}
+
 fn run(s: SkiArea, g: Gpx, expected: Vec<Activity>) {
     let segments = get_segments(&g);
     let actual = find_lift_usage(&s, &segments);
@@ -1058,6 +1088,60 @@ fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
         Activity {
             type_: ActivityType::Unknown,
             route: get_segment_part(&segments, (0, 27), (0, 29)),
+        },
+    ];
+    assert!(
+        ptrize_activities(&actual) == ptrize_activities(&expected),
+        "Actual: {:#?}\nExpected: {:#?}",
+        actual,
+        expected
+    );
+}
+
+#[rstest]
+fn restart_with_new_segment(
+    _init: Init,
+    line00: LineString,
+    restart_segment_1: TrackSegment,
+    restart_segment_2: TrackSegment,
+) {
+    let s =
+        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
+    let g = make_gpx(vec![restart_segment_1, restart_segment_2]);
+    let segments = get_segments(&g);
+
+    let actual = find_lift_usage(&s, &segments);
+
+    let expected: Vec<Activity> = vec![
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (0, 0), (0, 2)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[0],
+                begin_time: None,
+                end_time: None,
+                begin_station: Some(0),
+                end_station: None,
+                is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (0, 2), (0, 9)),
+        },
+        Activity {
+            type_: ActivityType::UseLift(UseLift {
+                lift: &s.lifts[0],
+                begin_time: None,
+                end_time: None,
+                begin_station: None,
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            route: get_segment_part(&segments, (1, 0), (1, 7)),
+        },
+        Activity {
+            type_: ActivityType::Unknown,
+            route: get_segment_part(&segments, (1, 7), (1, 9)),
         },
     ];
     assert!(
