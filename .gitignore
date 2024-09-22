@@ -1,3 +1,6 @@
-/target
-/out
+/src-tauri/target
+/src-tauri/out
+/dist
+/.angular
 .gdb_history
+node_modules
