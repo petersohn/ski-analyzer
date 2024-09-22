@@ -1,30 +1,15 @@
-use gpx_analyzer::analyze_route;
-use osm_reader::Document;
-use ski_area::SkiArea;
+use ski_analyzer::config::{get_config, set_config, Config};
+use ski_analyzer::gpx_analyzer::analyze_route;
+use ski_analyzer::osm_query::query_ski_area;
+use ski_analyzer::osm_reader::Document;
+use ski_analyzer::ski_area::SkiArea;
 
 use clap::{Parser, Subcommand};
-use config::{get_config, set_config, Config};
 use gpx;
 
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::{BufReader, Read, Write};
-
-mod collection;
-mod config;
-mod error;
-mod gpx_analyzer;
-mod multipolygon;
-mod osm_query;
-mod osm_reader;
-mod ski_area;
-
-#[cfg(test)]
-mod multipolygon_test;
-#[cfg(test)]
-mod osm_reader_test;
-#[cfg(test)]
-mod test_util;
 
 #[derive(Parser)]
 struct Args {
@@ -73,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     set_config(args.config.clone())?;
     match args.command {
         Command::QueryOsm { name, output } => {
-            let json = osm_query::query_ski_area(name.as_str())?;
+            let json = query_ski_area(name.as_str())?;
             let mut file = OpenOptions::new()
                 .write(true)
                 .create(true)

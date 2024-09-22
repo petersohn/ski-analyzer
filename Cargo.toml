@@ -5,6 +5,14 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+name = "ski_analyzer"
+crate-type = ["cdylib", "lib", "staticlib"]
+bench = false
+
+[[bin]]
+name = "ski-analyzer-cli"
+
 [dependencies]
 curl = "0.4.45"
 url = "2.5.0"
