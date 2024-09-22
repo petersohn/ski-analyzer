@@ -1,3 +1,5 @@
+use tauri::{Emitter, WindowEvent};
+
 pub mod config;
 pub mod error;
 pub mod gpx_analyzer;
@@ -27,6 +29,15 @@ pub fn run() {
                 )?;
             }
             Ok(())
+        })
+        .on_page_load(|window, _payload| {
+            window.emit("resized", &window.size().unwrap()).unwrap();
+        })
+        .on_window_event(|window, event| match event {
+            WindowEvent::Resized(size) => {
+                window.emit("resized", size).unwrap();
+            }
+            _ => (),
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
