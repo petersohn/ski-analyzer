@@ -2,7 +2,7 @@ import {
   Component,
   ElementRef,
   OnDestroy,
-  OnInit,
+  AfterViewInit,
   ViewChild,
 } from "@angular/core";
 import OlMap from "ol/Map";
@@ -18,14 +18,14 @@ import { listen, UnlistenFn } from "@tauri-apps/api/event";
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.css"],
 })
-export class AppComponent implements OnInit, OnDestroy {
+export class AppComponent implements AfterViewInit, OnDestroy {
   @ViewChild("map")
   public mapElement!: ElementRef<HTMLElement>;
 
   private map!: OlMap;
   private listeners: UnlistenFn[] = [];
 
-  public async ngOnInit() {
+  public async ngAfterViewInit() {
     this.map = new OlMap({
       target: "map",
       layers: [
