@@ -10,3 +10,8 @@ header {
 .content {
   padding: var(--content-padding);
 }
+
+#map {
+  width: 100vw;
+  height: 100vh;
+}

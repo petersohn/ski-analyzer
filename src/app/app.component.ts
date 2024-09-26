@@ -1,10 +1,4 @@
-import {
-  Component,
-  ElementRef,
-  OnDestroy,
-  AfterViewInit,
-  ViewChild,
-} from "@angular/core";
+import { Component, OnDestroy, AfterViewInit } from "@angular/core";
 import OlMap from "ol/Map";
 import OlView from "ol/View";
 import TileLayer from "ol/layer/Tile";
@@ -19,9 +13,6 @@ import { listen, UnlistenFn } from "@tauri-apps/api/event";
   styleUrls: ["./app.component.css"],
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
-  @ViewChild("map")
-  public mapElement!: ElementRef<HTMLElement>;
-
   private map!: OlMap;
   private listeners: UnlistenFn[] = [];
 
@@ -40,15 +31,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         zoom: 2,
       }),
     });
-
-    this.listeners.push(
-      await listen("resized", (event) => this.onResized(event)),
-    );
   }
 
-  public ngOnDestroy() {}
-
-  private onResized(event: any) {
-    console.log(event);
+  public ngOnDestroy() {
+    this.listeners.forEach((f) => f());
   }
 }
