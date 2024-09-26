@@ -38,6 +38,7 @@ gpx = "0.10.0"
 time = { version = "0.3.36", features = ["formatting"] }
 num = "0.4.3"
 num-traits = "0.2.19"
+tauri-plugin-dialog = "2.0.0-rc"
 
 [dev-dependencies]
 rstest = "0.19.0"
