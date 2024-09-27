@@ -1,0 +1,10 @@
+<div class="dialog-background">
+  <mat-form-field>
+    <mat-label>{{ data.label }}</mat-label>
+    <input matInput #name placeholder="{{ data.placeholder }}" />
+  </mat-form-field>
+  <div class="button-row">
+    <button mat-flat-button (click)="accept()">OK</button>
+    <button mat-flat-button (click)="cancel()">Cancel</button>
+  </div>
+</div>

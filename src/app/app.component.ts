@@ -43,4 +43,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     const data = JSON.parse(await invoke("load_file", { path }));
     console.log(data);
   }
+
+  public async findSkiArea(name: string) {
+    const data = await invoke("find_ski_area", { name });
+    console.log(data);
+  }
 }

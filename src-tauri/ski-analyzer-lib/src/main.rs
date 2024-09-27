@@ -1,8 +1,8 @@
-use ski_analyzer::config::{get_config, set_config, Config};
-use ski_analyzer::gpx_analyzer::analyze_route;
-use ski_analyzer::osm_query::query_ski_area;
-use ski_analyzer::osm_reader::Document;
-use ski_analyzer::ski_area::SkiArea;
+use ski_analyzer_lib::config::{get_config, set_config, Config};
+use ski_analyzer_lib::gpx_analyzer::analyze_route;
+use ski_analyzer_lib::osm_query::query_ski_area;
+use ski_analyzer_lib::osm_reader::Document;
+use ski_analyzer_lib::ski_area::SkiArea;
 
 use clap::{Parser, Subcommand};
 use gpx;

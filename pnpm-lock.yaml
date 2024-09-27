@@ -51,7 +51,7 @@ importers:
         specifier: ^10.1.0
         version: 10.1.0
       rxjs:
-        specifier: ~7.8.0
+        specifier: ~7.8.1
         version: 7.8.1
       tslib:
         specifier: ^2.3.0
