@@ -1,4 +1,10 @@
-import { Component, Inject, ViewChild, ElementRef } from "@angular/core";
+import {
+  Component,
+  Inject,
+  ViewChild,
+  ElementRef,
+  HostListener,
+} from "@angular/core";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { MatInput } from "@angular/material/input";
 import { MatFormFieldModule } from "@angular/material/form-field";
@@ -24,6 +30,16 @@ export class NameInputDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: NameInputDialogData,
     private readonly dialogRef: MatDialogRef<NameInputDialogComponent>,
   ) {}
+
+  @HostListener("window:keyup.escape")
+  public onEscape() {
+    this.cancel();
+  }
+
+  @HostListener("window:keyup.enter")
+  public onEnter() {
+    this.accept();
+  }
 
   public accept() {
     this.dialogRef.close(this.name.nativeElement.value);
