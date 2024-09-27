@@ -7,38 +7,17 @@ license = ""
 repository = "https://github.com/petersohn/ski-analyzer"
 edition = "2021"
 rust-version = "1.71"
-default-run = "ski-analyzer"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[lib]
-name = "ski_analyzer"
-crate-type = ["cdylib", "lib", "staticlib"]
-
-[[bin]]
-name = "ski-analyzer-cli"
 
 [build-dependencies]
 tauri-build = { version = "2.0.0-rc.12", features = [] }
 
 [dependencies]
-curl = "0.4.45"
-url = "2.5.0"
-serde = { version = "1.0", features = ["derive", "alloc"] }
-serde_json = "1.0"
-log = "0.4"
-tauri = { version = "2.0.0-rc.15", features = [] }
+tauri = { version = "2.0.0-rc", features = [] }
 tauri-plugin-log = "2.0.0-rc"
-geo = { version = "0.27.0", features = ["use-serde"] }
-strum = "0.26"
-strum_macros = "0.26"
-clap = { version = "4.5.3", features = ["derive"] }
-topological-sort = "0.2.2"
-gpx = "0.10.0"
-time = { version = "0.3.36", features = ["formatting"] }
-num = "0.4.3"
-num-traits = "0.2.19"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ski-analyzer-lib = { path = "ski-analyzer-lib" }
+log = "0.4"
 tauri-plugin-dialog = "2.0.0-rc"
-
-[dev-dependencies]
-rstest = "0.19.0"

@@ -1,5 +1,5 @@
-/src-tauri/target
-/src-tauri/out
+target/
+out/
 /dist
 /.angular
 .gdb_history
