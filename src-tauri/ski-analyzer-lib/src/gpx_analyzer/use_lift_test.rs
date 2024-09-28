@@ -5,7 +5,7 @@ use super::{Activity, ActivityType, LiftEnd, UseLift};
 use crate::ski_area::{BoundedGeometry, Lift, PointWithElevation, SkiArea};
 use crate::test_util::{init, Init};
 
-use geo::{coord, point, LineString};
+use geo::{coord, point, LineString, Rect};
 use gpx::{Gpx, Track, TrackSegment, Waypoint};
 use rstest::{fixture, rstest};
 use time::OffsetDateTime;
@@ -50,6 +50,10 @@ fn ski_area(lifts: Vec<Lift>) -> SkiArea {
         name: String::new(),
         lifts,
         pistes: Vec::new(),
+        bounding_rect: Rect::new(
+            coord! { x: 0.0, y: 0.0 },
+            coord! { x: 0.0, y: 0.0 },
+        ),
     }
 }
 

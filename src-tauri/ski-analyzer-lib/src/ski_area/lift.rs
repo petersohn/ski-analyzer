@@ -14,8 +14,10 @@ use crate::osm_reader::{
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Lift {
+    #[serde(rename = "ref")]
     pub ref_: String,
     pub name: String,
+    #[serde(rename = "type")]
     pub type_: String,
     pub line: BoundedGeometry<LineString>,
     pub stations: Vec<PointWithElevation>,

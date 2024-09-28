@@ -16,6 +16,7 @@ use crate::collection::max_if;
 use crate::error::Result;
 use crate::multipolygon::parse_multipolygon;
 use crate::osm_reader::{get_tag, parse_way, Document, Tags, Way};
+use crate::rect::union_rects;
 
 #[derive(
     Serialize,
@@ -43,6 +44,7 @@ pub enum Difficulty {
 
 #[derive(PartialEq, Eq, Hash, Clone, Serialize, Deserialize, Debug)]
 pub struct PisteMetadata {
+    #[serde(rename = "ref")]
     pub ref_: String,
     pub name: String,
     pub difficulty: Difficulty,
@@ -396,19 +398,6 @@ fn find_overlapping_pistes(pistes: &Vec<Piste>) {
 fn find_anomalies(pistes: &Vec<Piste>) {
     find_differing_metadata(pistes.iter().map(|p| &p.metadata));
     find_overlapping_pistes(&pistes);
-}
-
-fn union_rects(r1: Rect, r2: Rect) -> Rect {
-    Rect::new(
-        Coord {
-            x: r1.min().x.min(r2.min().x),
-            y: r1.min().y.min(r2.min().y),
-        },
-        Coord {
-            x: r1.max().x.max(r2.max().x),
-            y: r1.max().y.max(r2.max().y),
-        },
-    )
 }
 
 fn line_to_piste(line: BoundedGeometry<LineString>) -> PisteData {

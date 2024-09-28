@@ -1,4 +1,4 @@
-use geo::Point;
+use geo::{Point, Rect};
 use serde::{Deserialize, Serialize};
 
 use lift::parse_lift;
@@ -7,6 +7,7 @@ use piste::parse_pistes;
 use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{get_tag, Document};
+use crate::rect::union_rects;
 
 mod bounded_geometry;
 mod lift;
@@ -38,6 +39,7 @@ pub struct SkiArea {
     pub name: String,
     pub lifts: Vec<Lift>,
     pub pistes: Vec<Piste>,
+    pub bounding_rect: Rect,
 }
 
 fn find_name(doc: &Document) -> Result<String> {
@@ -90,10 +92,20 @@ impl SkiArea {
             eprintln!("Found {} pistes.", pistes.len());
         }
 
+        let bounding_rect = lifts
+            .iter()
+            .map(|l| l.line.bounding_rect)
+            .chain(pistes.iter().map(|p| p.data.bounding_rect))
+            .reduce(union_rects)
+            .ok_or_else(|| {
+                Error::new_s(ErrorType::OSMError, "Empty ski area")
+            })?;
+
         Ok(SkiArea {
             name,
             lifts,
             pistes,
+            bounding_rect,
         })
     }
 }
