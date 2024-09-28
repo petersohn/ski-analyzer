@@ -38,14 +38,16 @@ class MouseMove extends PointerInteraction {
     if (event.type !== "click") {
       return true;
     }
-    const coord = event.map.getCoordinateFromPixel(event.pixel);
-    const proj = event.map.getView().getProjection();
-    const lonlat = toLonLat(coord, proj);
-    console.log(coord, lonlat);
-    const view = event.map.getView();
-    console.log(view.getZoom());
-    console.log(view.getResolution());
-    console.log(view.getCenter());
+    event.map.forEachFeatureAtPixel(event.pixel, (feature) => {
+      const piste = feature.get("ski-analyzer-piste");
+      if (piste) {
+        console.log("piste", piste);
+      }
+      const lift = feature.get("ski-analyzer-lift");
+      if (lift) {
+        console.log("lift", lift);
+      }
+    });
     return true;
   }
 }
@@ -169,7 +171,7 @@ export class MapComponent implements AfterViewInit {
         }),
       }),
     },
-    "": {
+    Unknown: {
       line: new Style({
         stroke: new Stroke({
           color: "#888",
@@ -241,12 +243,14 @@ export class MapComponent implements AfterViewInit {
           new OlLineString(this.createLineString(lift.line.item)),
         );
         line.setStyle(this.liftStyle);
+        line.set("ski-analyzer-lift", lift);
 
         const stations = lift.stations.map((station) => {
           const feature = new Feature(
             new OlPoint(this.pointToCoordinate(station.point)),
           );
           feature.setStyle(this.stationStyle);
+          feature.set("ski-analyzer-lift", lift);
           return feature;
         });
 
@@ -262,12 +266,14 @@ export class MapComponent implements AfterViewInit {
         }
         const areas = new Feature(this.createMultiPolygon(piste.areas));
         areas.setStyle(style.area);
+        areas.set("ski-analyzer-piste", piste);
         const lines = new Feature(
           new OlMultiLineString(
             piste.lines.map((line) => this.createLineString(line)),
           ),
         );
         lines.setStyle(style.line);
+        lines.set("ski-analyzer-piste", piste);
 
         return [areas, lines];
       })
