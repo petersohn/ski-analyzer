@@ -27,7 +27,7 @@ fn find_ski_area_inner(name: String) -> Result<SkiArea, Box<dyn Error>> {
     Ok(ski_area)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn find_ski_area(name: String) -> Result<SkiArea, String> {
     find_ski_area_inner(name).map_err(|e| e.to_string())
 }

@@ -1,43 +1,25 @@
-import { Component, OnDestroy, AfterViewInit } from "@angular/core";
-import OlMap from "ol/Map";
-import OlView from "ol/View";
-import TileLayer from "ol/layer/Tile";
-import XYZ from "ol/source/XYZ";
-import { listen, UnlistenFn } from "@tauri-apps/api/event";
+import {
+  Component,
+  ChangeDetectorRef,
+  ChangeDetectionStrategy,
+} from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
+import { MatProgressBarModule } from "@angular/material/progress-bar";
 import { MainMenuComponent } from "./main-menu.component";
+import { MapComponent } from "./map.component";
 
 @Component({
   selector: "app-root",
   standalone: true,
-  imports: [MainMenuComponent],
+  imports: [MainMenuComponent, MapComponent, MatProgressBarModule],
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.css"],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent implements AfterViewInit, OnDestroy {
-  private map!: OlMap;
-  private listeners: UnlistenFn[] = [];
+export class AppComponent {
+  public loading = false;
 
-  public async ngAfterViewInit() {
-    this.map = new OlMap({
-      target: "map",
-      layers: [
-        new TileLayer({
-          source: new XYZ({
-            url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-          }),
-        }),
-      ],
-      view: new OlView({
-        center: [0, 0],
-        zoom: 2,
-      }),
-    });
-  }
-
-  public ngOnDestroy() {
-    this.listeners.forEach((f) => f());
-  }
+  constructor(private changeDetector: ChangeDetectorRef) {}
 
   public async loadSkiArea(path: string) {
     const data = JSON.parse(await invoke("load_file", { path }));
@@ -45,7 +27,23 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
 
   public async findSkiArea(name: string) {
-    const data = await invoke("find_ski_area", { name });
+    const data = await this.doJob(invoke("find_ski_area", { name }));
     console.log(data);
+  }
+
+  private async doJob<T>(job: Promise<T>): Promise<T> {
+    this.setLoading(true);
+    try {
+      return await job;
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  private setLoading(value: boolean) {
+    if (value != this.loading) {
+      this.loading = value;
+      this.changeDetector.detectChanges();
+    }
   }
 }

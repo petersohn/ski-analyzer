@@ -1,6 +1,11 @@
-<div #map id="map"></div>
-<main-menu
-  id="main-menu"
-  (onLoadSkiArea)="loadSkiArea($event)"
-  (onFindSkiArea)="findSkiArea($event)"
-></main-menu>
+<map></map>
+<div class="main-menu-container">
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  } @else {
+    <main-menu
+      (onLoadSkiArea)="loadSkiArea($event)"
+      (onFindSkiArea)="findSkiArea($event)"
+    ></main-menu>
+  }
+</div>
