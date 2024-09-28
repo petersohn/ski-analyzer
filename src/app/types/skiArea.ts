@@ -1,10 +1,10 @@
-import { MultiLineString } from "ol/geom";
 import {
   Rect,
   LineString,
   BoundedGeometry,
   PointWithElevation,
   MultiPolygon,
+  MultiLineString,
 } from "./geo";
 
 export type Lift = {
