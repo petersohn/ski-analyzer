@@ -47,8 +47,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![load_file])
-        .invoke_handler(tauri::generate_handler![find_ski_area])
+        .invoke_handler(tauri::generate_handler![load_file, find_ski_area])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
