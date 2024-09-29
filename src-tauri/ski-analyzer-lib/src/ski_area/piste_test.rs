@@ -586,7 +586,6 @@ fn find_lines_to_area(_init: Init, line0: Line, area00: Line) {
             tags: vec![
                 ("piste:type", "downhill"),
                 ("piste:difficulty", "advanced"),
-                ("name", "Piste 1"),
             ],
         },
         WayDef {
@@ -594,6 +593,7 @@ fn find_lines_to_area(_init: Init, line0: Line, area00: Line) {
             tags: vec![
                 ("piste:type", "downhill"),
                 ("piste:difficulty", "advanced"),
+                ("ref", "1"),
                 ("name", "Piste 1"),
             ],
         },
@@ -611,7 +611,7 @@ fn find_lines_to_area(_init: Init, line0: Line, area00: Line) {
     let pistes = parse_pistes(&document);
     let expected = vec![PisteOut {
         metadata: PisteMetadata {
-            ref_: String::new(),
+            ref_: "1".to_owned(),
             name: "Piste 1".to_owned(),
             difficulty: Difficulty::Advanced,
         },
@@ -1235,6 +1235,72 @@ fn explicit_area(_init: Init, line0: Line) {
         },
         lines: vec![],
         areas: vec![Area::simple(expected_area)],
+    }];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(actual, expected);
+}
+
+#[rstest]
+fn find_refs_complex(_init: Init, line0: Line, area00: Line, area01: Line) {
+    let line00 = line0[0..5].to_vec();
+    let line01 = line0[0..8].to_vec();
+    let line02 = line0[8..].to_vec();
+    let document = create_document(vec![
+        WayDef {
+            line: line00.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "advanced"),
+                ("ref", "1"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: line01.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "advanced"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: line02.clone(),
+            tags: vec![
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "advanced"),
+                ("ref", "1"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: area00.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "advanced"),
+                ("name", "Piste 1"),
+            ],
+        },
+        WayDef {
+            line: area01.clone(),
+            tags: vec![
+                ("area", "yes"),
+                ("piste:type", "downhill"),
+                ("piste:difficulty", "advanced"),
+                ("name", "Piste 1"),
+            ],
+        },
+    ]);
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![PisteOut {
+        metadata: PisteMetadata {
+            ref_: "1".to_owned(),
+            name: "Piste 1".to_owned(),
+            difficulty: Difficulty::Advanced,
+        },
+        lines: vec![line00, line01, line02],
+        areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
     let actual = PisteOut::list(&pistes);
     assert_eq!(actual, expected);

@@ -635,32 +635,58 @@ fn handle_unnamed_entities(
 }
 
 fn merge_empty_refs(input: Vec<Piste>) -> Vec<Piste> {
-    let mut result: Vec<Piste> = Vec::new();
+    let mut rest: Vec<Piste> = Vec::new();
     let mut refless: HashMap<PisteMetadata, Vec<PisteData>> = HashMap::new();
 
     for piste in input {
         if piste.metadata.ref_ == "" {
             refless.entry(piste.metadata).or_default().push(piste.data);
         } else {
-            result.push(piste);
+            rest.push(piste);
         }
     }
 
     if refless.is_empty() {
-        return result;
+        return rest;
     }
 
-    for piste in result.iter_mut() {
-        if let Some(refless_pistes) = refless.get_mut(&PisteMetadata {
-            ref_: String::new(),
-            name: piste.metadata.name.clone(),
-            difficulty: piste.metadata.difficulty,
-        }) {
-            for refless_piste in refless_pistes.iter_mut() {
-                if piste.data.intersects(refless_piste) {
-                    merge_pistes(&mut piste.data, refless_piste);
+    let mut reffed: HashMap<PisteMetadata, Vec<PisteData>> = HashMap::new();
+
+    for piste in rest {
+        reffed.entry(piste.metadata).or_default().push(piste.data);
+    }
+
+    let mut result = Vec::new();
+
+    for (metadata, datas) in reffed.iter_mut() {
+        let mut changed = true;
+        while changed {
+            changed = false;
+            if let Some(refless_pistes) = refless.get_mut(&PisteMetadata {
+                ref_: String::new(),
+                name: metadata.name.clone(),
+                difficulty: metadata.difficulty,
+            }) {
+                for data in datas.iter_mut() {
+                    for refless_piste in refless_pistes.iter_mut() {
+                        if data.intersects(refless_piste) {
+                            merge_pistes(data, refless_piste);
+                            changed = true;
+                        }
+                    }
+                }
+
+                if changed {
+                    merge_intersecting_pistes(datas);
                 }
             }
+        }
+
+        for data in std::mem::take(datas) {
+            result.push(Piste {
+                metadata: metadata.clone(),
+                data,
+            });
         }
     }
 
