@@ -1183,3 +1183,59 @@ fn metadata_from_route(_init: Init, line0: Line, line1: Line) {
     let actual = PisteOut::list(&pistes);
     assert_eq!(to_set(actual), to_set(expected));
 }
+
+#[rstest]
+fn closed_line_is_area(_init: Init, area00: Line) {
+    let document = create_document(vec![WayDef {
+        line: area00.clone(),
+        tags: vec![
+            ("piste:type", "downhill"),
+            ("piste:difficulty", "easy"),
+            ("ref", "1"),
+            ("name", "Piste 1"),
+        ],
+    }]);
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![PisteOut {
+        metadata: PisteMetadata {
+            ref_: "1".to_owned(),
+            name: "Piste 1".to_owned(),
+            difficulty: Difficulty::Easy,
+        },
+        lines: vec![],
+        areas: vec![Area::simple(area00)],
+    }];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(actual, expected);
+}
+
+#[rstest]
+fn explicit_area(_init: Init, line0: Line) {
+    let document = create_document(vec![WayDef {
+        line: line0.clone(),
+        tags: vec![
+            ("piste:type", "downhill"),
+            ("piste:difficulty", "easy"),
+            ("ref", "1"),
+            ("name", "Piste 1"),
+            ("area", "yes"),
+        ],
+    }]);
+
+    let mut expected_area = line0.clone();
+    expected_area.push(expected_area[0]);
+
+    let pistes = parse_pistes(&document);
+    let expected = vec![PisteOut {
+        metadata: PisteMetadata {
+            ref_: "1".to_owned(),
+            name: "Piste 1".to_owned(),
+            difficulty: Difficulty::Easy,
+        },
+        lines: vec![],
+        areas: vec![Area::simple(expected_area)],
+    }];
+    let actual = PisteOut::list(&pistes);
+    assert_eq!(actual, expected);
+}

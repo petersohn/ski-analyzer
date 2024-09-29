@@ -1,5 +1,5 @@
 use geo::{
-    BooleanOps, BoundingRect, Coord, CoordNum, HaversineLength, Intersects,
+    BooleanOps, BoundingRect, CoordNum, HaversineLength, Intersects,
     LineString, MultiLineString, MultiPolygon, Polygon, Rect,
 };
 use serde::{Deserialize, Serialize};
@@ -161,11 +161,28 @@ fn add_piste(
     }
 }
 
+fn is_area(way: &Way) -> bool {
+    let area = get_tag(&way.tags, "area");
+    if area == "yes" {
+        return true;
+    }
+
+    let is_area = area != "no"
+        && way.nodes.len() > 1
+        && way.nodes.first() == way.nodes.last();
+
+    if is_area && get_config().is_vv() {
+        eprintln!("Implicitly assuming closed line is area: {:?}", way.tags);
+    }
+
+    is_area
+}
+
 fn parse_partial_piste(doc: &Document, way: &Way) -> Result<PisteGeometry> {
     let coords = parse_way(&doc, &way.nodes)?;
     let line = LineString::new(coords);
 
-    let geometry = if get_tag(&way.tags, "area") == "yes" {
+    let geometry = if is_area(way) {
         PisteGeometry::Area(BoundedGeometry::new(MultiPolygon::new(vec![
             Polygon::new(line, Vec::new()),
         ]))?)
