@@ -5,7 +5,7 @@ import {
   ElementRef,
   ViewChild,
 } from "@angular/core";
-import { MapService } from "./map.service";
+import { MapService } from "@/services/map.service";
 
 @Component({
   selector: "map",

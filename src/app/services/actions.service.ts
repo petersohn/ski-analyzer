@@ -1,7 +1,7 @@
 import { Injectable, signal } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
 import { MapService } from "./map.service";
-import { SkiArea } from "./types/skiArea";
+import { SkiArea } from "@/types/skiArea";
 
 @Injectable({ providedIn: "root" })
 export class ActionsService {

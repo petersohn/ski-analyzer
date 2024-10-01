@@ -1,8 +1,8 @@
 import { Component, Signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
-import { MapService } from "./map.service";
-import { Lift, Piste } from "./types/skiArea";
+import { MapService } from "@/services/map.service";
+import { Lift, Piste } from "@/types/skiArea";
 import { NameValueComponent } from "./name-value.component";
 
 const liftTypes: { [type: string]: string } = {

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from "@angular/core";
+import { Component } from "@angular/core";
 import { MatButton } from "@angular/material/button";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
@@ -7,7 +7,7 @@ import {
 } from "./name-input-dialog.component";
 import { MatDialog } from "@angular/material/dialog";
 import { lastValueFrom } from "rxjs";
-import { ActionsService } from "./actions.service";
+import { ActionsService } from "@/services/actions.service";
 
 @Component({
   selector: "main-menu",

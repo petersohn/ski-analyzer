@@ -1,9 +1,9 @@
 import { Component, Signal } from "@angular/core";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
-import { MainMenuComponent } from "./main-menu.component";
-import { MapComponent } from "./map.component";
-import { SelectionInfoComponent } from "./selection-info.component";
-import { ActionsService } from "./actions.service";
+import { MainMenuComponent } from "@/components/main-menu.component";
+import { MapComponent } from "@/components/map.component";
+import { SelectionInfoComponent } from "@/components/selection-info.component";
+import { ActionsService } from "@/services/actions.service";
 
 @Component({
   selector: "app-root",
