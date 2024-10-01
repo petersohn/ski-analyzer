@@ -36,7 +36,10 @@ export class MainMenuComponent {
       NameInputDialogComponent,
       NameInputDialogData
     >(NameInputDialogComponent, {
-      data: { label: "Ski area name", placeholder: "Ex. Les 3 Vallées" },
+      data: {
+        label: "Ski area name",
+        placeholder: "regular expression, case insensitive",
+      },
     });
     const result = await lastValueFrom(dialogRef.afterClosed());
     if (result) {
