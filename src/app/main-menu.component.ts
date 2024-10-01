@@ -7,6 +7,7 @@ import {
 } from "./name-input-dialog.component";
 import { MatDialog } from "@angular/material/dialog";
 import { lastValueFrom } from "rxjs";
+import { ActionsService } from "./actions.service";
 
 @Component({
   selector: "main-menu",
@@ -16,20 +17,17 @@ import { lastValueFrom } from "rxjs";
   styleUrls: ["./main-menu.component.css"],
 })
 export class MainMenuComponent {
-  @Output()
-  public onLoadSkiArea = new EventEmitter<string>();
-
-  @Output()
-  public onFindSkiArea = new EventEmitter<string>();
-
-  constructor(private readonly dialog: MatDialog) {}
+  constructor(
+    private readonly dialog: MatDialog,
+    public readonly actionsService: ActionsService,
+  ) {}
 
   public async loadSkiArea(): Promise<void> {
     const path = await open({
       filters: [{ name: "JSON", extensions: ["json"] }],
     });
     if (!!path) {
-      this.onLoadSkiArea.emit(path);
+      this.actionsService.loadSkiArea(path);
     }
   }
 
@@ -42,7 +40,7 @@ export class MainMenuComponent {
     });
     const result = await lastValueFrom(dialogRef.afterClosed());
     if (result) {
-      this.onFindSkiArea.emit(result);
+      this.actionsService.findSkiArea(result);
     }
   }
 }
