@@ -1,0 +1,17 @@
+<mat-card class="card" *ngIf="!!selectedPiste()">
+  <div class="name">{{ pisteName() }}</div>
+  <name-value
+    class="difficulty"
+    [ngClass]="selectedPiste()!.difficulty"
+    name="Difficulty"
+    [value]="selectedPiste()!.difficulty"
+  ></name-value>
+</mat-card>
+<mat-card class="card" *ngIf="!!selectedLift()">
+  <div class="name">{{ liftName() }}</div>
+  <name-value name="Type" [value]="liftType()"></name-value>
+  <name-value
+    name="Stations"
+    [value]="'' + selectedLift()!.stations.length"
+  ></name-value>
+</mat-card>

@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, signal } from "@angular/core";
 import OlMap from "ol/Map";
 import OlView from "ol/View";
 import TileLayer from "ol/layer/Tile";
@@ -66,6 +66,9 @@ class MouseEvent extends PointerInteraction {
 
 @Injectable({ providedIn: "root" })
 export class MapService {
+  public selectedPiste = signal<Piste | undefined>(undefined);
+  public selectedLift = signal<Lift | undefined>(undefined);
+
   private map: OlMap | undefined;
   private readonly baseLayer = new TileLayer({
     source: new XYZ({
@@ -106,6 +109,8 @@ export class MapService {
     if (!this.isInitialized()) {
       return;
     }
+
+    this.unselectFeatures();
 
     this.map = undefined;
     this.projection = undefined;
@@ -197,6 +202,9 @@ export class MapService {
   }
 
   public unselectFeatures() {
+    this.selectedPiste.set(undefined);
+    this.selectedLift.set(undefined);
+
     for (const feature of this.selectedFeatures) {
       const piste = feature.get("ski-analyzer-piste") as Piste;
       if (piste) {
@@ -232,6 +240,8 @@ export class MapService {
         this.selectedFeatures.push(feature);
       }
     }
+
+    this.selectedPiste.set(piste);
   }
 
   public selectLift(lift: Lift) {
@@ -243,6 +253,8 @@ export class MapService {
         this.selectedFeatures.push(feature);
       }
     }
+
+    this.selectedLift.set(lift);
   }
 
   private pointToCoordinate(p: Point): Coordinate {

@@ -1,0 +1,37 @@
+.card {
+  margin: 10px;
+  padding: 20px;
+}
+
+.name {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.difficulty {
+  color: #333;
+}
+
+.difficulty.Novice {
+  color: #0a0;
+}
+
+.difficulty.Easy {
+  color: #11f;
+}
+
+.difficulty.Intermediate {
+  color: #f00;
+}
+
+.difficulty.Advanced {
+  color: #000;
+}
+
+.difficulty.Expert {
+  color: #000;
+}
+
+.difficulty.Freeride {
+  color: #f60;
+}

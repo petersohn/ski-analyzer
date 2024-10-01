@@ -5,3 +5,10 @@
   opacity: 0.8;
   width: 100%;
 }
+
+selection-info {
+  position: absolute;
+  right: 0px;
+  top: 0px;
+  opacity: 0.8;
+}
