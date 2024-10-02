@@ -8,7 +8,7 @@ use crate::test_util::{init, Init};
 use geo::{coord, point, LineString, Rect};
 use gpx::{Gpx, Track, TrackSegment, Waypoint};
 use rstest::{fixture, rstest};
-use time::OffsetDateTime;
+use time::{OffsetDateTime, PrimitiveDateTime};
 
 fn line(input: &[(f64, f64)]) -> LineString {
     LineString::new(
@@ -35,6 +35,7 @@ fn lift(
     let mut line = BoundedGeometry::new(line_).unwrap();
     line.expand(10.0);
     Lift {
+        unique_id: String::new(),
         ref_: String::new(),
         name,
         type_: String::new(),
@@ -54,6 +55,7 @@ fn ski_area(lifts: Vec<Lift>) -> SkiArea {
             coord! { x: 0.0, y: 0.0 },
             coord! { x: 0.0, y: 0.0 },
         ),
+        date: PrimitiveDateTime::MIN,
     }
 }
 

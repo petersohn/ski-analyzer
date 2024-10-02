@@ -99,6 +99,7 @@ fn mp(outers: &[u64], inners: &[u64]) -> r::Relation {
 #[test]
 fn one_outer_and_one_inner_ring() {
     let doc = r::Document {
+        osm3s: r::Osm3s::default(),
         elements: r::Elements {
             nodes: HashMap::from([
                 (0, node(8.0, 2.0)),
@@ -152,6 +153,7 @@ fn one_outer_and_one_inner_ring() {
 #[test]
 fn one_outer_and_two_inner_rings() {
     let doc = r::Document {
+        osm3s: r::Osm3s::default(),
         elements: r::Elements {
             nodes: HashMap::from([
                 (0, node(8.0, 2.0)),
@@ -219,6 +221,7 @@ fn one_outer_and_two_inner_rings() {
 #[test]
 fn multiple_ways_forming_a_ring() {
     let doc = r::Document {
+        osm3s: r::Osm3s::default(),
         elements: r::Elements {
             nodes: HashMap::from([
                 (0, node(8.0, 2.0)),
@@ -273,6 +276,7 @@ fn multiple_ways_forming_a_ring() {
 #[test]
 fn multiple_ways_forming_a_ring_with_different_directions() {
     let doc = r::Document {
+        osm3s: r::Osm3s::default(),
         elements: r::Elements {
             nodes: HashMap::from([
                 (0, node(8.0, 2.0)),
@@ -327,6 +331,7 @@ fn multiple_ways_forming_a_ring_with_different_directions() {
 #[test]
 fn two_disjunct_outer_rings() {
     let doc = r::Document {
+        osm3s: r::Osm3s::default(),
         elements: r::Elements {
             nodes: HashMap::from([
                 (0, node(4.0, 2.0)),
@@ -388,6 +393,7 @@ fn two_disjunct_outer_rings() {
 #[test]
 fn two_disjunct_outer_rings_and_multiple_ways_forming_a_ring() {
     let doc = r::Document {
+        osm3s: r::Osm3s::default(),
         elements: r::Elements {
             nodes: HashMap::from([
                 (0, node(4.0, 2.0)),
@@ -479,6 +485,7 @@ fn two_disjunct_outer_rings_and_multiple_ways_forming_a_ring() {
 #[test]
 fn island_within_a_hole() {
     let doc = r::Document {
+        osm3s: r::Osm3s::default(),
         elements: r::Elements {
             nodes: HashMap::from([
                 (0, node(6.0, 1.0)),
@@ -549,6 +556,7 @@ fn island_within_a_hole() {
 #[test]
 fn touching_inner_rings() {
     let doc = r::Document {
+        osm3s: r::Osm3s::default(),
         elements: r::Elements {
             nodes: HashMap::from([
                 (0, node(8.0, 2.0)),
@@ -607,6 +615,7 @@ fn touching_inner_rings() {
 #[test]
 fn multiple_islands_with_holes() {
     let doc = r::Document {
+        osm3s: r::Osm3s::default(),
         elements: r::Elements {
             nodes: HashMap::from([
                 (0, node(0.0, 0.0)),
@@ -703,6 +712,7 @@ fn multiple_islands_with_holes() {
 #[test]
 fn complex_combination() {
     let doc = r::Document {
+        osm3s: r::Osm3s::default(),
         elements: r::Elements {
             nodes: HashMap::from([
                 (0, node(2.0, 1.0)),

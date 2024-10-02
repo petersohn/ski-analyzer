@@ -69,6 +69,7 @@ impl geo::Intersects for PisteData {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Piste {
+    unique_id: String,
     #[serde(flatten)]
     pub metadata: PisteMetadata,
     #[serde(flatten)]
@@ -109,9 +110,21 @@ fn parse_metadata(tags: &Tags) -> PisteMetadata {
 }
 
 #[derive(Default, Debug)]
+struct WithId<T> {
+    id: String,
+    obj: T,
+}
+
+impl<T> WithId<T> {
+    fn new(id: String, obj: T) -> Self {
+        WithId { id, obj }
+    }
+}
+
+#[derive(Default, Debug)]
 struct PartialPistes {
-    line_entities: Vec<BoundedGeometry<LineString>>,
-    area_entities: Vec<BoundedGeometry<MultiPolygon>>,
+    line_entities: Vec<WithId<BoundedGeometry<LineString>>>,
+    area_entities: Vec<WithId<BoundedGeometry<MultiPolygon>>>,
 }
 
 struct UnnamedPiste<T, C = f64>
@@ -120,7 +133,7 @@ where
     T: BoundingRect<C>,
 {
     difficulty: Difficulty,
-    geometry: BoundedGeometry<T, C>,
+    geometry: WithId<BoundedGeometry<T, C>>,
 }
 
 enum PisteGeometry {
@@ -129,24 +142,25 @@ enum PisteGeometry {
 }
 
 fn add_piste(
+    id: String,
     metadata: PisteMetadata,
     geometry: PisteGeometry,
     result: &mut HashMap<PisteMetadata, PartialPistes>,
     unnamed_lines: &mut Vec<UnnamedPiste<LineString>>,
     unnamed_areas: &mut Vec<UnnamedPiste<MultiPolygon>>,
 ) {
-    if metadata.ref_ == "" && metadata.name == "" {
+    if metadata.ref_.is_empty() && metadata.name.is_empty() {
         match geometry {
             PisteGeometry::Area(a) => {
                 unnamed_areas.push(UnnamedPiste {
                     difficulty: metadata.difficulty,
-                    geometry: a,
+                    geometry: WithId::new(id, a),
                 });
             }
             PisteGeometry::Line(l) => {
                 unnamed_lines.push(UnnamedPiste {
                     difficulty: metadata.difficulty,
-                    geometry: l,
+                    geometry: WithId::new(id, l),
                 });
             }
         };
@@ -156,8 +170,12 @@ fn add_piste(
     let partial_piste = result.entry(metadata).or_default();
 
     match geometry {
-        PisteGeometry::Area(a) => partial_piste.area_entities.push(a),
-        PisteGeometry::Line(l) => partial_piste.line_entities.push(l),
+        PisteGeometry::Area(a) => {
+            partial_piste.area_entities.push(WithId::new(id, a))
+        }
+        PisteGeometry::Line(l) => {
+            partial_piste.line_entities.push(WithId::new(id, l))
+        }
     }
 }
 
@@ -280,6 +298,7 @@ fn parse_partial_pistes(
 
         match parse_partial_piste(&doc, &way) {
             Ok(geometry) => add_piste(
+                id.to_string(),
                 merge_route_metadata(*id, &way.tags, &route_index),
                 geometry,
                 &mut result,
@@ -303,6 +322,7 @@ fn parse_partial_pistes(
                 for p in mp.0 {
                     match BoundedGeometry::new(MultiPolygon::new(vec![p])) {
                         Ok(geometry) => add_piste(
+                            id.to_string(),
                             metadata.clone(),
                             PisteGeometry::Area(geometry),
                             &mut result,
@@ -417,36 +437,50 @@ fn find_anomalies(pistes: &Vec<Piste>) {
     find_overlapping_pistes(&pistes);
 }
 
-fn line_to_piste(line: BoundedGeometry<LineString>) -> PisteData {
-    PisteData {
-        bounding_rect: line.bounding_rect,
-        areas: MultiPolygon::new(Vec::new()),
-        lines: MultiLineString::new(vec![line.item]),
-    }
+fn line_to_piste(
+    line: WithId<BoundedGeometry<LineString>>,
+) -> WithId<PisteData> {
+    WithId::new(
+        line.id,
+        PisteData {
+            bounding_rect: line.obj.bounding_rect,
+            areas: MultiPolygon::new(Vec::new()),
+            lines: MultiLineString::new(vec![line.obj.item]),
+        },
+    )
 }
 
-fn area_to_piste(area: BoundedGeometry<MultiPolygon>) -> PisteData {
-    PisteData {
-        bounding_rect: area.bounding_rect,
-        areas: area.item,
-        lines: MultiLineString::new(Vec::new()),
-    }
+fn area_to_piste(
+    area: WithId<BoundedGeometry<MultiPolygon>>,
+) -> WithId<PisteData> {
+    WithId::new(
+        area.id,
+        PisteData {
+            bounding_rect: area.obj.bounding_rect,
+            areas: area.obj.item,
+            lines: MultiLineString::new(Vec::new()),
+        },
+    )
 }
 
-fn merge_pistes(target: &mut PisteData, source: &mut PisteData) {
-    target.lines.0.append(&mut source.lines.0);
-    target.areas.0.append(&mut source.areas.0);
-    target.bounding_rect =
-        union_rects(target.bounding_rect, source.bounding_rect);
+fn merge_pistes(
+    target: &mut WithId<PisteData>,
+    source: &mut WithId<PisteData>,
+) {
+    target.obj.lines.0.append(&mut source.obj.lines.0);
+    target.obj.areas.0.append(&mut source.obj.areas.0);
+    target.obj.bounding_rect =
+        union_rects(target.obj.bounding_rect, source.obj.bounding_rect);
+    target.id.extend([std::mem::take(&mut source.id)]);
 }
 
-fn merge_intersecting_pistes(pistes: &mut Vec<PisteData>) {
+fn merge_intersecting_pistes(pistes: &mut Vec<WithId<PisteData>>) {
     let mut i = 0;
     while i < pistes.len() - 1 {
         let mut changed = false;
         let mut j = i + 1;
         while j < pistes.len() {
-            if pistes[i].intersects(&pistes[j]) {
+            if pistes[i].obj.intersects(&pistes[j].obj) {
                 let mut item = pistes.remove(j);
                 merge_pistes(&mut pistes[i], &mut item);
                 changed = true;
@@ -463,8 +497,8 @@ fn merge_intersecting_pistes(pistes: &mut Vec<PisteData>) {
 
 fn merge_partial_pistes(
     partial_pistes: HashMap<PisteMetadata, PartialPistes>,
-    mut refless: Option<&mut HashMap<PisteMetadata, Vec<PisteData>>>,
-) -> HashMap<PisteMetadata, Vec<PisteData>> {
+    mut refless: Option<&mut HashMap<PisteMetadata, Vec<WithId<PisteData>>>>,
+) -> HashMap<PisteMetadata, Vec<WithId<PisteData>>> {
     let mut result = HashMap::new();
     let config = get_config();
     for (metadata, partial_piste) in partial_pistes {
@@ -480,7 +514,7 @@ fn merge_partial_pistes(
             continue;
         }
 
-        let mut datas: Vec<PisteData> = partial_piste
+        let mut datas: Vec<WithId<PisteData>> = partial_piste
             .line_entities
             .into_iter()
             .map(|line| line_to_piste(line))
@@ -508,7 +542,7 @@ fn merge_partial_pistes(
                     {
                         for data in datas.iter_mut() {
                             for refless_piste in refless_datas.iter_mut() {
-                                if data.intersects(refless_piste) {
+                                if data.obj.intersects(&refless_piste.obj) {
                                     merge_pistes(data, refless_piste);
                                     changed = true;
                                 }
@@ -526,17 +560,21 @@ fn merge_partial_pistes(
 
 fn make_piste(
     metadata: PisteMetadata,
-    data: PisteData,
+    data: WithId<PisteData>,
     result: &mut Vec<Piste>,
 ) {
-    if !data.areas.is_empty() || !data.lines.is_empty() {
-        result.push(Piste { metadata, data });
+    if !data.obj.areas.is_empty() || !data.obj.lines.is_empty() {
+        result.push(Piste {
+            unique_id: data.id,
+            metadata,
+            data: data.obj,
+        });
     }
 }
 
 fn make_pistes(
     metadata: PisteMetadata,
-    mut datas: Vec<PisteData>,
+    mut datas: Vec<WithId<PisteData>>,
     result: &mut Vec<Piste>,
 ) {
     match datas.len() {
@@ -594,7 +632,8 @@ fn merge_unnamed_pistes(
     unnamed_lines: Vec<UnnamedPiste<LineString>>,
     unnamed_areas: Vec<UnnamedPiste<MultiPolygon>>,
 ) -> Vec<Piste> {
-    let mut pistes: HashMap<Difficulty, Vec<PisteData>> = HashMap::new();
+    let mut pistes: HashMap<Difficulty, Vec<WithId<PisteData>>> =
+        HashMap::new();
     for line in unnamed_lines {
         pistes
             .entry(line.difficulty)
@@ -614,12 +653,13 @@ fn merge_unnamed_pistes(
 
     let it = pistes.into_iter().map(|(difficulty, datas)| {
         datas.into_iter().map(move |data| Piste {
+            unique_id: data.id,
             metadata: PisteMetadata {
                 ref_: String::new(),
                 name: String::new(),
                 difficulty,
             },
-            data,
+            data: data.obj,
         })
     });
     it.flatten().collect()
@@ -640,7 +680,10 @@ fn handle_unnamed_entities(
                 partial_pistes.iter_mut(),
                 |piste| {
                     piste.1.line_entities.iter().fold(0.0, |acc, line| {
-                        acc + get_intersection_length(&area.geometry, &line)
+                        acc + get_intersection_length(
+                            &area.geometry.obj,
+                            &line.obj,
+                        )
                     })
                 },
                 |piste, len| {
@@ -663,7 +706,10 @@ fn handle_unnamed_entities(
                 partial_pistes.iter_mut(),
                 |piste| {
                     piste.1.area_entities.iter().fold(0.0, |acc, area| {
-                        acc + get_intersection_length(&area, &line.geometry)
+                        acc + get_intersection_length(
+                            &area.obj,
+                            &line.geometry.obj,
+                        )
                     })
                 },
                 |piste, len| {

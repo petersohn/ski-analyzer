@@ -14,6 +14,7 @@ use crate::osm_reader::{
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Lift {
+    pub unique_id: String,
     #[serde(rename = "ref")]
     pub ref_: String,
     pub name: String,
@@ -232,6 +233,7 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
     let can_disembark = DRAGLIFT_TYPES.contains(&aerialway_type.as_str());
 
     Ok(Some(Lift {
+        unique_id: id.to_string(),
         ref_,
         name,
         type_: aerialway_type.clone(),

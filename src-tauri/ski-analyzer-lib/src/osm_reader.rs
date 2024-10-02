@@ -280,7 +280,19 @@ pub struct Osm3s {
     pub copyright: String,
 }
 
+#[cfg(test)]
+impl Default for Osm3s {
+    fn default() -> Self {
+        Osm3s {
+            timestamp_osm_base: PrimitiveDateTime::MIN,
+            timestamp_areas_base: PrimitiveDateTime::MIN,
+            copyright: String::new(),
+        }
+    }
+}
+
 #[derive(Deserialize, Debug)]
+#[cfg_attr(test, derive(Default))]
 pub struct Document {
     pub osm3s: Osm3s,
     pub elements: Elements,

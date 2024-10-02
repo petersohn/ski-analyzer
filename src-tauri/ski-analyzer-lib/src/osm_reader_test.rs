@@ -4,6 +4,11 @@ use std::collections::HashMap;
 #[test]
 fn parse_document() {
     let json = r###"{
+    "osm3s": {
+      "timestamp_osm_base": "2024-10-02T18:07:14Z",
+      "timestamp_areas_base": "2024-09-16T09:46:45Z",
+      "copyright": "Whatever"
+    },
     "elements": [
       {
         "type": "node",
