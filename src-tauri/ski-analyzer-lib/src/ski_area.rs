@@ -1,5 +1,6 @@
 use geo::{Point, Rect};
 use serde::{Deserialize, Serialize};
+use time::PrimitiveDateTime;
 
 use lift::parse_lift;
 use piste::parse_pistes;
@@ -40,6 +41,7 @@ pub struct SkiArea {
     pub lifts: Vec<Lift>,
     pub pistes: Vec<Piste>,
     pub bounding_rect: Rect,
+    pub date: PrimitiveDateTime,
 }
 
 fn find_name(doc: &Document) -> Result<String> {
@@ -106,6 +108,7 @@ impl SkiArea {
             lifts,
             pistes,
             bounding_rect,
+            date: doc.osm3s.timestamp_osm_base,
         })
     }
 }

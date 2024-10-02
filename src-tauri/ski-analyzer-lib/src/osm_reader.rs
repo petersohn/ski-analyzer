@@ -1,5 +1,8 @@
 use geo::{Coord, Point};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
+use time::macros::format_description;
+use time::PrimitiveDateTime;
+
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::result::Result as StdResult;
@@ -255,8 +258,31 @@ impl<'de> Deserialize<'de> for Elements {
     }
 }
 
-#[derive(Deserialize, Debug, Default)]
+pub fn parse_date_time<'de, D>(
+    deserializer: D,
+) -> std::result::Result<PrimitiveDateTime, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    let format =
+        format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]Z");
+    PrimitiveDateTime::parse(&s, format)
+        .map_err(|e| serde::de::Error::custom(e))
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Osm3s {
+    #[serde(deserialize_with = "parse_date_time")]
+    pub timestamp_osm_base: PrimitiveDateTime,
+    #[serde(deserialize_with = "parse_date_time")]
+    pub timestamp_areas_base: PrimitiveDateTime,
+    pub copyright: String,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct Document {
+    pub osm3s: Osm3s,
     pub elements: Elements,
 }
 
