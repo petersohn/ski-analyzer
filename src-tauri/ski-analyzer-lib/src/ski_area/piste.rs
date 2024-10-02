@@ -471,6 +471,7 @@ fn merge_pistes(
     target.obj.areas.0.append(&mut source.obj.areas.0);
     target.obj.bounding_rect =
         union_rects(target.obj.bounding_rect, source.obj.bounding_rect);
+    target.id.push('_');
     target.id.extend([std::mem::take(&mut source.id)]);
 }
 
