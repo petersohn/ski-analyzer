@@ -8,6 +8,7 @@ pub mod ski_area;
 mod collection;
 mod multipolygon;
 mod rect;
+mod time_ser;
 
 #[cfg(test)]
 mod multipolygon_test;

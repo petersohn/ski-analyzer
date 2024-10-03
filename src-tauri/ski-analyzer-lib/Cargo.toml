@@ -26,7 +26,7 @@ strum_macros = "0.26"
 clap = { version = "4.5.3", features = ["derive"] }
 topological-sort = "0.2.2"
 gpx = "0.10.0"
-time = { version = "0.3.36", features = ["formatting", "serde-human-readable", "macros"] }
+time = { version = "0.3.36", features = ["formatting"] }
 num = "0.4.3"
 num-traits = "0.2.19"
 

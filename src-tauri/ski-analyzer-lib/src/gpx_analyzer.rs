@@ -90,10 +90,6 @@ where
     s.serialize_str(t.get_unique_id())
 }
 
-fn get_time(wp: &Waypoint) -> Option<String> {
-    wp.time.map(|t| t.format().unwrap())
-}
-
 pub fn analyze_route<'s, 'g>(
     ski_area: &'s SkiArea,
     gpx: &'g Gpx,

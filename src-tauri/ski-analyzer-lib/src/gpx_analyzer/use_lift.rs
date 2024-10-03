@@ -4,24 +4,46 @@ use crate::ski_area::{Lift, SkiArea};
 
 use std::fmt::Debug;
 use std::mem::take;
+use std::result::Result as StdResult;
 
 use geo::{
     BoundingRect, Closest, HaversineClosestPoint, HaversineDistance,
     HaversineLength, Intersects, Point,
 };
 use gpx::Waypoint;
-use serde::Serialize;
+use serde::{Serialize, Serializer};
+use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;
 
 const MIN_DISTANCE: f64 = 10.0;
 
 pub type LiftEnd = Option<usize>;
 
+fn serialize_time<S>(
+    time: &Option<OffsetDateTime>,
+    serializer: S,
+) -> StdResult<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    match time {
+        None => serializer.serialize_unit(),
+        Some(t) => {
+            let s = t
+                .format(&Iso8601::DEFAULT)
+                .map_err(|e| serde::ser::Error::custom(e))?;
+            serializer.serialize_str(&s)
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct UseLift<'s> {
     #[serde(serialize_with = "serialize_unique_id")]
     pub lift: &'s Lift,
+    #[serde(serialize_with = "serialize_time")]
     pub begin_time: Option<OffsetDateTime>,
+    #[serde(serialize_with = "serialize_time")]
     pub end_time: Option<OffsetDateTime>,
     pub begin_station: LiftEnd,
     pub end_station: LiftEnd,

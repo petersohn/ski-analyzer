@@ -1,13 +1,14 @@
 use geo::{Coord, Point};
 use serde::{Deserialize, Deserializer};
-use time::macros::format_description;
-use time::PrimitiveDateTime;
+use time::format_description::well_known::Iso8601;
+use time::OffsetDateTime;
 
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::result::Result as StdResult;
 
 use crate::error::{Error, ErrorType, Result};
+use crate::time_ser;
 
 pub type Tags = HashMap<String, String>;
 
@@ -258,25 +259,12 @@ impl<'de> Deserialize<'de> for Elements {
     }
 }
 
-pub fn parse_date_time<'de, D>(
-    deserializer: D,
-) -> std::result::Result<PrimitiveDateTime, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    let format =
-        format_description!("[year]-[month]-[day]T[hour]:[minute]:[second]Z");
-    PrimitiveDateTime::parse(&s, format)
-        .map_err(|e| serde::de::Error::custom(e))
-}
-
 #[derive(Deserialize, Debug)]
 pub struct Osm3s {
-    #[serde(deserialize_with = "parse_date_time")]
-    pub timestamp_osm_base: PrimitiveDateTime,
-    #[serde(deserialize_with = "parse_date_time")]
-    pub timestamp_areas_base: PrimitiveDateTime,
+    #[serde(with = "time_ser")]
+    pub timestamp_osm_base: OffsetDateTime,
+    #[serde(with = "time_ser")]
+    pub timestamp_areas_base: OffsetDateTime,
     pub copyright: String,
 }
 
@@ -284,8 +272,8 @@ pub struct Osm3s {
 impl Default for Osm3s {
     fn default() -> Self {
         Osm3s {
-            timestamp_osm_base: PrimitiveDateTime::MIN,
-            timestamp_areas_base: PrimitiveDateTime::MIN,
+            timestamp_osm_base: OffsetDateTime::UNIX_EPOCH,
+            timestamp_areas_base: OffsetDateTime::UNIX_EPOCH,
             copyright: String::new(),
         }
     }

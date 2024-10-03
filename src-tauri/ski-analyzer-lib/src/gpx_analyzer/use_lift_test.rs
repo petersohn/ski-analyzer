@@ -8,7 +8,7 @@ use crate::test_util::{init, Init};
 use geo::{coord, point, LineString, Rect};
 use gpx::{Gpx, Track, TrackSegment, Waypoint};
 use rstest::{fixture, rstest};
-use time::{OffsetDateTime, PrimitiveDateTime};
+use time::OffsetDateTime;
 
 fn line(input: &[(f64, f64)]) -> LineString {
     LineString::new(
@@ -55,7 +55,7 @@ fn ski_area(lifts: Vec<Lift>) -> SkiArea {
             coord! { x: 0.0, y: 0.0 },
             coord! { x: 0.0, y: 0.0 },
         ),
-        date: PrimitiveDateTime::MIN,
+        date: OffsetDateTime::UNIX_EPOCH,
     }
 }
 

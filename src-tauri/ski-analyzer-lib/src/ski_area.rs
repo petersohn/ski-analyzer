@@ -1,6 +1,6 @@
 use geo::{Point, Rect};
 use serde::{Deserialize, Serialize};
-use time::PrimitiveDateTime;
+use time::OffsetDateTime;
 
 use lift::parse_lift;
 use piste::parse_pistes;
@@ -9,6 +9,7 @@ use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{get_tag, Document};
 use crate::rect::union_rects;
+use crate::time_ser;
 
 mod bounded_geometry;
 mod lift;
@@ -41,7 +42,8 @@ pub struct SkiArea {
     pub lifts: Vec<Lift>,
     pub pistes: Vec<Piste>,
     pub bounding_rect: Rect,
-    pub date: PrimitiveDateTime,
+    #[serde(with = "time_ser")]
+    pub date: OffsetDateTime,
 }
 
 pub trait UniqueId {
