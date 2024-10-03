@@ -314,7 +314,7 @@ fn commit_lift_candidates<'s>(
         let next_begin = *next.possible_begins.first().unwrap();
         result.push((ActivityType::UseLift(current.commit()), coord));
         coord = if current_end < next_begin {
-            result.push((ActivityType::Unknown, current_end));
+            result.push((ActivityType::default(), current_end));
             next_begin
         } else {
             *next
@@ -389,7 +389,7 @@ pub fn find_lift_usage<'s, 'g>(
                 }
                 if !current_route.is_empty() {
                     to_add.push(Activity {
-                        type_: ActivityType::Unknown,
+                        type_: ActivityType::default(),
                         route: take(&mut current_route),
                     });
                 }
@@ -420,7 +420,7 @@ pub fn find_lift_usage<'s, 'g>(
 
     if !current_route.is_empty() {
         result.push(Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::default(),
             route: current_route,
         });
     }

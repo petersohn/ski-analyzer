@@ -21,11 +21,16 @@ mod use_lift_test;
 pub use segments::{Segment, Segments};
 pub use use_lift::{LiftEnd, UseLift};
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Serialize)]
 pub enum ActivityType<'s> {
-    #[default]
-    Unknown,
+    Unknown(()),
     UseLift(UseLift<'s>),
+}
+
+impl<'s> Default for ActivityType<'s> {
+    fn default() -> Self {
+        ActivityType::Unknown(())
+    }
 }
 
 #[derive(Debug, Default)]

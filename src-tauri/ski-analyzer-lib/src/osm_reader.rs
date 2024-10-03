@@ -1,6 +1,5 @@
 use geo::{Coord, Point};
-use serde::{Deserialize, Deserializer};
-use time::format_description::well_known::Iso8601;
+use serde::Deserialize;
 use time::OffsetDateTime;
 
 use std::collections::HashMap;

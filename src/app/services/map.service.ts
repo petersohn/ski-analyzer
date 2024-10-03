@@ -21,7 +21,13 @@ import {
 import { boundingExtent } from "ol/extent";
 import { Coordinate } from "ol/coordinate";
 import { MultiPolygon, Point, LineString } from "@/types/geo";
-import { SkiArea, Lift, Piste } from "@/types/skiArea";
+import {
+  RawSkiArea,
+  SkiArea,
+  Lift,
+  Piste,
+  index_ski_area,
+} from "@/types/skiArea";
 import {
   liftStyle,
   liftStyleSelected,
@@ -84,6 +90,8 @@ export class MapService {
   private pisteLineFeatures: Feature[] = [];
   private liftFeatures: Feature[] = [];
 
+  private skiArea: SkiArea | undefined;
+
   constructor() {}
 
   public createMap(targetElement: HTMLElement) {
@@ -120,13 +128,14 @@ export class MapService {
     this.pisteAreaFeatures = [];
     this.pisteLineFeatures = [];
     this.liftFeatures = [];
+    this.skiArea = undefined;
   }
 
   public isInitialized(): boolean {
     return !!this.map && !!this.targetElement && !!this.projection;
   }
 
-  public loadSkiArea(skiArea: SkiArea): void {
+  public loadSkiArea(skiArea: RawSkiArea): void {
     if (!this.isInitialized()) {
       throw new Error("Not initialized");
     }
@@ -180,8 +189,10 @@ export class MapService {
       pisteAreaFeatures.push(areas);
       pisteLineFeatures.push(lines);
     }
+
     const minCoord = this.pointToCoordinate(skiArea.bounding_rect.min);
     const maxCoord = this.pointToCoordinate(skiArea.bounding_rect.max);
+
     layers.push(
       new VectorLayer({
         source: new VectorSource({
@@ -195,9 +206,12 @@ export class MapService {
         extent: boundingExtent([minCoord, maxCoord]),
       }),
     );
+
     this.liftFeatures = liftFeatures;
     this.pisteAreaFeatures = pisteAreaFeatures;
     this.pisteLineFeatures = pisteLineFeatures;
+    this.skiArea = index_ski_area(skiArea);
+
     this.zoomToArea(minCoord, maxCoord);
   }
 
