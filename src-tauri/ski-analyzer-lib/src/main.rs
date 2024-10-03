@@ -4,19 +4,49 @@ use ski_analyzer_lib::osm_query::query_ski_area;
 use ski_analyzer_lib::osm_reader::Document;
 use ski_analyzer_lib::ski_area::SkiArea;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use gpx;
+use serde::Serialize;
 
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::{BufReader, Read, Write};
 
 #[derive(Parser)]
-struct Args {
+struct ArgParser {
     #[command(subcommand)]
     command: Command,
     #[command(flatten)]
     config: Config,
+}
+
+#[derive(Clone, Args)]
+struct SerializedOutput {
+    /// File name to save result
+    #[arg(short, long)]
+    output: String,
+    /// Pretty print result
+    #[arg(short, long)]
+    pretty: bool,
+}
+
+impl SerializedOutput {
+    fn write_to_file<T>(&self, data: &T) -> Result<(), Box<dyn Error>>
+    where
+        T: Serialize,
+    {
+        let file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&self.output)?;
+        if self.pretty {
+            serde_json::to_writer_pretty(file, &data)?;
+        } else {
+            serde_json::to_writer(file, &data)?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Subcommand)]
@@ -35,12 +65,8 @@ enum Command {
         /// File name (previously output from QueryOsm)
         #[arg(short, long)]
         input: String,
-        /// File name to save result
-        #[arg(short, long)]
-        output: String,
-        /// Pretty print result
-        #[arg(short, long)]
-        pretty: bool,
+        #[command(flatten)]
+        output: SerializedOutput,
     },
     Gpx {
         /// GPX file name
@@ -49,17 +75,13 @@ enum Command {
         /// Ski area to use (previously output from ParseOsm)
         #[arg(short, long)]
         area: String,
-        /// File name to save result
-        #[arg(short, long)]
-        output: String,
-        /// Pretty print result
-        #[arg(short, long)]
-        pretty: bool,
+        #[command(flatten)]
+        output: SerializedOutput,
     },
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let args = Args::parse();
+    let args = ArgParser::parse();
     set_config(args.config.clone())?;
     match args.command {
         Command::QueryOsm { name, output } => {
@@ -71,11 +93,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .open(output)?;
             file.write(&json)?;
         }
-        Command::ParseOsm {
-            input,
-            output,
-            pretty,
-        } => {
+        Command::ParseOsm { input, output } => {
             let ski_area = {
                 let mut file = OpenOptions::new().read(true).open(input)?;
                 let mut data = Vec::new();
@@ -91,22 +109,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                 SkiArea::parse(&doc)?
             };
 
-            let file = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(output)?;
-            if pretty {
-                serde_json::to_writer_pretty(file, &ski_area)?;
-            } else {
-                serde_json::to_writer(file, &ski_area)?;
-            }
+            output.write_to_file(&ski_area)?;
         }
         Command::Gpx {
             input,
             area,
             output,
-            pretty,
         } => {
             let gpx: gpx::Gpx = {
                 let file = OpenOptions::new().read(true).open(input)?;
@@ -123,17 +131,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             };
 
             let result = analyze_route(&ski_area, &gpx);
-
-            let file = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(output)?;
-            if pretty {
-                serde_json::to_writer_pretty(file, &result)?;
-            } else {
-                serde_json::to_writer(file, &result)?;
-            }
+            output.write_to_file(&result)?;
         }
     };
 
