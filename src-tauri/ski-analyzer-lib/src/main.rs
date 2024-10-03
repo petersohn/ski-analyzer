@@ -46,10 +46,15 @@ enum Command {
         /// GPX file name
         #[arg(short, long)]
         input: String,
-
         /// Ski area to use (previously output from ParseOsm)
         #[arg(short, long)]
         area: String,
+        /// File name to save result
+        #[arg(short, long)]
+        output: String,
+        /// Pretty print result
+        #[arg(short, long)]
+        pretty: bool,
     },
 }
 
@@ -97,7 +102,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                 serde_json::to_writer(file, &ski_area)?;
             }
         }
-        Command::Gpx { input, area } => {
+        Command::Gpx {
+            input,
+            area,
+            output,
+            pretty,
+        } => {
             let gpx: gpx::Gpx = {
                 let file = OpenOptions::new().read(true).open(input)?;
                 let reader = BufReader::new(file);
@@ -113,7 +123,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             };
 
             let result = analyze_route(&ski_area, &gpx);
-            println!("{:#?}", result);
+
+            let file = OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(output)?;
+            if pretty {
+                serde_json::to_writer_pretty(file, &result)?;
+            } else {
+                serde_json::to_writer(file, &result)?;
+            }
         }
     };
 

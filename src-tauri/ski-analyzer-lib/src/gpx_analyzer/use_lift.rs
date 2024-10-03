@@ -64,7 +64,6 @@ impl Distance {
                 (i, line, p2, p.haversine_distance(&p2))
             })
             .min_by(|(_, _, _, d1), (_, _, _, d2)| d1.total_cmp(d2))?;
-        eprintln!("{} {:?} => {}", lift.name, p, from_line);
         if from_line > MIN_DISTANCE {
             return None;
         }
@@ -113,10 +112,8 @@ impl<'s> LiftCandidate<'s> {
             let lift_length = lift.line.item.haversine_length();
             let station = get_station(lift, &p);
             if station.is_none() && coordinate.1 != 0 {
-                eprintln!("{} Nope", lift.name);
                 return None;
             }
-            eprintln!("{} New", lift.name);
             let mut avg_distance = Avg::new();
             avg_distance.add(distance.from_line);
             Some(LiftCandidate {
@@ -153,17 +150,14 @@ impl<'s> LiftCandidate<'s> {
     }
 
     fn leave(&mut self, coordinate: SegmentCoordinate) -> LiftResult {
-        eprintln!("Leave {:?}", coordinate);
         if coordinate.1 == 0 // We might have lost some data
                     // You fell out of a draglift
                     || (self.data.lift.can_disembark
                         && !self.possible_ends.is_empty())
                     || self.data.end_station.is_some()
         {
-            eprintln!("good");
             self.transition(LiftResult::Finished)
         } else {
-            eprintln!("bad");
             self.transition(LiftResult::Failure)
         }
     }
@@ -363,7 +357,6 @@ pub fn find_lift_usage<'s, 'g>(
                     current_route.push(take(&mut route_segment));
                 }
                 let mut to_add: Vec<Activity<'s, 'g>> = Vec::new();
-                eprintln!("Commit {}", finished_candidates.len());
                 for (type_, coord) in
                     commit_lift_candidates(take(&mut finished_candidates))
                         .into_iter()
