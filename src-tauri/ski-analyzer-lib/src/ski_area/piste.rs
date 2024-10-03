@@ -9,7 +9,7 @@ use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
-use super::BoundedGeometry;
+use super::{BoundedGeometry, UniqueId};
 use crate::config::get_config;
 // use crate::error::{Error, ErrorType, Result};
 use crate::collection::max_if;
@@ -74,6 +74,12 @@ pub struct Piste {
     pub metadata: PisteMetadata,
     #[serde(flatten)]
     pub data: PisteData,
+}
+
+impl UniqueId for Piste {
+    fn get_unique_id(&self) -> &str {
+        &self.unique_id
+    }
 }
 
 fn parse_metadata(tags: &Tags) -> PisteMetadata {

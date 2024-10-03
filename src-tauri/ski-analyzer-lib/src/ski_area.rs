@@ -44,6 +44,10 @@ pub struct SkiArea {
     pub date: PrimitiveDateTime,
 }
 
+pub trait UniqueId {
+    fn get_unique_id(&self) -> &str;
+}
+
 fn find_name(doc: &Document) -> Result<String> {
     let mut names: Vec<String> = doc
         .elements

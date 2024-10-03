@@ -1,7 +1,6 @@
-use super::{Segment, Segments};
+use super::{serialize_unique_id, Activity, ActivityType, Segment, Segments};
 use crate::collection::Avg;
 use crate::ski_area::{Lift, SkiArea};
-use time::OffsetDateTime;
 
 use std::fmt::Debug;
 use std::mem::take;
@@ -11,32 +10,22 @@ use geo::{
     HaversineLength, Intersects, Point,
 };
 use gpx::Waypoint;
+use serde::Serialize;
+use time::OffsetDateTime;
 
 const MIN_DISTANCE: f64 = 10.0;
 
 pub type LiftEnd = Option<usize>;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct UseLift<'s> {
+    #[serde(serialize_with = "serialize_unique_id")]
     pub lift: &'s Lift,
     pub begin_time: Option<OffsetDateTime>,
     pub end_time: Option<OffsetDateTime>,
     pub begin_station: LiftEnd,
     pub end_station: LiftEnd,
     pub is_reverse: bool,
-}
-
-#[derive(Debug, Default)]
-pub enum ActivityType<'s> {
-    #[default]
-    Unknown,
-    UseLift(UseLift<'s>),
-}
-
-#[derive(Debug, Default)]
-pub struct Activity<'s, 'g> {
-    pub type_: ActivityType<'s>,
-    pub route: Segments<'g>,
 }
 
 fn get_station(lift: &Lift, p: &Point) -> LiftEnd {
@@ -358,7 +347,6 @@ pub fn find_lift_usage<'s, 'g>(
         let mut route_segment: Segment = Vec::new();
         for point in segment {
             let mut coordinate = (current_route.len(), route_segment.len());
-            eprintln!("-> {:?}", coordinate);
             let (mut finished, unfinished): (Candidates, Candidates) =
                 candidates
                     .into_iter()

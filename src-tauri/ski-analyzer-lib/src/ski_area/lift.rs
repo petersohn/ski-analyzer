@@ -4,7 +4,7 @@ use strum_macros::EnumString;
 
 use std::str::FromStr;
 
-use super::{BoundedGeometry, PointWithElevation};
+use super::{BoundedGeometry, PointWithElevation, UniqueId};
 
 use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
@@ -24,6 +24,12 @@ pub struct Lift {
     pub stations: Vec<PointWithElevation>,
     pub can_go_reverse: bool,
     pub can_disembark: bool,
+}
+
+impl UniqueId for Lift {
+    fn get_unique_id(&self) -> &str {
+        &self.unique_id
+    }
 }
 
 #[derive(PartialEq, Eq, EnumString, strum_macros::Display)]
