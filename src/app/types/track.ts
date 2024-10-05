@@ -1,4 +1,4 @@
-import { Point } from "./geo";
+import { Point, Rect } from "./geo";
 import * as dayjs from "dayjs";
 import { Dayjs } from "dayjs";
 
@@ -26,7 +26,10 @@ export type RawActivity = {
   route: RawWaypoint[][];
 };
 
-export type RawTrack = RawActivity[];
+export type RawTrack = {
+  item: RawActivity[];
+  bounding_rect: Rect;
+}
 
 export type Waypoint = {
   point: Point;
@@ -53,7 +56,11 @@ export type Activity = {
   route: Segments;
 };
 
-export type Track = Activity[];
+export type Track = {
+  item: Activity[];
+  bounding_rect: Rect;
+}
+
 
 function convertUseLift(input?: RawUseLift): UseLift | undefined {
   if (!input) {
@@ -85,12 +92,15 @@ function convertActivityType(type: RawActivityType): ActivityType {
   return (Object.keys(type)[0] ?? "Unknown") as ActivityType;
 }
 
-export function convertTrack(route: RawActivity[]): Track {
-  return route.map((activity) => {
-    return {
-      type: convertActivityType(activity.type),
-      useLift: convertUseLift(activity.type.UseLift),
-      route: convertRoute(activity.route),
-    };
-  });
+export function convertTrack(route: RawTrack): Track {
+  return {
+    item: route.item.map((activity) => {
+      return {
+        type: convertActivityType(activity.type),
+        useLift: convertUseLift(activity.type.UseLift),
+        route: convertRoute(activity.route),
+      };
+    }),
+    bounding_rect: route.bounding_rect,
+  };
 }
