@@ -3,7 +3,7 @@ use super::{Difficulty, Piste, PisteMetadata};
 use crate::osm_reader::{
     Document, Node, Relation, RelationMember, RelationMembers, Tags, Way,
 };
-use crate::utils::test_util::{init, Init};
+use crate::utils::test_util::{assert_eq_pretty, init, Init};
 
 use geo::{Coord, LineString, MultiLineString, MultiPolygon, Polygon};
 use rstest::{fixture, rstest};
@@ -573,7 +573,7 @@ fn find_areas_to_line(_init: Init, line0: Line, area00: Line, area01: Line) {
         areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
     let actual = PisteOut::list(&pistes);
-    assert_eq!(actual, expected);
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -619,7 +619,7 @@ fn find_lines_to_area(_init: Init, line0: Line, area00: Line) {
         areas: vec![Area::simple(area00)],
     }];
     let actual = PisteOut::list(&pistes);
-    assert_eq!(actual, expected);
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -671,7 +671,7 @@ fn merge_unnamed_pistes(_init: Init, line0: Line, area00: Line, area01: Line) {
         areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
     let actual = PisteOut::list(&pistes);
-    assert_eq!(actual, expected);
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -698,7 +698,7 @@ fn orphaned_unnamed_area(_init: Init, line0: Line, area01: Line) {
     ]);
 
     let pistes = parse_pistes(&document);
-    let expected = vec![
+    let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
                 ref_: "1a".to_owned(),
@@ -717,9 +717,9 @@ fn orphaned_unnamed_area(_init: Init, line0: Line, area01: Line) {
             lines: vec![],
             areas: vec![Area::simple(area01)],
         },
-    ];
-    let actual = PisteOut::list(&pistes);
-    assert_eq!(to_set(actual), to_set(expected));
+    ]);
+    let actual = to_set(PisteOut::list(&pistes));
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -746,7 +746,7 @@ fn orphaned_unnamed_line(_init: Init, line0: Line, area01: Line) {
     ]);
 
     let pistes = parse_pistes(&document);
-    let expected = vec![
+    let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
                 ref_: String::new(),
@@ -765,9 +765,9 @@ fn orphaned_unnamed_line(_init: Init, line0: Line, area01: Line) {
             lines: vec![],
             areas: vec![Area::simple(area01)],
         },
-    ];
-    let actual = PisteOut::list(&pistes);
-    assert_eq!(to_set(actual), to_set(expected));
+    ]);
+    let actual = to_set(PisteOut::list(&pistes));
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -814,7 +814,7 @@ fn merge_unnamed_line_and_area(
     ]);
 
     let pistes = parse_pistes(&document);
-    let expected = vec![
+    let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
                 ref_: String::new(),
@@ -833,9 +833,9 @@ fn merge_unnamed_line_and_area(
             lines: vec![line01],
             areas: vec![Area::simple(area01)],
         },
-    ];
-    let actual = PisteOut::list(&pistes);
-    assert_eq!(to_set(actual), to_set(expected));
+    ]);
+    let actual = to_set(PisteOut::list(&pistes));
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -861,7 +861,7 @@ fn different_difficulty(_init: Init, line0: Line, area00: Line) {
     ]);
 
     let pistes = parse_pistes(&document);
-    let expected = vec![
+    let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
                 ref_: String::new(),
@@ -880,9 +880,9 @@ fn different_difficulty(_init: Init, line0: Line, area00: Line) {
             lines: vec![],
             areas: vec![Area::simple(area00)],
         },
-    ];
-    let actual = PisteOut::list(&pistes);
-    assert_eq!(to_set(actual), to_set(expected));
+    ]);
+    let actual = to_set(PisteOut::list(&pistes));
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -908,7 +908,7 @@ fn different_name(_init: Init, line0: Line, area00: Line) {
     ]);
 
     let pistes = parse_pistes(&document);
-    let expected = vec![
+    let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
                 ref_: String::new(),
@@ -927,9 +927,9 @@ fn different_name(_init: Init, line0: Line, area00: Line) {
             lines: vec![],
             areas: vec![Area::simple(area00)],
         },
-    ];
-    let actual = PisteOut::list(&pistes);
-    assert_eq!(to_set(actual), to_set(expected));
+    ]);
+    let actual = to_set(PisteOut::list(&pistes));
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -977,7 +977,7 @@ fn not_intersecting_line_and_area(_init: Init, line0: Line, area00: Line) {
         },
     ];
     let actual = PisteOut::list(&pistes);
-    assert_eq!(actual, expected);
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -1021,7 +1021,7 @@ fn use_larger_overlap(_init: Init, line0: Line, area00: Line, area01: Line) {
     ]);
 
     let pistes = parse_pistes(&document);
-    let expected = vec![
+    let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
                 ref_: String::new(),
@@ -1040,9 +1040,9 @@ fn use_larger_overlap(_init: Init, line0: Line, area00: Line, area01: Line) {
             lines: vec![line01],
             areas: vec![Area::simple(area01)],
         },
-    ];
-    let actual = PisteOut::list(&pistes);
-    assert_eq!(to_set(actual), to_set(expected));
+    ]);
+    let actual = to_set(PisteOut::list(&pistes));
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -1071,7 +1071,7 @@ fn multipolygon_piste(_init: Init, line1: Line, area10: Line, area11: Line) {
     let document = builder.document;
 
     let pistes = parse_pistes(&document);
-    let expected = vec![PisteOut {
+    let expected = to_set(vec![PisteOut {
         metadata: PisteMetadata {
             ref_: String::new(),
             name: "Piste 1".to_owned(),
@@ -1079,9 +1079,9 @@ fn multipolygon_piste(_init: Init, line1: Line, area10: Line, area11: Line) {
         },
         lines: vec![line1],
         areas: vec![Area::multi(area10, vec![area11])],
-    }];
-    let actual = PisteOut::list(&pistes);
-    assert_eq!(to_set(actual), to_set(expected));
+    }]);
+    let actual = to_set(PisteOut::list(&pistes));
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -1108,7 +1108,7 @@ fn multiple_polygons_in_multipolygon(
     let document = builder.document;
 
     let pistes = parse_pistes(&document);
-    let expected = vec![
+    let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
                 ref_: String::new(),
@@ -1127,9 +1127,9 @@ fn multiple_polygons_in_multipolygon(
             lines: vec![],
             areas: vec![Area::multi(area10, vec![area11])],
         },
-    ];
-    let actual = PisteOut::list(&pistes);
-    assert_eq!(to_set(actual), to_set(expected));
+    ]);
+    let actual = to_set(PisteOut::list(&pistes));
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -1160,7 +1160,7 @@ fn metadata_from_route(_init: Init, line0: Line, line1: Line) {
     let document = builder.document;
 
     let pistes = parse_pistes(&document);
-    let expected = vec![
+    let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
                 ref_: "1".to_owned(),
@@ -1179,9 +1179,9 @@ fn metadata_from_route(_init: Init, line0: Line, line1: Line) {
             lines: vec![line0],
             areas: vec![],
         },
-    ];
-    let actual = PisteOut::list(&pistes);
-    assert_eq!(to_set(actual), to_set(expected));
+    ]);
+    let actual = to_set(PisteOut::list(&pistes));
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -1207,7 +1207,7 @@ fn closed_line_is_area(_init: Init, area00: Line) {
         areas: vec![Area::simple(area00)],
     }];
     let actual = PisteOut::list(&pistes);
-    assert_eq!(actual, expected);
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -1237,7 +1237,7 @@ fn explicit_area(_init: Init, line0: Line) {
         areas: vec![Area::simple(expected_area)],
     }];
     let actual = PisteOut::list(&pistes);
-    assert_eq!(actual, expected);
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -1303,5 +1303,5 @@ fn find_refs_complex(_init: Init, line0: Line, area00: Line, area01: Line) {
         areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
     let actual = PisteOut::list(&pistes);
-    assert_eq!(actual, expected);
+    assert_eq_pretty!(actual, expected);
 }
