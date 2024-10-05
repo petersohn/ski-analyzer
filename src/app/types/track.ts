@@ -26,6 +26,8 @@ export type RawActivity = {
   route: RawWaypoint[][];
 };
 
+export type RawTrack = RawActivity[];
+
 export type Waypoint = {
   point: Point;
   time: Dayjs;
@@ -50,6 +52,8 @@ export type Activity = {
   useLift?: UseLift;
   route: Segments;
 };
+
+export type Track = Activity[];
 
 function convertUseLift(input?: RawUseLift): UseLift | undefined {
   if (!input) {
@@ -81,7 +85,7 @@ function convertActivityType(type: RawActivityType): ActivityType {
   return (Object.keys(type)[0] ?? "Unknown") as ActivityType;
 }
 
-export function convertActivities(route: RawActivity[]): Activity[] {
+export function convertTrack(route: RawActivity[]): Track {
   return route.map((activity) => {
     return {
       type: convertActivityType(activity.type),

@@ -29,6 +29,7 @@ import {
   Piste,
   index_ski_area,
 } from "@/types/skiArea";
+import { RawTrack, convertTrack } from "@/types/track";
 import {
   liftStyle,
   liftStyleSelected,
@@ -91,10 +92,11 @@ export class MapService {
   private pisteLineFeatures: Feature[] = [];
   private liftFeatures: Feature[] = [];
 
-  private trackFeatures: Feature[] = [];
-
   private skiAreaLayer: Layer | undefined;
   private skiArea: SkiArea | undefined;
+
+  private trackFeatures: Feature[] = [];
+  private trackLayer: Layer | undefined;
 
   constructor() { }
 
@@ -122,18 +124,12 @@ export class MapService {
       return;
     }
 
-    this.unselectFeatures();
+    this.unloadSkiArea();
 
     this.map = undefined;
     this.projection = undefined;
     this.targetElement!.innerHTML = "";
     this.targetElement = undefined;
-    this.selectedFeatures = [];
-    this.pisteAreaFeatures = [];
-    this.pisteLineFeatures = [];
-    this.liftFeatures = [];
-    this.skiArea = undefined;
-    this.skiAreaLayer = undefined;
   }
 
   public isInitialized(): boolean {
@@ -153,6 +149,18 @@ export class MapService {
     this.liftFeatures = [];
     this.skiArea = undefined;
     this.skiAreaLayer = undefined;
+  }
+
+  public unloadTrack(): void {
+    if (!this.trackLayer) {
+      return;
+    }
+
+    this.unselectFeatures();
+    this.map!.getLayers().remove(this.trackLayer);
+
+    this.trackFeatures = [];
+    this.trackLayer = undefined;
   }
 
   public loadSkiArea(skiArea: RawSkiArea): void {
@@ -230,6 +238,27 @@ export class MapService {
     this.skiArea = index_ski_area(skiArea);
 
     this.zoomToArea(minCoord, maxCoord);
+  }
+
+  public loadTrack(trackRaw: RawTrack): void {
+    if (!this.isInitialized()) {
+      throw new Error("Not initialized");
+    }
+
+    this.unloadTrack();
+
+    const track = convertTrack(trackRaw);
+
+    //this.trackFeatures = track.map(activity => {
+    //  const lines = new Feature(
+    //    new OlMultiLineString(
+    //    ),
+    //  );
+    //  lines.setStyle(style.line);
+    //  lines.set("ski-analyzer-piste", piste);
+    //  lines.set("ski-analyzer-area", false);
+    //  });
+
   }
 
   public unselectFeatures() {
