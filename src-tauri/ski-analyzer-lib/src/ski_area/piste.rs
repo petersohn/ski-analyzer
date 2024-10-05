@@ -9,14 +9,15 @@ use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
-use super::{BoundedGeometry, UniqueId};
+use super::UniqueId;
 use crate::config::get_config;
 // use crate::error::{Error, ErrorType, Result};
-use crate::collection::max_if;
 use crate::error::Result;
 use crate::multipolygon::parse_multipolygon;
 use crate::osm_reader::{get_tag, parse_way, Document, Tags, Way};
-use crate::rect::union_rects;
+use crate::utils::bounded_geometry::BoundedGeometry;
+use crate::utils::collection::max_if;
+use crate::utils::rect::union_rects;
 
 #[derive(
     Serialize,

@@ -1,5 +1,5 @@
 use geo::Point;
-use gpx::{Gpx, Time, Waypoint};
+use gpx::{Gpx, Time};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;

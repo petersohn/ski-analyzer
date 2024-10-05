@@ -1,6 +1,6 @@
 use super::segments::get_segments;
 use super::test_util::ptrize;
-use crate::test_util::{init, Init};
+use crate::utils::test_util::{init, Init};
 
 use geo::point;
 use gpx::{Gpx, Track, TrackSegment, Waypoint};

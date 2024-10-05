@@ -1,6 +1,6 @@
 use super::multipolygon::parse_multipolygon;
 use super::osm_reader as r;
-use crate::test_util::{line, node, way};
+use crate::utils::test_util::{line, node, way};
 use geo::{Coord, LineString, MultiPolygon, Polygon};
 use std::collections::HashMap;
 

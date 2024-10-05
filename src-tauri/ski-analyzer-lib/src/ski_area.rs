@@ -8,10 +8,10 @@ use piste::parse_pistes;
 use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{get_tag, Document};
-use crate::rect::union_rects;
-use crate::time_ser;
+use crate::utils::bounded_geometry::BoundedGeometry;
+use crate::utils::rect::union_rects;
+use crate::utils::time_ser;
 
-mod bounded_geometry;
 mod lift;
 mod piste;
 
@@ -20,7 +20,6 @@ mod lift_test;
 #[cfg(test)]
 mod piste_test;
 
-pub use bounded_geometry::BoundedGeometry;
 pub use lift::Lift;
 pub use piste::{Difficulty, Piste, PisteData, PisteMetadata};
 

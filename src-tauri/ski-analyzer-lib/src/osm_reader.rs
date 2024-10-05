@@ -7,7 +7,7 @@ use std::marker::PhantomData;
 use std::result::Result as StdResult;
 
 use crate::error::{Error, ErrorType, Result};
-use crate::time_ser;
+use crate::utils::time_ser;
 
 pub type Tags = HashMap<String, String>;
 

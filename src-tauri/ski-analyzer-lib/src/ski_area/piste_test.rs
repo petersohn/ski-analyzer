@@ -3,7 +3,7 @@ use super::{Difficulty, Piste, PisteMetadata};
 use crate::osm_reader::{
     Document, Node, Relation, RelationMember, RelationMembers, Tags, Way,
 };
-use crate::test_util::{init, Init};
+use crate::utils::test_util::{init, Init};
 
 use geo::{Coord, LineString, MultiLineString, MultiPolygon, Polygon};
 use rstest::{fixture, rstest};

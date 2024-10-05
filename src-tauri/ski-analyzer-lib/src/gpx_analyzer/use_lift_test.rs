@@ -2,8 +2,9 @@ use super::test_util::{ptrize, SegmentsPtr};
 use super::use_lift::find_lift_usage;
 use super::Segments;
 use super::{Activity, ActivityType, LiftEnd, UseLift};
-use crate::ski_area::{BoundedGeometry, Lift, PointWithElevation, SkiArea};
-use crate::test_util::{init, Init};
+use crate::ski_area::{Lift, PointWithElevation, SkiArea};
+use crate::utils::bounded_geometry::BoundedGeometry;
+use crate::utils::test_util::{init, Init};
 
 use geo::{coord, point, LineString, Rect};
 use gpx::{Gpx, Track, TrackSegment, Waypoint};

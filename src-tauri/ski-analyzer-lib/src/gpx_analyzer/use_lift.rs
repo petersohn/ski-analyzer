@@ -1,6 +1,6 @@
 use super::{serialize_unique_id, Activity, ActivityType, Segment, Segments};
-use crate::collection::Avg;
 use crate::ski_area::{Lift, SkiArea};
+use crate::utils::collection::Avg;
 
 use std::fmt::Debug;
 use std::mem::take;
