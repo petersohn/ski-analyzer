@@ -1,6 +1,10 @@
 use super::{format_time_option, to_odt};
 use crate::config::get_config;
+use crate::error::{Error, ErrorType, Result};
+use crate::utils::bounded_geometry::BoundedGeometry;
+use crate::utils::rect::union_rects;
 
+use geo::{Coord, Rect};
 use gpx::{Gpx, Time, Waypoint};
 
 use std::mem;
@@ -10,8 +14,9 @@ pub type Segments<'g> = Vec<Segment<'g>>;
 
 const PRECISION_LIMIT: f64 = 10.0;
 
-pub fn get_segments<'g>(gpx: &'g Gpx) -> Segments<'g> {
+pub fn get_segments<'g>(gpx: &'g Gpx) -> Result<BoundedGeometry<Segments<'g>>> {
     let mut result = Vec::new();
+    let mut bounding_rect: Option<Rect> = None;
     let config = get_config();
 
     struct BadPrecisionDebug {
@@ -69,11 +74,21 @@ pub fn get_segments<'g>(gpx: &'g Gpx) -> Segments<'g> {
                         bad_precision_debug = None;
                     }
                     current.push(waypoint);
+                    let coord = Coord::from(waypoint.point());
+                    let r0 = Rect::new(coord, coord);
+                    bounding_rect = Some(match bounding_rect {
+                        None => r0,
+                        Some(r) => union_rects(r, r0),
+                    });
                 }
             }
             add(&mut current);
         }
     }
 
-    result
+    Ok(BoundedGeometry {
+        item: result,
+        bounding_rect: bounding_rect
+            .ok_or(Error::new_s(ErrorType::InputError, "Empty route"))?,
+    })
 }

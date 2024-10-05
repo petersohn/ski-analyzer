@@ -11,7 +11,6 @@ use crate::error::{Error, ErrorType, Result};
 pub struct BoundedGeometry<T, C = f64>
 where
     C: CoordNum,
-    T: BoundingRect<C>,
 {
     pub item: T,
     pub bounding_rect: Rect<C>,
@@ -22,7 +21,10 @@ where
     C: CoordNum,
     T: BoundingRect<C>,
 {
-    pub fn new(item: T) -> Result<Self> {
+    pub fn new(item: T) -> Result<Self>
+    where
+        T: BoundingRect<C>,
+    {
         let bounding_rect = item.bounding_rect().into().ok_or(Error::new_s(
             ErrorType::LogicError,
             "cannot calculate bounding rect",

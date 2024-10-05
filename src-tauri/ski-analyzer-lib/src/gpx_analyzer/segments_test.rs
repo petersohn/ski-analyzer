@@ -61,7 +61,7 @@ fn multiple_tracks_and_segments(_init: Init) {
         ])]),
     ]);
 
-    let actual = get_segments(&gpx);
+    let actual = get_segments(&gpx).unwrap().item;
     let expected = vec![
         vec![
             get_wp(&gpx, 0, 0, 0),
@@ -113,7 +113,7 @@ fn bad_accuracy(_init: Init) {
         ]),
     ])]);
 
-    let actual = get_segments(&gpx);
+    let actual = get_segments(&gpx).unwrap().item;
     let expected = vec![
         vec![
             get_wp(&gpx, 0, 0, 0),

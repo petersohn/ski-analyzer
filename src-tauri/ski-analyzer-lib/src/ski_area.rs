@@ -8,7 +8,6 @@ use piste::parse_pistes;
 use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{get_tag, Document};
-use crate::utils::bounded_geometry::BoundedGeometry;
 use crate::utils::rect::union_rects;
 use crate::utils::time_ser;
 

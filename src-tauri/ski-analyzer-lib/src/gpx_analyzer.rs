@@ -4,7 +4,9 @@ use serde::{ser::SerializeStruct, Serialize, Serializer};
 use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;
 
+use crate::error::Result;
 use crate::ski_area::{SkiArea, UniqueId};
+use crate::utils::bounded_geometry::BoundedGeometry;
 use segments::get_segments;
 use use_lift::find_lift_usage;
 
@@ -98,9 +100,12 @@ where
 pub fn analyze_route<'s, 'g>(
     ski_area: &'s SkiArea,
     gpx: &'g Gpx,
-) -> Vec<Activity<'s, 'g>> {
-    let segments = get_segments(&gpx);
+) -> Result<BoundedGeometry<Vec<Activity<'s, 'g>>>> {
+    let segments = get_segments(&gpx)?;
     // println!("{:#?}", segments);
-    let result = find_lift_usage(ski_area, &segments);
-    result
+    let result = find_lift_usage(ski_area, &segments.item);
+    Ok(BoundedGeometry {
+        item: result,
+        bounding_rect: segments.bounding_rect,
+    })
 }

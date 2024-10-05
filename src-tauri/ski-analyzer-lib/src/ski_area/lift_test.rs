@@ -1,6 +1,7 @@
 use super::lift::parse_lift;
-use super::{BoundedGeometry, Lift, PointWithElevation};
+use super::{Lift, PointWithElevation};
 use crate::osm_reader::{self as r, Osm3s};
+use crate::utils::bounded_geometry::BoundedGeometry;
 use crate::utils::test_util::{
     assert_eq_pretty, init, line, node, node_tags, way_tags, Init,
 };
