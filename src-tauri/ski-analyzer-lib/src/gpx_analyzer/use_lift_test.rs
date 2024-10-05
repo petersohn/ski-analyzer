@@ -390,7 +390,7 @@ fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 2)),
         },
         Activity {
@@ -405,7 +405,7 @@ fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
             route: get_segment_part(&segments, (0, 2), (0, 19)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
@@ -431,7 +431,7 @@ fn simple_reverse_bad(
 
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![Activity {
-        type_: ActivityType::Unknown,
+        type_: ActivityType::Unknown(()),
         route: get_segment_part(&segments, (0, 0), (0, 21)),
     }];
     assert!(
@@ -457,7 +457,7 @@ fn simple_reverse_good(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 2)),
         },
         Activity {
@@ -472,7 +472,7 @@ fn simple_reverse_good(
             route: get_segment_part(&segments, (0, 2), (0, 19)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
@@ -493,7 +493,7 @@ fn get_out_bad(_init: Init, line00: LineString, get_out_segment: TrackSegment) {
 
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![Activity {
-        type_: ActivityType::Unknown,
+        type_: ActivityType::Unknown(()),
         route: get_segment_part(&segments, (0, 0), (0, 30)),
     }];
     assert!(
@@ -518,7 +518,7 @@ fn get_out_good(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 2)),
         },
         Activity {
@@ -533,7 +533,7 @@ fn get_out_good(
             route: get_segment_part(&segments, (0, 2), (0, 28)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 28), (0, 30)),
         },
     ];
@@ -559,7 +559,7 @@ fn get_out_good_2(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 2)),
         },
         Activity {
@@ -574,7 +574,7 @@ fn get_out_good_2(
             route: get_segment_part(&segments, (0, 2), (0, 8)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 8), (0, 11)),
         },
     ];
@@ -604,7 +604,7 @@ fn get_out_good_multisegment(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 2)),
         },
         Activity {
@@ -619,7 +619,7 @@ fn get_out_good_multisegment(
             route: get_segment_part(&segments, (0, 2), (0, 28)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (1, 0), (1, 2)),
         },
     ];
@@ -640,7 +640,7 @@ fn get_in_bad(_init: Init, line00: LineString, get_in_segment: TrackSegment) {
 
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![Activity {
-        type_: ActivityType::Unknown,
+        type_: ActivityType::Unknown(()),
         route: get_segment_part(&segments, (0, 0), (0, 14)),
     }];
     assert!(
@@ -669,7 +669,7 @@ fn get_in_good_multisegment(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 3)),
         },
         Activity {
@@ -684,7 +684,7 @@ fn get_in_good_multisegment(
             route: get_segment_part(&segments, (1, 0), (1, 8)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (1, 8), (1, 11)),
         },
     ];
@@ -713,7 +713,7 @@ fn multiple_distinct_lifts(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 2)),
         },
         Activity {
@@ -728,7 +728,7 @@ fn multiple_distinct_lifts(
             route: get_segment_part(&segments, (0, 2), (0, 12)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 12), (0, 15)),
         },
         Activity {
@@ -743,7 +743,7 @@ fn multiple_distinct_lifts(
             route: get_segment_part(&segments, (0, 15), (0, 21)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 21), (0, 23)),
         },
     ];
@@ -773,7 +773,7 @@ fn multiple_lifts_same_start_take_longer(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 2)),
         },
         Activity {
@@ -788,7 +788,7 @@ fn multiple_lifts_same_start_take_longer(
             route: get_segment_part(&segments, (0, 2), (0, 19)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
@@ -818,7 +818,7 @@ fn multiple_lifts_same_end_take_longer(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 2)),
         },
         Activity {
@@ -833,7 +833,7 @@ fn multiple_lifts_same_end_take_longer(
             route: get_segment_part(&segments, (0, 2), (0, 19)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
@@ -863,7 +863,7 @@ fn multiple_lifts_same_end_take_shorter(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 3)),
         },
         Activity {
@@ -878,7 +878,7 @@ fn multiple_lifts_same_end_take_shorter(
             route: get_segment_part(&segments, (0, 3), (0, 11)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 11), (0, 14)),
         },
     ];
@@ -911,7 +911,7 @@ fn multiple_lifts_same_start_take_shorter(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 3)),
         },
         Activity {
@@ -926,7 +926,7 @@ fn multiple_lifts_same_start_take_shorter(
             route: get_segment_part(&segments, (0, 3), (0, 11)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 11), (0, 14)),
         },
     ];
@@ -952,7 +952,7 @@ fn midstation_get_in(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 3)),
         },
         Activity {
@@ -967,7 +967,7 @@ fn midstation_get_in(
             route: get_segment_part(&segments, (0, 3), (0, 11)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 11), (0, 14)),
         },
     ];
@@ -995,7 +995,7 @@ fn midstation_get_out(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 3)),
         },
         Activity {
@@ -1010,7 +1010,7 @@ fn midstation_get_out(
             route: get_segment_part(&segments, (0, 3), (0, 11)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 11), (0, 14)),
         },
     ];
@@ -1039,7 +1039,7 @@ fn parallel_lifts(
     let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 2)),
         },
         Activity {
@@ -1054,7 +1054,7 @@ fn parallel_lifts(
             route: get_segment_part(&segments, (0, 2), (0, 19)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
@@ -1077,7 +1077,7 @@ fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
 
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 2)),
         },
         Activity {
@@ -1092,7 +1092,7 @@ fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
             route: get_segment_part(&segments, (0, 2), (0, 27)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 27), (0, 29)),
         },
     ];
@@ -1120,7 +1120,7 @@ fn restart_with_new_segment(
 
     let expected: Vec<Activity> = vec![
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (0, 0), (0, 2)),
         },
         Activity {
@@ -1146,7 +1146,7 @@ fn restart_with_new_segment(
             route: get_segment_part(&segments, (1, 0), (1, 7)),
         },
         Activity {
-            type_: ActivityType::Unknown,
+            type_: ActivityType::Unknown(()),
             route: get_segment_part(&segments, (1, 7), (1, 9)),
         },
     ];
