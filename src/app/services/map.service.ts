@@ -1,6 +1,7 @@
 import { Injectable, signal } from "@angular/core";
 import OlMap from "ol/Map";
 import OlView from "ol/View";
+import Layer from "ol/layer/Layer";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import MapBrowserEvent from "ol/MapBrowserEvent";
@@ -90,9 +91,12 @@ export class MapService {
   private pisteLineFeatures: Feature[] = [];
   private liftFeatures: Feature[] = [];
 
+  private trackFeatures: Feature[] = [];
+
+  private skiAreaLayer: Layer | undefined;
   private skiArea: SkiArea | undefined;
 
-  constructor() {}
+  constructor() { }
 
   public createMap(targetElement: HTMLElement) {
     if (this.isInitialized()) {
@@ -129,10 +133,26 @@ export class MapService {
     this.pisteLineFeatures = [];
     this.liftFeatures = [];
     this.skiArea = undefined;
+    this.skiAreaLayer = undefined;
   }
 
   public isInitialized(): boolean {
     return !!this.map && !!this.targetElement && !!this.projection;
+  }
+
+  public unloadSkiArea(): void {
+    if (!this.skiAreaLayer) {
+      return;
+    }
+
+    this.unselectFeatures();
+    this.map!.getLayers().remove(this.skiAreaLayer);
+
+    this.pisteAreaFeatures = [];
+    this.pisteLineFeatures = [];
+    this.liftFeatures = [];
+    this.skiArea = undefined;
+    this.skiAreaLayer = undefined;
   }
 
   public loadSkiArea(skiArea: RawSkiArea): void {
@@ -140,9 +160,7 @@ export class MapService {
       throw new Error("Not initialized");
     }
 
-    const layers = this.map!.getLayers();
-    layers.clear();
-    layers.push(this.baseLayer);
+    this.unloadSkiArea();
 
     const liftFeatures = skiArea.lifts
       .map((lift) => {
@@ -193,19 +211,18 @@ export class MapService {
     const minCoord = this.pointToCoordinate(skiArea.bounding_rect.min);
     const maxCoord = this.pointToCoordinate(skiArea.bounding_rect.max);
 
-    layers.push(
-      new VectorLayer({
-        source: new VectorSource({
-          features: [
-            ...liftFeatures,
-            ...pisteAreaFeatures,
-            ...pisteLineFeatures,
-          ],
-        }),
-        minZoom: 10,
-        extent: boundingExtent([minCoord, maxCoord]),
+    this.skiAreaLayer = new VectorLayer({
+      source: new VectorSource({
+        features: [
+          ...liftFeatures,
+          ...pisteAreaFeatures,
+          ...pisteLineFeatures,
+        ],
       }),
-    );
+      minZoom: 10,
+      extent: boundingExtent([minCoord, maxCoord]),
+    });
+    this.map!.getLayers().push(this.skiAreaLayer);
 
     this.liftFeatures = liftFeatures;
     this.pisteAreaFeatures = pisteAreaFeatures;
