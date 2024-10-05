@@ -20,7 +20,7 @@ export class MainMenuComponent {
   constructor(
     private readonly dialog: MatDialog,
     public readonly actionsService: ActionsService,
-  ) {}
+  ) { }
 
   public async loadSkiArea(): Promise<void> {
     const path = await open({
@@ -46,4 +46,14 @@ export class MainMenuComponent {
       this.actionsService.findSkiArea(result);
     }
   }
+
+  public async loadTrack(): Promise<void> {
+    const path = await open({
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (!!path) {
+      this.actionsService.loadTrack(path);
+    }
+  }
+
 }

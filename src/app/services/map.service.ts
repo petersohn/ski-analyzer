@@ -35,6 +35,7 @@ import {
   liftStyleSelected,
   stationStyle,
   pisteStyles,
+  routeStyles,
 } from "./mapStyles";
 
 class MouseEvent extends PointerInteraction {
@@ -249,16 +250,28 @@ export class MapService {
 
     const track = convertTrack(trackRaw);
 
-    //this.trackFeatures = track.map(activity => {
-    //  const lines = new Feature(
-    //    new OlMultiLineString(
-    //    ),
-    //  );
-    //  lines.setStyle(style.line);
-    //  lines.set("ski-analyzer-piste", piste);
-    //  lines.set("ski-analyzer-area", false);
-    //  });
+    this.trackFeatures = track.item.map(activity => {
+      const lines = new Feature(
+        new OlMultiLineString(
+          activity.route.map(segment => segment.map(wp => this.pointToCoordinate(wp.point)))
+        ),
+      );
+      lines.setStyle(routeStyles[activity.type]);
+      lines.set("ski-analyzer-activity", activity);
+      return lines;
+    });
 
+    this.trackLayer = new VectorLayer({
+      source: new VectorSource({
+        features: this.trackFeatures,
+      }),
+      minZoom: 10,
+      extent: boundingExtent([
+        this.pointToCoordinate(track.bounding_rect.min),
+        this.pointToCoordinate(track.bounding_rect.max)
+      ]),
+    });
+    this.map!.getLayers().push(this.trackLayer);
   }
 
   public unselectFeatures() {

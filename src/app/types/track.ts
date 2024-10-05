@@ -1,5 +1,5 @@
 import { Point, Rect } from "./geo";
-import * as dayjs from "dayjs";
+import dayjs from "dayjs";
 import { Dayjs } from "dayjs";
 
 export type RawWaypoint = {
