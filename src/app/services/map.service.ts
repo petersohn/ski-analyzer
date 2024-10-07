@@ -6,6 +6,8 @@ import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import MapBrowserEvent from "ol/MapBrowserEvent";
 import XYZ from "ol/source/XYZ";
+import Zoom from "ol/control/Zoom";
+import ScaleLine from "ol/control/ScaleLine";
 import {
   Pointer as PointerInteraction,
   defaults as defaultInteractions,
@@ -115,6 +117,7 @@ export class MapService {
         center: [0, 0],
         zoom: 2,
       }),
+      controls: [new ScaleLine({ bar: true }), new Zoom()],
     });
 
     this.projection = this.map.getView().getProjection();
@@ -249,6 +252,7 @@ export class MapService {
     this.unloadTrack();
 
     const track = convertTrack(trackRaw);
+    console.log(track);
 
     this.trackFeatures = track.item.map(activity => {
       const lines = new Feature(

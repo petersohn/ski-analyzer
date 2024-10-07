@@ -243,14 +243,14 @@ export const pisteStyles: PisteStyles = {
 export const routeStyles: { [key: string]: Style } = {
   Unknown: new Style({
     stroke: new Stroke({
-      color: "#a00",
-      width: 1,
+      color: "#f0f",
+      width: 2,
     }),
   }),
   UseLift: new Style({
     stroke: new Stroke({
-      color: "#803300",
-      width: 1,
+      color: "#a00",
+      width: 2,
     }),
   }),
 };
