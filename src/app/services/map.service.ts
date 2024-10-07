@@ -101,7 +101,7 @@ export class MapService {
   private trackFeatures: Feature[] = [];
   private trackLayer: Layer | undefined;
 
-  constructor() { }
+  constructor() {}
 
   public createMap(targetElement: HTMLElement) {
     if (this.isInitialized()) {
@@ -225,11 +225,7 @@ export class MapService {
 
     this.skiAreaLayer = new VectorLayer({
       source: new VectorSource({
-        features: [
-          ...liftFeatures,
-          ...pisteAreaFeatures,
-          ...pisteLineFeatures,
-        ],
+        features: [...liftFeatures, ...pisteAreaFeatures, ...pisteLineFeatures],
       }),
       minZoom: 10,
       extent: boundingExtent([minCoord, maxCoord]),
@@ -254,10 +250,12 @@ export class MapService {
     const track = convertTrack(trackRaw);
     console.log(track);
 
-    this.trackFeatures = track.item.map(activity => {
+    this.trackFeatures = track.item.map((activity) => {
       const lines = new Feature(
         new OlMultiLineString(
-          activity.route.map(segment => segment.map(wp => this.pointToCoordinate(wp.point)))
+          activity.route.map((segment) =>
+            segment.map((wp) => this.pointToCoordinate(wp.point)),
+          ),
         ),
       );
       lines.setStyle(routeStyles[activity.type]);
@@ -272,7 +270,7 @@ export class MapService {
       minZoom: 10,
       extent: boundingExtent([
         this.pointToCoordinate(track.bounding_rect.min),
-        this.pointToCoordinate(track.bounding_rect.max)
+        this.pointToCoordinate(track.bounding_rect.max),
       ]),
     });
     this.map!.getLayers().push(this.trackLayer);
