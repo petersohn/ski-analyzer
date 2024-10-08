@@ -370,8 +370,7 @@ fn restart_segment_2() -> TrackSegment {
     ])
 }
 
-fn run(s: SkiArea, g: Gpx, expected: Vec<Activity>) {
-    let segments = get_segments(&g);
+fn run(s: &SkiArea, segments: &Segments, expected: &Vec<Activity>) {
     let actual = find_lift_usage(&s, &segments);
     assert!(
         ptrize_activities(&actual) == ptrize_activities(&expected),
@@ -387,8 +386,6 @@ fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
         ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
     let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
-
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -410,12 +407,8 @@ fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
             route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -430,17 +423,12 @@ fn simple_reverse_bad(
     let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![Activity {
         type_: ActivityType::Unknown(()),
         route: get_segment_part(&segments, (0, 0), (0, 21)),
     }];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -455,7 +443,6 @@ fn simple_reverse_good(
     let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -477,12 +464,8 @@ fn simple_reverse_good(
             route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -492,17 +475,12 @@ fn get_out_bad(_init: Init, line00: LineString, get_out_segment: TrackSegment) {
     let g = make_gpx(vec![get_out_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![Activity {
         type_: ActivityType::Unknown(()),
         route: get_segment_part(&segments, (0, 0), (0, 30)),
     }];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -516,7 +494,6 @@ fn get_out_good(
     let g = make_gpx(vec![get_out_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -538,12 +515,8 @@ fn get_out_good(
             route: get_segment_part(&segments, (0, 28), (0, 30)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -557,7 +530,6 @@ fn get_out_good_2(
     let g = make_gpx(vec![get_out_segment_2]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -579,12 +551,8 @@ fn get_out_good_2(
             route: get_segment_part(&segments, (0, 8), (0, 11)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -602,7 +570,6 @@ fn get_out_good_multisegment(
     let segments = get_segments(&g);
     eprintln!("{:#?}", g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -624,12 +591,8 @@ fn get_out_good_multisegment(
             route: get_segment_part(&segments, (1, 0), (1, 2)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -639,17 +602,12 @@ fn get_in_bad(_init: Init, line00: LineString, get_in_segment: TrackSegment) {
     let g = make_gpx(vec![get_in_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![Activity {
         type_: ActivityType::Unknown(()),
         route: get_segment_part(&segments, (0, 0), (0, 14)),
     }];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -667,7 +625,6 @@ fn get_in_good_multisegment(
     let g = make_gpx(vec![get_in_segment, get_in_segment_2]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -689,12 +646,8 @@ fn get_in_good_multisegment(
             route: get_segment_part(&segments, (1, 8), (1, 11)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -711,7 +664,6 @@ fn multiple_distinct_lifts(
     let g = make_gpx(vec![multiple_distinct_lifts_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -748,12 +700,8 @@ fn multiple_distinct_lifts(
             route: get_segment_part(&segments, (0, 21), (0, 23)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -771,7 +719,6 @@ fn multiple_lifts_same_start_take_longer(
     let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -793,12 +740,8 @@ fn multiple_lifts_same_start_take_longer(
             route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -816,7 +759,6 @@ fn multiple_lifts_same_end_take_longer(
     let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -838,12 +780,8 @@ fn multiple_lifts_same_end_take_longer(
             route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -861,7 +799,6 @@ fn multiple_lifts_same_end_take_shorter(
     let g = make_gpx(vec![get_in_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -883,12 +820,8 @@ fn multiple_lifts_same_end_take_shorter(
             route: get_segment_part(&segments, (0, 11), (0, 14)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -909,7 +842,6 @@ fn multiple_lifts_same_start_take_shorter(
     let g = make_gpx(vec![get_in_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -931,12 +863,8 @@ fn multiple_lifts_same_start_take_shorter(
             route: get_segment_part(&segments, (0, 11), (0, 14)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -950,7 +878,6 @@ fn midstation_get_in(
     let g = make_gpx(vec![get_in_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -972,12 +899,8 @@ fn midstation_get_in(
             route: get_segment_part(&segments, (0, 11), (0, 14)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -993,7 +916,6 @@ fn midstation_get_out(
     let g = make_gpx(vec![get_in_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -1015,12 +937,8 @@ fn midstation_get_out(
             route: get_segment_part(&segments, (0, 11), (0, 14)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -1037,7 +955,6 @@ fn parallel_lifts(
     let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
 
-    let actual = find_lift_usage(&s, &segments);
     let expected: Vec<Activity> = vec![
         Activity {
             type_: ActivityType::Unknown(()),
@@ -1059,12 +976,8 @@ fn parallel_lifts(
             route: get_segment_part(&segments, (0, 19), (0, 21)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -1073,8 +986,6 @@ fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
         ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
     let g = make_gpx(vec![zigzag_segment]);
     let segments = get_segments(&g);
-
-    let actual = find_lift_usage(&s, &segments);
 
     let expected: Vec<Activity> = vec![
         Activity {
@@ -1097,12 +1008,8 @@ fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
             route: get_segment_part(&segments, (0, 27), (0, 29)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
 
 #[rstest]
@@ -1116,8 +1023,6 @@ fn restart_with_new_segment(
         ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
     let g = make_gpx(vec![restart_segment_1, restart_segment_2]);
     let segments = get_segments(&g);
-
-    let actual = find_lift_usage(&s, &segments);
 
     let expected: Vec<Activity> = vec![
         Activity {
@@ -1151,10 +1056,6 @@ fn restart_with_new_segment(
             route: get_segment_part(&segments, (1, 7), (1, 9)),
         },
     ];
-    assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
-    );
+
+    run(&s, &segments, &expected);
 }
