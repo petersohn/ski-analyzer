@@ -9,6 +9,9 @@
 </mat-card>
 <mat-card class="card" *ngIf="!!selectedLift()">
   <div class="name">{{ liftName() }}</div>
+  <div class="icon-container">
+    <img *ngIf="!!liftIcon()" src="{{ liftIcon() }}" />
+  </div>
   <name-value name="Type" [value]="liftType()"></name-value>
   <name-value
     name="Stations"

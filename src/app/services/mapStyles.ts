@@ -34,7 +34,6 @@ export const liftStyleSelected = new Style({
 export const stationStyle = new Style({
   image: new Icon({
     src: "/assets/lift/station.svg",
-    size: [5, 5],
   }),
 });
 export const pisteStyles: PisteStyles = {

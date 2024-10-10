@@ -19,6 +19,18 @@ const liftTypes: { [type: string]: string } = {
   zip_line: "Zipline",
 };
 
+const liftIcons: { [type: string]: string } = {
+  cable_car: "cablecar",
+  gondola: "gondola",
+  mixed_lift: "gondola",
+  chair_lift: "chairlift",
+  drag_lift: "draglift",
+  "t-bar": "draglift",
+  "j-bar": "draglift",
+  platter: "draglift",
+  zip_line: "zipline",
+};
+
 @Component({
   selector: "selection-info",
   standalone: true,
@@ -36,8 +48,17 @@ export class SelectionInfoComponent {
   }
 
   public pisteName = computed(() => this.getName(this.selectedPiste()));
+
   public liftName = computed(() => this.getName(this.selectedLift()));
   public liftType = computed(() => liftTypes[this.selectedLift()?.type ?? ""]);
+  public liftIcon = computed(() => {
+    const type = liftIcons[this.selectedLift()?.type ?? ""];
+    if (type === undefined) {
+      return;
+    } else {
+      return `/assets/lift/${type}.svg`;
+    }
+  });
 
   private getName(input?: { ref: string; name: string }) {
     if (!input) {

@@ -35,3 +35,14 @@
 .difficulty.Freeride {
   color: #f60;
 }
+
+.icon-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+}
+
+.icon-container img {
+  width: 100px;
+}
