@@ -1,17 +1,19 @@
 <mat-card class="card" *ngIf="!!selectedPiste()">
+  <div class="icon-container">
+    <div class="piste-icon"></div>
+  </div>
   <div class="name">{{ pisteName() }}</div>
   <name-value
     class="difficulty"
-    [ngClass]="selectedPiste()!.difficulty"
     name="Difficulty"
     [value]="selectedPiste()!.difficulty"
   ></name-value>
 </mat-card>
 <mat-card class="card" *ngIf="!!selectedLift()">
-  <div class="name">{{ liftName() }}</div>
-  <div class="icon-container">
-    <img *ngIf="!!liftIcon()" src="{{ liftIcon() }}" />
+  <div *ngIf="!!liftIcon()" class="icon-container">
+    <img src="{{ liftIcon() }}" />
   </div>
+  <div class="name">{{ liftName() }}</div>
   <name-value name="Type" [value]="liftType()"></name-value>
   <name-value
     name="Stations"

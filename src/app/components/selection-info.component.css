@@ -6,34 +6,11 @@
 .name {
   font-size: 18px;
   font-weight: 600;
+  margin-bottom: 10px;
 }
 
 .difficulty {
-  color: #333;
-}
-
-.difficulty.Novice {
-  color: #0a0;
-}
-
-.difficulty.Easy {
-  color: #11f;
-}
-
-.difficulty.Intermediate {
-  color: #f00;
-}
-
-.difficulty.Advanced {
-  color: #000;
-}
-
-.difficulty.Expert {
-  color: #000;
-}
-
-.difficulty.Freeride {
-  color: #f60;
+  color: var(--difficulty-color);
 }
 
 .icon-container {
@@ -45,4 +22,14 @@
 
 .icon-container img {
   width: 100px;
+}
+
+.piste-icon {
+  width: 100px;
+  height: 100px;
+  mask-image: url("/assets/piste.svg");
+  background-color: var(--difficulty-color);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
 }

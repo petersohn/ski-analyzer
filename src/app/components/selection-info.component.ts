@@ -1,4 +1,11 @@
-import { Component, Signal, computed } from "@angular/core";
+import {
+  Component,
+  ElementRef,
+  Signal,
+  computed,
+  effect,
+  OnInit,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
 import { MapService } from "@/services/map.service";
@@ -31,6 +38,16 @@ const liftIcons: { [type: string]: string } = {
   zip_line: "zipline",
 };
 
+const difficultyColors: { [type: string]: string } = {
+  Novice: "#0a0",
+  Easy: "#11f",
+  Intermediate: "#f00",
+  Advanced: "#000",
+  Expert: "#000",
+  Freeride: "#f60",
+  unknown: "#888",
+};
+
 @Component({
   selector: "selection-info",
   standalone: true,
@@ -38,14 +55,27 @@ const liftIcons: { [type: string]: string } = {
   templateUrl: "./selection-info.component.html",
   styleUrls: ["./selection-info.component.css"],
 })
-export class SelectionInfoComponent {
+export class SelectionInfoComponent implements OnInit {
   public selectedPiste: Signal<Piste | undefined>;
   public selectedLift: Signal<Lift | undefined>;
 
-  constructor(private readonly mapService: MapService) {
+  constructor(
+    private readonly mapService: MapService,
+    private readonly elementRef: ElementRef<HTMLElement>,
+  ) {
     this.selectedPiste = this.mapService.selectedPiste;
     this.selectedLift = this.mapService.selectedLift;
+    effect(() => {
+      const color =
+        difficultyColors[this.selectedPiste()?.difficulty ?? "unknown"];
+      this.elementRef.nativeElement.style.setProperty(
+        "--difficulty-color",
+        color,
+      );
+    });
   }
+
+  public ngOnInit() {}
 
   public pisteName = computed(() => this.getName(this.selectedPiste()));
 
