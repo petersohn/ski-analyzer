@@ -626,10 +626,7 @@ fn create_pistes(
     let mut result = Vec::new();
     result.reserve(reffed_datas.len() + refless_datas.len());
 
-    for (metadata, datas) in refless_datas {
-        make_pistes(metadata, datas, &mut result);
-    }
-    for (metadata, datas) in reffed_datas {
+    for (metadata, datas) in refless_datas.into_iter().chain(reffed_datas) {
         make_pistes(metadata, datas, &mut result);
     }
 
