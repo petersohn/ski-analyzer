@@ -673,68 +673,71 @@ fn merge_unnamed_pistes(
     it.flatten().collect()
 }
 
+fn merge_unnamed_entities<G1, G2, GetEntity, GetOtherEntity, GetLength>(
+    mut input: Vec<UnnamedPiste<G1>>,
+    partial_pistes: &mut HashMap<PisteMetadata, PartialPistes>,
+    get_entity: GetEntity,
+    get_other_entity: GetOtherEntity,
+    get_length: GetLength,
+) -> (Vec<UnnamedPiste<G1>>, bool)
+where
+    G1: BoundingRect<f64>,
+    G2: BoundingRect<f64>,
+    GetEntity: Fn(&mut PartialPistes) -> &mut Vec<WithId<BoundedGeometry<G1>>>,
+    GetOtherEntity: Fn(&PartialPistes) -> &Vec<WithId<BoundedGeometry<G2>>>,
+    GetLength: Fn(&BoundedGeometry<G1>, &BoundedGeometry<G2>) -> f64,
+{
+    let mut rest = Vec::new();
+    let mut changed = false;
+
+    while let Some(g1) = input.pop() {
+        let target = max_if(
+            partial_pistes.iter_mut(),
+            |piste| {
+                get_other_entity(piste.1).iter().fold(0.0, |acc, g2| {
+                    acc + get_length(&g1.geometry.obj, &g2.obj)
+                })
+            },
+            |piste, len| *len > 0.0 && piste.0.difficulty == g1.difficulty,
+        );
+        match target {
+            Some((_, piste)) => {
+                get_entity(piste).push(g1.geometry);
+                changed = true;
+            }
+            None => rest.push(g1),
+        }
+    }
+
+    (rest, changed)
+}
+
 fn handle_unnamed_entities(
     mut unnamed_lines: Vec<UnnamedPiste<LineString>>,
     mut unnamed_areas: Vec<UnnamedPiste<MultiPolygon>>,
     partial_pistes: &mut HashMap<PisteMetadata, PartialPistes>,
 ) -> Vec<Piste> {
-    let mut changed = true;
-    while changed {
-        changed = false;
-        let mut unnamed_areas2 = Vec::new();
-
-        while let Some(area) = unnamed_areas.pop() {
-            let target = max_if(
-                partial_pistes.iter_mut(),
-                |piste| {
-                    piste.1.line_entities.iter().fold(0.0, |acc, line| {
-                        acc + get_intersection_length(
-                            &area.geometry.obj,
-                            &line.obj,
-                        )
-                    })
-                },
-                |piste, len| {
-                    *len > 0.0 && piste.0.difficulty == area.difficulty
-                },
-            );
-            match target {
-                Some((_, piste)) => {
-                    piste.area_entities.push(area.geometry);
-                    changed = true;
-                }
-                None => unnamed_areas2.push(area),
-            }
-        }
-
-        let mut unnamed_lines2 = Vec::new();
-
-        while let Some(line) = unnamed_lines.pop() {
-            let target = max_if(
-                partial_pistes.iter_mut(),
-                |piste| {
-                    piste.1.area_entities.iter().fold(0.0, |acc, area| {
-                        acc + get_intersection_length(
-                            &area.obj,
-                            &line.geometry.obj,
-                        )
-                    })
-                },
-                |piste, len| {
-                    *len > 0.0 && piste.0.difficulty == line.difficulty
-                },
-            );
-            match target {
-                Some((_, piste)) => {
-                    piste.line_entities.push(line.geometry);
-                    changed = true;
-                }
-                None => unnamed_lines2.push(line),
-            }
-        }
+    loop {
+        let (unnamed_areas2, changed1) = merge_unnamed_entities(
+            unnamed_areas,
+            partial_pistes,
+            |p| &mut p.area_entities,
+            |p| &p.line_entities,
+            |a, l| get_intersection_length(a, l),
+        );
+        let (unnamed_lines2, changed2) = merge_unnamed_entities(
+            unnamed_lines,
+            partial_pistes,
+            |p| &mut p.line_entities,
+            |p| &p.area_entities,
+            |l, a| get_intersection_length(a, l),
+        );
 
         unnamed_areas = unnamed_areas2.into();
         unnamed_lines = unnamed_lines2.into();
+        if !changed1 && !changed2 {
+            break;
+        }
     }
 
     let config = get_config();
