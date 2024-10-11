@@ -1,7 +1,4 @@
-import Style from "ol/style/Style";
-import Stroke from "ol/style/Stroke";
-import Icon from "ol/style/Icon";
-import Fill from "ol/style/Fill";
+import { Style, Stroke, Fill, Circle, } from "ol/style";
 
 export type PisteStyleBase = {
   line: Style;
@@ -32,10 +29,14 @@ export const liftStyleSelected = new Style({
 });
 
 export const stationStyle = new Style({
-  image: new Icon({
-    src: "/assets/lift/station.svg",
+  image: new Circle({
+    radius: 3,
+    fill: new Fill({
+      color: "#000",
+    }),
   }),
 });
+
 export const pisteStyles: PisteStyles = {
   Novice: {
     unselected: {
