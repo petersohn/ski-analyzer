@@ -175,6 +175,7 @@ export class MapService {
         );
         line.setStyle(this.mapStyleService.liftStyle());
         line.set("ski-analyzer-lift", lift);
+        line.set("ski-analyzer-lift-line", true);
 
         const stations = lift.stations.map((station) => {
           const feature = new Feature(
@@ -182,6 +183,7 @@ export class MapService {
           );
           feature.setStyle(this.mapStyleService.stationStyle());
           feature.set("ski-analyzer-lift", lift);
+          feature.set("ski-analyzer-lift-line", false);
           return feature;
         });
 
@@ -322,7 +324,10 @@ export class MapService {
     this.unselectFeatures();
 
     for (const feature of this.liftFeatures) {
-      if (feature.get("ski-analyzer-lift") === lift) {
+      if (
+        feature.get("ski-analyzer-lift") === lift &&
+        feature.get("ski-analyzer-lift-line") === true
+      ) {
         feature.setStyle(this.mapStyleService.liftStyleSelected());
         this.selectedFeatures.push(feature);
       }
