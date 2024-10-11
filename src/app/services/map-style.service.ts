@@ -23,25 +23,23 @@ export type RouteStyles = {
 
 @Injectable({ providedIn: "root" })
 export class MapStyleService {
-  public liftStyle = lazy(
-    () =>
-      new Style({
+  public liftStyle = lazy<SelectableStyle<Style>>(() => {
+    const color = "#333";
+    return {
+      unselected: new Style({
         stroke: new Stroke({
-          color: "#333",
+          color,
           width: 2,
         }),
       }),
-  );
-
-  public liftStyleSelected = lazy(
-    () =>
-      new Style({
+      selected: new Style({
         stroke: new Stroke({
-          color: "#333",
+          color,
           width: 3,
         }),
       }),
-  );
+    };
+  });
 
   public stationStyle = lazy(
     () =>

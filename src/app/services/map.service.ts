@@ -173,7 +173,7 @@ export class MapService {
         const line = new Feature(
           new OlLineString(this.createLineString(lift.line.item)),
         );
-        line.setStyle(this.mapStyleService.liftStyle());
+        line.setStyle(this.mapStyleService.liftStyle().unselected);
         line.set("ski-analyzer-lift", lift);
         line.set("ski-analyzer-lift-line", true);
 
@@ -292,7 +292,7 @@ export class MapService {
           );
         }
       } else if (feature.get("ski-analyzer-lift")) {
-        feature.setStyle(this.mapStyleService.liftStyle());
+        feature.setStyle(this.mapStyleService.liftStyle().unselected);
       }
     }
     this.selectedFeatures = [];
@@ -328,7 +328,7 @@ export class MapService {
         feature.get("ski-analyzer-lift") === lift &&
         feature.get("ski-analyzer-lift-line") === true
       ) {
-        feature.setStyle(this.mapStyleService.liftStyleSelected());
+        feature.setStyle(this.mapStyleService.liftStyle().selected);
         this.selectedFeatures.push(feature);
       }
     }
