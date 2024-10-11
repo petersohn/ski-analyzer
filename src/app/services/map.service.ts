@@ -32,13 +32,7 @@ import {
   index_ski_area,
 } from "@/types/skiArea";
 import { RawTrack, convertTrack } from "@/types/track";
-import {
-  liftStyle,
-  liftStyleSelected,
-  stationStyle,
-  pisteStyles,
-  routeStyles,
-} from "./mapStyles";
+import { MapStyleService } from "./map-style.service";
 
 class MouseEvent extends PointerInteraction {
   constructor(private mapService: MapService) {
@@ -101,7 +95,7 @@ export class MapService {
   private trackFeatures: Feature[] = [];
   private trackLayer: Layer | undefined;
 
-  constructor() {}
+  constructor(private readonly mapStyleService: MapStyleService) {}
 
   public createMap(targetElement: HTMLElement) {
     if (this.isInitialized()) {
@@ -179,14 +173,14 @@ export class MapService {
         const line = new Feature(
           new OlLineString(this.createLineString(lift.line.item)),
         );
-        line.setStyle(liftStyle);
+        line.setStyle(this.mapStyleService.liftStyle());
         line.set("ski-analyzer-lift", lift);
 
         const stations = lift.stations.map((station) => {
           const feature = new Feature(
             new OlPoint(this.pointToCoordinate(station.point)),
           );
-          feature.setStyle(stationStyle);
+          feature.setStyle(this.mapStyleService.stationStyle());
           feature.set("ski-analyzer-lift", lift);
           return feature;
         });
@@ -194,6 +188,9 @@ export class MapService {
         return [line, ...stations];
       })
       .flat(1);
+
+    const pisteStyles = this.mapStyleService.pisteStyles();
+    console.log(pisteStyles);
 
     const pisteAreaFeatures = [];
     const pisteLineFeatures = [];
@@ -258,7 +255,9 @@ export class MapService {
           ),
         ),
       );
-      lines.setStyle(routeStyles[activity.type]);
+      lines.setStyle(
+        this.mapStyleService.routeStyles()[activity.type].unselected,
+      );
       lines.set("ski-analyzer-activity", activity);
       return lines;
     });
@@ -283,7 +282,7 @@ export class MapService {
     for (const feature of this.selectedFeatures) {
       const piste = feature.get("ski-analyzer-piste") as Piste;
       if (piste) {
-        const styles = pisteStyles[piste.difficulty];
+        const styles = this.mapStyleService.pisteStyles()[piste.difficulty];
         if (styles) {
           const isArea = feature.get("ski-analyzer-area");
           feature.setStyle(
@@ -291,7 +290,7 @@ export class MapService {
           );
         }
       } else if (feature.get("ski-analyzer-lift")) {
-        feature.setStyle(liftStyle);
+        feature.setStyle(this.mapStyleService.liftStyle());
       }
     }
     this.selectedFeatures = [];
@@ -300,7 +299,7 @@ export class MapService {
   public selectPiste(piste: Piste) {
     this.unselectFeatures();
 
-    const styles = pisteStyles[piste.difficulty];
+    const styles = this.mapStyleService.pisteStyles()[piste.difficulty];
 
     for (const feature of this.pisteAreaFeatures) {
       if (feature.get("ski-analyzer-piste") === piste) {
@@ -324,7 +323,7 @@ export class MapService {
 
     for (const feature of this.liftFeatures) {
       if (feature.get("ski-analyzer-lift") === lift) {
-        feature.setStyle(liftStyleSelected);
+        feature.setStyle(this.mapStyleService.liftStyleSelected());
         this.selectedFeatures.push(feature);
       }
     }

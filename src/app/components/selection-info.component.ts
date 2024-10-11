@@ -38,7 +38,7 @@ const difficultyColors: { [type: string]: string } = {
   Advanced: "#000",
   Expert: "#000",
   Freeride: "#f60",
-  unknown: "#888",
+  Unknown: "#888",
 };
 
 @Component({
@@ -60,7 +60,7 @@ export class SelectionInfoComponent {
     this.selectedLift = this.mapService.selectedLift;
     effect(() => {
       const color =
-        difficultyColors[this.selectedPiste()?.difficulty ?? "unknown"];
+        difficultyColors[this.selectedPiste()?.difficulty ?? "Unknown"];
       this.elementRef.nativeElement.style.setProperty(
         "--difficulty-color",
         color,
