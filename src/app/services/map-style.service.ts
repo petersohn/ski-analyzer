@@ -18,7 +18,7 @@ export type PisteStyles = {
 };
 
 export type RouteStyles = {
-  [difficulty: string]: SelectableStyle<Style>;
+  [type: string]: SelectableStyle<Style>;
 };
 
 @Injectable({ providedIn: "root" })

@@ -9,6 +9,7 @@
     [value]="selectedPiste()!.difficulty"
   ></name-value>
 </mat-card>
+
 <mat-card class="card" *ngIf="!!selectedLift()">
   <div *ngIf="!!liftIcon()" class="icon-container">
     <img src="{{ liftIcon() }}" />
@@ -16,4 +17,11 @@
   <div class="name">{{ liftName() }}</div>
   <name-value name="Type" [value]="liftType()"></name-value>
   <name-value name="Stations" [value]="stationCount()"></name-value>
+</mat-card>
+
+<mat-card class="card" *ngIf="!!selectedActivity()">
+  <name-value name="Type" [value]="activityType()"></name-value>
+  @if (isUseLift()) {
+    <name-value name="Lift" [value]="activityLift()"></name-value>
+  }
 </mat-card>

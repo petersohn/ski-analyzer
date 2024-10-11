@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
 import { MapService } from "@/services/map.service";
 import { Lift, Piste } from "@/types/skiArea";
+import { Activity } from "@/types/track";
 import { NameValueComponent } from "./name-value.component";
 
 const liftTypes: { [type: string]: string } = {
@@ -41,6 +42,11 @@ const difficultyColors: { [type: string]: string } = {
   Unknown: "#888",
 };
 
+const activityTypes: { [type: string]: string } = {
+  Unknown: "unknown",
+  UseLift: "Lift",
+};
+
 @Component({
   selector: "selection-info",
   standalone: true,
@@ -51,6 +57,7 @@ const difficultyColors: { [type: string]: string } = {
 export class SelectionInfoComponent {
   public selectedPiste: Signal<Piste | undefined>;
   public selectedLift: Signal<Lift | undefined>;
+  public selectedActivity: Signal<Activity | undefined>;
 
   constructor(
     private readonly mapService: MapService,
@@ -58,6 +65,7 @@ export class SelectionInfoComponent {
   ) {
     this.selectedPiste = this.mapService.selectedPiste;
     this.selectedLift = this.mapService.selectedLift;
+    this.selectedActivity = this.mapService.selectedActivity;
     effect(() => {
       const color =
         difficultyColors[this.selectedPiste()?.difficulty ?? "Unknown"];
@@ -82,6 +90,16 @@ export class SelectionInfoComponent {
   });
   public stationCount = computed(
     () => "" + (this.selectedLift()?.stations.length ?? 0),
+  );
+
+  public activityType = computed(
+    () => activityTypes[this.selectedActivity()?.type ?? "Unknown"],
+  );
+  public isUseLift = computed(
+    () => this.selectedActivity()?.type === "UseLift",
+  );
+  public activityLift = computed(
+    () => this.selectedActivity()?.useLift?.lift.name ?? "",
   );
 
   private getName(input?: { ref: string; name: string }) {
