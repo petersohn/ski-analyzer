@@ -1,11 +1,4 @@
-import {
-  Component,
-  ElementRef,
-  Signal,
-  computed,
-  effect,
-  OnInit,
-} from "@angular/core";
+import { Component, ElementRef, Signal, computed, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
 import { MapService } from "@/services/map.service";
@@ -55,7 +48,7 @@ const difficultyColors: { [type: string]: string } = {
   templateUrl: "./selection-info.component.html",
   styleUrls: ["./selection-info.component.css"],
 })
-export class SelectionInfoComponent implements OnInit {
+export class SelectionInfoComponent {
   public selectedPiste: Signal<Piste | undefined>;
   public selectedLift: Signal<Lift | undefined>;
 
@@ -75,8 +68,6 @@ export class SelectionInfoComponent implements OnInit {
     });
   }
 
-  public ngOnInit() {}
-
   public pisteName = computed(() => this.getName(this.selectedPiste()));
 
   public liftName = computed(() => this.getName(this.selectedLift()));
@@ -89,6 +80,9 @@ export class SelectionInfoComponent implements OnInit {
       return `/assets/lift/${type}.svg`;
     }
   });
+  public stationCount = computed(
+    () => "" + (this.selectedLift()?.stations.length ?? 0),
+  );
 
   private getName(input?: { ref: string; name: string }) {
     if (!input) {
