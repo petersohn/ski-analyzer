@@ -78,10 +78,13 @@ export class SelectionInfoComponent {
 
   public pisteName = computed(() => this.getName(this.selectedPiste()));
 
-  public liftName = computed(() => this.getName(this.selectedLift()));
-  public liftType = computed(() => liftTypes[this.selectedLift()?.type ?? ""]);
+  public lift = computed(
+    () => this.selectedLift() || this.selectedActivity()?.useLift?.lift,
+  );
+  public liftName = computed(() => this.getName(this.lift()));
+  public liftType = computed(() => liftTypes[this.lift()?.type ?? ""]);
   public liftIcon = computed(() => {
-    const type = liftIcons[this.selectedLift()?.type ?? ""];
+    const type = liftIcons[this.lift()?.type ?? ""];
     if (type === undefined) {
       return;
     } else {
@@ -89,17 +92,11 @@ export class SelectionInfoComponent {
     }
   });
   public stationCount = computed(
-    () => "" + (this.selectedLift()?.stations.length ?? 0),
+    () => "" + (this.lift()?.stations.length ?? 0),
   );
 
   public activityType = computed(
     () => activityTypes[this.selectedActivity()?.type ?? "Unknown"],
-  );
-  public isUseLift = computed(
-    () => this.selectedActivity()?.type === "UseLift",
-  );
-  public activityLift = computed(
-    () => this.selectedActivity()?.useLift?.lift.name ?? "",
   );
 
   private getName(input?: { ref: string; name: string }) {
