@@ -5,6 +5,7 @@ import { MapService } from "@/services/map.service";
 import { Lift, Piste } from "@/types/skiArea";
 import { Activity } from "@/types/track";
 import { NameValueComponent } from "./name-value.component";
+import { Dayjs } from "dayjs";
 
 const liftTypes: { [type: string]: string } = {
   cable_car: "Cable car",
@@ -98,6 +99,19 @@ export class SelectionInfoComponent {
   public activityType = computed(
     () => activityTypes[this.selectedActivity()?.type ?? "Unknown"],
   );
+  public activityLength = computed(
+    () => Math.round(this.selectedActivity()?.length ?? 0) + " m",
+  );
+  public activityTime = computed(
+    () =>
+      this.getTime(this.selectedActivity()?.begin_time) +
+      " - " +
+      this.getTime(this.selectedActivity()?.end_time),
+  );
+
+  private getTime(time?: Dayjs | null): string {
+    return time?.format("HH:mm:ss") ?? "???";
+  }
 
   private getName(input?: { ref: string; name: string }) {
     if (!input) {

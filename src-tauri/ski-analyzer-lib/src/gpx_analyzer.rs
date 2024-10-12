@@ -1,4 +1,4 @@
-use geo::Point;
+use geo::{HaversineLength, Line, Point};
 use gpx::{Gpx, Time};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 use time::format_description::well_known::Iso8601;
@@ -7,6 +7,7 @@ use time::OffsetDateTime;
 use crate::error::Result;
 use crate::ski_area::{SkiArea, UniqueId};
 use crate::utils::bounded_geometry::BoundedGeometry;
+use crate::utils::result::extract_option_result;
 use segments::get_segments;
 use use_lift::find_lift_usage;
 
@@ -39,6 +40,43 @@ impl<'s> Default for ActivityType<'s> {
 pub struct Activity<'s, 'g> {
     pub type_: ActivityType<'s>,
     pub route: Segments<'g>,
+    pub begin_time: Option<OffsetDateTime>,
+    pub end_time: Option<OffsetDateTime>,
+    pub length: f64,
+}
+
+impl<'s, 'g> Activity<'s, 'g> {
+    fn new(type_: ActivityType<'s>, route: Segments<'g>) -> Self {
+        let begin_time = route
+            .first()
+            .map(|s| s.first())
+            .flatten()
+            .map(|wp| wp.time.map(|t| t.into()))
+            .flatten();
+        let end_time = route
+            .last()
+            .map(|s| s.last())
+            .flatten()
+            .map(|wp| wp.time.map(|t| t.into()))
+            .flatten();
+        let length = route
+            .iter()
+            .map(|s| {
+                s.windows(2).map(|wps| {
+                    Line::new(wps[0].point(), wps[1].point()).haversine_length()
+                })
+            })
+            .flatten()
+            .sum();
+
+        Activity {
+            type_,
+            route,
+            begin_time,
+            end_time,
+            length,
+        }
+    }
 }
 
 impl<'s, 'g> Serialize for Activity<'s, 'g> {
@@ -68,9 +106,24 @@ impl<'s, 'g> Serialize for Activity<'s, 'g> {
             })
             .collect();
 
-        let mut state = serializer.serialize_struct("Activity", 2)?;
+        let mut state = serializer.serialize_struct("Activity", 5)?;
         state.serialize_field("type", &self.type_)?;
         state.serialize_field("route", &route)?;
+        state.serialize_field(
+            "begin_time",
+            &extract_option_result(
+                self.begin_time.map(|t| t.format(&Iso8601::DEFAULT)),
+            )
+            .map_err(|e| serde::ser::Error::custom(e))?,
+        )?;
+        state.serialize_field(
+            "end_time",
+            &extract_option_result(
+                self.end_time.map(|t| t.format(&Iso8601::DEFAULT)),
+            )
+            .map_err(|e| serde::ser::Error::custom(e))?,
+        )?;
+        state.serialize_field("length", &self.length)?;
         state.end()
     }
 }

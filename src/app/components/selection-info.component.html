@@ -1,5 +1,7 @@
 <mat-card class="card" *ngIf="!!selectedActivity()">
   <name-value name="Type" [value]="activityType()"></name-value>
+  <name-value name="Length" [value]="activityLength()"></name-value>
+  <name-value name="Time" [value]="activityTime()"></name-value>
 </mat-card>
 
 <mat-card class="card" *ngIf="!!selectedPiste()">

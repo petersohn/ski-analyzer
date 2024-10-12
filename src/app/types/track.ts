@@ -10,8 +10,6 @@ export type RawWaypoint = {
 
 export type RawUseLift = {
   lift: string;
-  begin_time: string | null;
-  end_time: string | null;
   begin_station: number;
   end_station: number;
   is_reverse: boolean;
@@ -25,6 +23,9 @@ export type RawActivityType = {
 export type RawActivity = {
   type: RawActivityType;
   route: RawWaypoint[][];
+  begin_time: string | null;
+  end_time: string | null;
+  length: number;
 };
 
 export type RawTrack = {
@@ -42,8 +43,6 @@ export type Segments = Segment[];
 
 export type UseLift = {
   lift: Lift;
-  begin_time: Dayjs | null;
-  end_time: Dayjs | null;
   begin_station: number;
   end_station: number;
   is_reverse: boolean;
@@ -55,6 +54,9 @@ export type Activity = {
   type: ActivityType;
   useLift?: UseLift;
   route: Segments;
+  begin_time: Dayjs | null;
+  end_time: Dayjs | null;
+  length: number;
 };
 
 export type Track = {
@@ -72,6 +74,9 @@ export class TrackConverter {
           type: this.convertActivityType(activity.type),
           useLift: this.convertUseLift(activity.type.UseLift),
           route: this.convertRoute(activity.route),
+          begin_time: dayjs(activity.begin_time),
+          end_time: dayjs(activity.end_time),
+          length: activity.length,
         };
       }),
       bounding_rect: route.bounding_rect,
@@ -90,8 +95,6 @@ export class TrackConverter {
 
     return {
       lift,
-      begin_time: dayjs(input.begin_time),
-      end_time: dayjs(input.end_time),
       begin_station: input.begin_station,
       end_station: input.end_station,
       is_reverse: input.is_reverse,
