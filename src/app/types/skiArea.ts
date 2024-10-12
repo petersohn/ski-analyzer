@@ -16,6 +16,7 @@ export type Lift = {
   stations: PointWithElevation[];
   can_go_reverse: boolean;
   can_disembark: boolean;
+  lengths: number[];
 };
 
 export type Difficulty =

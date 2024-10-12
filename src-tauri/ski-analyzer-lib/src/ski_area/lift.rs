@@ -129,13 +129,14 @@ pub fn parse_lift<'d>(
     let end_node = doc.elements.get_node(end_id)?;
     let end_access = get_access(&end_node)?;
 
+    #[derive(Debug)]
     struct StationInfo<'a> {
         station: PointWithElevation,
         node: &'a Node,
         num: usize,
     }
 
-    #[derive(Default)]
+    #[derive(Debug, Default)]
     struct StationInfos<'a>(Vec<StationInfo<'a>>);
 
     impl<'a> StationInfos<'a> {
@@ -262,7 +263,7 @@ pub fn parse_lift<'d>(
         .windows(2)
         .into_iter()
         .map(|ss| {
-            line_points[ss[0].num..ss[1].num]
+            line_points[ss[0].num..(ss[1].num + 1)]
                 .windows(2)
                 .map(|ps| Line::new(ps[0], ps[1]).haversine_length())
                 .sum()

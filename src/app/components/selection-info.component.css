@@ -33,3 +33,7 @@
   mask-repeat: no-repeat;
   mask-size: contain;
 }
+
+.sub-info {
+  margin-left: 20px;
+}

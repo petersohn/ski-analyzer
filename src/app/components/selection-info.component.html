@@ -23,4 +23,8 @@
   <div class="name">{{ liftName() }}</div>
   <name-value name="Type" [value]="liftType()"></name-value>
   <name-value name="Stations" [value]="stationCount()"></name-value>
+  <name-value name="Length" [value]="liftLength()"></name-value>
+  @for (len of liftLengths(); track len) {
+    <div class="sub-info">{{ len }}</div>
+  }
 </mat-card>

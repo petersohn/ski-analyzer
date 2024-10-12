@@ -95,12 +95,25 @@ export class SelectionInfoComponent {
   public stationCount = computed(
     () => "" + (this.lift()?.stations.length ?? 0),
   );
+  public liftLength = computed(() =>
+    this.lift()?.lengths.length === 1
+      ? this.meters(this.lift()?.lengths[0] ?? 0)
+      : "",
+  );
+  public liftLengths = computed((): string[] => {
+    const lift = this.lift();
+    if ((lift?.lengths.length ?? 0) > 1) {
+      return lift!.lengths.map((l) => this.meters(l));
+    } else {
+      return [];
+    }
+  });
 
   public activityType = computed(
     () => activityTypes[this.selectedActivity()?.type ?? "Unknown"],
   );
-  public activityLength = computed(
-    () => Math.round(this.selectedActivity()?.length ?? 0) + " m",
+  public activityLength = computed(() =>
+    this.meters(this.selectedActivity()?.length ?? 0),
   );
   public activityTime = computed(
     () =>
@@ -108,6 +121,10 @@ export class SelectionInfoComponent {
       " - " +
       this.getTime(this.selectedActivity()?.end_time),
   );
+
+  private meters(len: number) {
+    return Math.round(len) + " m";
+  }
 
   private getTime(time?: Dayjs | null): string {
     return time?.format("HH:mm:ss") ?? "???";
