@@ -42,6 +42,7 @@ fn lift(
         type_: String::new(),
         line,
         stations,
+        lengths: Vec::new(),
         can_go_reverse,
         can_disembark,
     }

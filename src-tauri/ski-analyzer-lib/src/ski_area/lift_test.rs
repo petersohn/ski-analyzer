@@ -49,6 +49,7 @@ fn simple_minimal_info(_init: Init) {
         ],
         can_go_reverse: false,
         can_disembark: false,
+        lengths: Vec::new(),
     });
     assert_eq_pretty!(actual, expected);
 }
@@ -109,6 +110,7 @@ fn simple_more_info(_init: Init) {
         ],
         can_go_reverse: false,
         can_disembark: true,
+        lengths: Vec::new(),
     });
     assert_eq_pretty!(actual, expected);
 }
@@ -207,6 +209,7 @@ fn multiple_stations(_init: Init) {
         ],
         can_go_reverse: true,
         can_disembark: false,
+        lengths: Vec::new(),
     });
     assert_eq_pretty!(actual, expected);
 }

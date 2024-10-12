@@ -1,4 +1,4 @@
-use geo::LineString;
+use geo::{HaversineLength, Line, LineString};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 
@@ -6,14 +6,14 @@ use std::str::FromStr;
 
 use super::{PointWithElevation, UniqueId};
 
-use crate::config::get_config;
+use crate::config::{get_config, Config};
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{
     get_tag, parse_ele, parse_way, parse_yesno, Document, Node, Way,
 };
 use crate::utils::bounded_geometry::BoundedGeometry;
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Lift {
     pub unique_id: String,
     #[serde(rename = "ref")]
@@ -25,11 +25,24 @@ pub struct Lift {
     pub stations: Vec<PointWithElevation>,
     pub can_go_reverse: bool,
     pub can_disembark: bool,
+    pub lengths: Vec<f64>,
 }
 
 impl UniqueId for Lift {
     fn get_unique_id(&self) -> &str {
         &self.unique_id
+    }
+}
+
+impl PartialEq for Lift {
+    fn eq(&self, other: &Self) -> bool {
+        self.unique_id == other.unique_id
+            && self.ref_ == other.ref_
+            && self.name == other.name
+            && self.type_ == other.type_
+            && self.line == other.line
+            && self.can_go_reverse == other.can_go_reverse
+            && self.can_disembark == other.can_disembark
     }
 }
 
@@ -79,7 +92,11 @@ const DRAGLIFT_TYPES: &[&str] =
     &["drag_lift", "t-bar", "j-bar", "platter", "rope_tow"];
 
 // TODO: handle funiculars
-pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
+pub fn parse_lift<'d>(
+    doc: &'d Document,
+    id: &u64,
+    way: &Way,
+) -> Result<Option<Lift>> {
     if get_tag(&way.tags, "area") == "yes" {
         return Ok(None);
     }
@@ -112,34 +129,41 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
     let end_node = doc.elements.get_node(end_id)?;
     let end_access = get_access(&end_node)?;
 
-    #[derive(Default)]
-    struct Stations<'a> {
-        stations: Vec<PointWithElevation>,
-        station_nodes: Vec<&'a Node>,
+    struct StationInfo<'a> {
+        station: PointWithElevation,
+        node: &'a Node,
+        num: usize,
     }
-    impl<'a> Stations<'a> {
-        fn add(&mut self, node: &'a Node) {
-            self.stations.push(PointWithElevation::new(
-                node.into(),
-                parse_ele(&node.tags),
-            ));
-            self.station_nodes.push(node);
+
+    #[derive(Default)]
+    struct StationInfos<'a>(Vec<StationInfo<'a>>);
+
+    impl<'a> StationInfos<'a> {
+        fn add(&mut self, num: usize, node: &'a Node) {
+            self.0.push(StationInfo {
+                station: PointWithElevation::new(
+                    node.into(),
+                    parse_ele(&node.tags),
+                ),
+                node,
+                num,
+            });
         }
     }
 
-    let mut stations = Stations::default();
+    let mut stationInfos = StationInfos::default();
+    let config = get_config();
 
-    stations.add(begin_node);
+    stationInfos.add(0, begin_node);
     doc.elements
         .iterate_nodes(midpoints.iter())
-        .filter(|r| r.as_ref().map_or(true, |n| is_station(n)))
-        .try_for_each(|n| Ok(stations.add(n?)))?;
-    stations.add(end_node);
+        .enumerate()
+        .filter(|(_, r)| r.as_ref().map_or(true, |n| is_station(n)))
+        .try_for_each(|(i, n)| Ok(stationInfos.add(i + 1, n?)))?;
+    stationInfos.add(way.nodes.len() - 1, end_node);
 
     let mut name = get_tag(&way.tags, "name").to_string();
     let ref_ = get_tag(&way.tags, "ref").to_string();
-
-    let config = get_config();
 
     if name == "" {
         if config.is_vv() {
@@ -205,8 +229,14 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
     };
 
     if is_unusual && config.is_vv() {
-        let mut accesses: Vec<&str> = Vec::new();
-        accesses.reserve(stations.station_nodes.len());
+        let accesses: Vec<String> = stationInfos
+            .0
+            .iter()
+            .map(|s| match get_access(&s.node) {
+                Ok(a) => a.to_string(),
+                Err(e) => e.to_string(),
+            })
+            .collect();
         eprintln!(
             "{} {}: Unusual station combination: {:?}",
             id, ref_name, accesses
@@ -227,12 +257,27 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
     }
 
     let mut line_points = parse_way(&doc, &way.nodes)?;
+    let mut lengths: Vec<f64> = stationInfos
+        .0
+        .windows(2)
+        .into_iter()
+        .map(|ss| {
+            line_points[ss[0].num..ss[1].num]
+                .windows(2)
+                .map(|ps| Line::new(ps[0], ps[1]).haversine_length())
+                .sum()
+        })
+        .collect();
+    let mut stations: Vec<PointWithElevation> =
+        stationInfos.0.into_iter().map(|s| s.station).collect();
 
     if reverse {
         if config.is_vv() {
             eprintln!("{} {}: lift goes in reverse", id, ref_name);
         }
         line_points.reverse();
+        stations.reverse();
+        lengths.reverse();
     }
 
     let mut line = BoundedGeometry::new(LineString::new(line_points))?;
@@ -245,8 +290,9 @@ pub fn parse_lift(doc: &Document, id: &u64, way: &Way) -> Result<Option<Lift>> {
         name,
         type_: aerialway_type.clone(),
         line,
-        stations: stations.stations,
+        stations,
         can_go_reverse,
         can_disembark,
+        lengths,
     }))
 }
