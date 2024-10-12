@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use super::{PointWithElevation, UniqueId};
 
-use crate::config::{get_config, Config};
+use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{
     get_tag, parse_ele, parse_way, parse_yesno, Document, Node, Way,
@@ -151,16 +151,16 @@ pub fn parse_lift<'d>(
         }
     }
 
-    let mut stationInfos = StationInfos::default();
+    let mut station_infos = StationInfos::default();
     let config = get_config();
 
-    stationInfos.add(0, begin_node);
+    station_infos.add(0, begin_node);
     doc.elements
         .iterate_nodes(midpoints.iter())
         .enumerate()
         .filter(|(_, r)| r.as_ref().map_or(true, |n| is_station(n)))
-        .try_for_each(|(i, n)| Ok(stationInfos.add(i + 1, n?)))?;
-    stationInfos.add(way.nodes.len() - 1, end_node);
+        .try_for_each(|(i, n)| Ok(station_infos.add(i + 1, n?)))?;
+    station_infos.add(way.nodes.len() - 1, end_node);
 
     let mut name = get_tag(&way.tags, "name").to_string();
     let ref_ = get_tag(&way.tags, "ref").to_string();
@@ -229,7 +229,7 @@ pub fn parse_lift<'d>(
     };
 
     if is_unusual && config.is_vv() {
-        let accesses: Vec<String> = stationInfos
+        let accesses: Vec<String> = station_infos
             .0
             .iter()
             .map(|s| match get_access(&s.node) {
@@ -257,7 +257,7 @@ pub fn parse_lift<'d>(
     }
 
     let mut line_points = parse_way(&doc, &way.nodes)?;
-    let mut lengths: Vec<f64> = stationInfos
+    let mut lengths: Vec<f64> = station_infos
         .0
         .windows(2)
         .into_iter()
@@ -269,7 +269,7 @@ pub fn parse_lift<'d>(
         })
         .collect();
     let mut stations: Vec<PointWithElevation> =
-        stationInfos.0.into_iter().map(|s| s.station).collect();
+        station_infos.0.into_iter().map(|s| s.station).collect();
 
     if reverse {
         if config.is_vv() {
