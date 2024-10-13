@@ -31,7 +31,7 @@ import {
   Piste,
   index_ski_area,
 } from "@/types/skiArea";
-import { RawTrack, Activity, TrackConverter } from "@/types/track";
+import { RawTrack, Activity, TrackConverter, Waypoint } from "@/types/track";
 import { MapStyleService } from "./map-style.service";
 
 class MouseEvent extends PointerInteraction {
@@ -80,6 +80,7 @@ export class MapService {
   public selectedPiste = signal<Piste | undefined>(undefined);
   public selectedLift = signal<Lift | undefined>(undefined);
   public selectedActivity = signal<Activity | undefined>(undefined);
+  public selectedWaypoint = signal<Waypoint | undefined>(undefined);
 
   private map: OlMap | undefined;
   private readonly baseLayer = new TileLayer({
@@ -269,7 +270,7 @@ export class MapService {
         ),
       );
       lines.setStyle(
-        this.mapStyleService.routeStyles()[activity.type].unselected,
+        this.mapStyleService.routeStyles()[activity.type].unselected.line,
       );
       lines.set("ski-analyzer-activity", activity);
       lines.set("ski-analyzer-activity-feature", "line");
@@ -349,7 +350,7 @@ export class MapService {
         feature.get("ski-analyzer-activity-feature") === "line"
       ) {
         feature.setStyle(
-          this.mapStyleService.routeStyles()[activity.type].selected,
+          this.mapStyleService.routeStyles()[activity.type].selected.line,
         );
         this.selectedFeatures.push(feature);
       }

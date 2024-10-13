@@ -17,8 +17,13 @@ export type PisteStyles = {
   [difficulty: string]: SelectableStyle<PisteStyle>;
 };
 
+export type RouteStyle = {
+  line: Style;
+  node: Style;
+};
+
 export type RouteStyles = {
-  [type: string]: SelectableStyle<Style>;
+  [type: string]: SelectableStyle<RouteStyle>;
 };
 
 @Injectable({ providedIn: "root" })
@@ -114,19 +119,33 @@ export class MapStyleService {
 
     const result: RouteStyles = {};
     for (const type in colors) {
+      const color = colors[type];
       result[type] = {
-        unselected: new Style({
-          stroke: new Stroke({
-            color: colors[type],
-            width: 2,
+        unselected: {
+          line: new Style({
+            stroke: new Stroke({
+              color,
+              width: 2,
+            }),
           }),
-        }),
-        selected: new Style({
-          stroke: new Stroke({
-            color: colors[type],
-            width: 3,
+          node: new Style({}),
+        },
+        selected: {
+          line: new Style({
+            stroke: new Stroke({
+              color,
+              width: 3,
+            }),
           }),
-        }),
+          node: new Style({
+            image: new Circle({
+              radius: 4,
+              fill: new Fill({
+                color,
+              }),
+            }),
+          }),
+        },
       };
     }
     return result;
