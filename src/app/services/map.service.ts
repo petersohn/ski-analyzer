@@ -5,11 +5,13 @@ import Layer from "ol/layer/Layer";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import MapBrowserEvent from "ol/MapBrowserEvent";
+import { Style } from "ol/style";
 import XYZ from "ol/source/XYZ";
 import Zoom from "ol/control/Zoom";
 import ScaleLine from "ol/control/ScaleLine";
 import {
   Pointer as PointerInteraction,
+  Select,
   defaults as defaultInteractions,
 } from "ol/interaction.js";
 import { Projection, fromLonLat } from "ol/proj";
@@ -75,6 +77,11 @@ class MouseEvent extends PointerInteraction {
   }
 }
 
+type SelectedFeature = {
+  feature: Feature;
+  revertStyle: Style;
+};
+
 @Injectable({ providedIn: "root" })
 export class MapService {
   public selectedPiste = signal<Piste | undefined>(undefined);
@@ -92,18 +99,18 @@ export class MapService {
   private projection: Projection | undefined;
   private targetElement: HTMLElement | undefined;
 
-  private selectedFeatures: Feature[] = [];
+  private selectedFeatures: SelectedFeature[] = [];
 
-  private pisteAreaFeatures: Feature[] = [];
-  private pisteLineFeatures: Feature[] = [];
-  private liftFeatures: Feature[] = [];
+  private pisteAreaFeatures: Map<Piste, Feature> = new Map();
+  private pisteLineFeatures: Map<Piste, Feature> = new Map();
+  private liftLineFeatures: Map<Lift, Feature> = new Map();
   private skiAreaLayer: Layer | undefined;
   private skiArea: SkiArea | undefined;
 
-  private trackFeatures: Feature[] = [];
+  private activityLineFeatures: Map<Activity, Feature> = new Map();
   private trackLayer: Layer | undefined;
 
-  constructor(private readonly mapStyleService: MapStyleService) {}
+  constructor(private readonly mapStyleService: MapStyleService) { }
 
   public createMap(targetElement: HTMLElement) {
     if (this.isInitialized()) {
@@ -148,13 +155,17 @@ export class MapService {
     }
 
     this.unselectFeatures();
+    this.unloadTrack();
     this.map!.getLayers().remove(this.skiAreaLayer);
 
-    this.pisteAreaFeatures = [];
-    this.pisteLineFeatures = [];
-    this.liftFeatures = [];
+    this.pisteAreaFeatures.clear();
+    this.pisteLineFeatures.clear();
+    this.liftLineFeatures.clear();
     this.skiArea = undefined;
     this.skiAreaLayer = undefined;
+
+    this.activityLineFeatures.clear();
+    this.trackLayer = undefined;
   }
 
   public unloadTrack(): void {
@@ -165,7 +176,7 @@ export class MapService {
     this.unselectFeatures();
     this.map!.getLayers().remove(this.trackLayer);
 
-    this.trackFeatures = [];
+    this.activityLineFeatures.clear();
     this.trackLayer = undefined;
   }
 
@@ -176,75 +187,71 @@ export class MapService {
 
     this.unloadSkiArea();
 
-    const liftFeatures = skiArea.lifts
-      .map((lift) => {
+    try {
+      const features: Feature[] = [];
+      for (const lift of skiArea.lifts) {
         const line = new Feature(
           new OlLineString(this.createLineString(lift.line.item)),
         );
         line.setStyle(this.mapStyleService.liftStyle().unselected);
         line.set("ski-analyzer-lift", lift);
-        line.set("ski-analyzer-lift-line", true);
+        features.push(line);
+        this.liftLineFeatures.set(lift, line);
 
-        const stations = lift.stations.map((station) => {
+        for (const station of lift.stations) {
           const feature = new Feature(
             new OlPoint(this.pointToCoordinate(station.point)),
           );
           feature.setStyle(this.mapStyleService.stationStyle());
           feature.set("ski-analyzer-lift", lift);
           feature.set("ski-analyzer-lift-line", false);
-          return feature;
-        });
-
-        return [line, ...stations];
-      })
-      .flat(1);
-
-    const pisteStyles = this.mapStyleService.pisteStyles();
-    console.log(pisteStyles);
-
-    const pisteAreaFeatures = [];
-    const pisteLineFeatures = [];
-    for (const piste of skiArea.pistes) {
-      const style = pisteStyles[piste.difficulty].unselected;
-      if (!style) {
-        console.warn("Unknown difficulty", piste.difficulty);
-        continue;
+          features.push(feature);
+        }
       }
-      const areas = new Feature(this.createMultiPolygon(piste.areas));
-      areas.setStyle(style.area);
-      areas.set("ski-analyzer-piste", piste);
-      areas.set("ski-analyzer-area", true);
-      const lines = new Feature(
-        new OlMultiLineString(
-          piste.lines.map((line) => this.createLineString(line)),
-        ),
-      );
-      lines.setStyle(style.line);
-      lines.set("ski-analyzer-piste", piste);
-      lines.set("ski-analyzer-area", false);
 
-      pisteAreaFeatures.push(areas);
-      pisteLineFeatures.push(lines);
+      const pisteStyles = this.mapStyleService.pisteStyles();
+
+      for (const piste of skiArea.pistes) {
+        const style = pisteStyles[piste.difficulty].unselected;
+        if (!style) {
+          console.warn("Unknown difficulty", piste.difficulty);
+          continue;
+        }
+        const areas = new Feature(this.createMultiPolygon(piste.areas));
+        areas.setStyle(style.area);
+        areas.set("ski-analyzer-piste", piste);
+        this.pisteAreaFeatures.set(piste, areas);
+
+        const lines = new Feature(
+          new OlMultiLineString(
+            piste.lines.map((line) => this.createLineString(line)),
+          ),
+        );
+        lines.setStyle(style.line);
+        lines.set("ski-analyzer-piste", piste);
+        this.pisteLineFeatures.set(piste, lines);
+
+        features.push(areas, lines);
+      }
+
+      const minCoord = this.pointToCoordinate(skiArea.bounding_rect.min);
+      const maxCoord = this.pointToCoordinate(skiArea.bounding_rect.max);
+
+      this.skiAreaLayer = new VectorLayer({
+        source: new VectorSource({
+          features,
+        }),
+        minZoom: 10,
+        extent: boundingExtent([minCoord, maxCoord]),
+      });
+      this.map!.getLayers().push(this.skiAreaLayer);
+      this.skiArea = index_ski_area(skiArea);
+      this.zoomToArea(minCoord, maxCoord);
+
+    } catch (e) {
+      this.unloadSkiArea();
+      throw e;
     }
-
-    const minCoord = this.pointToCoordinate(skiArea.bounding_rect.min);
-    const maxCoord = this.pointToCoordinate(skiArea.bounding_rect.max);
-
-    this.skiAreaLayer = new VectorLayer({
-      source: new VectorSource({
-        features: [...liftFeatures, ...pisteAreaFeatures, ...pisteLineFeatures],
-      }),
-      minZoom: 10,
-      extent: boundingExtent([minCoord, maxCoord]),
-    });
-    this.map!.getLayers().push(this.skiAreaLayer);
-
-    this.liftFeatures = liftFeatures;
-    this.pisteAreaFeatures = pisteAreaFeatures;
-    this.pisteLineFeatures = pisteLineFeatures;
-    this.skiArea = index_ski_area(skiArea);
-
-    this.zoomToArea(minCoord, maxCoord);
   }
 
   public loadTrack(trackRaw: RawTrack): void {
@@ -259,35 +266,39 @@ export class MapService {
     this.unloadTrack();
 
     const track = new TrackConverter(this.skiArea).convertTrack(trackRaw);
-    console.log(track);
 
-    this.trackFeatures = track.item.map((activity) => {
-      const lines = new Feature(
-        new OlMultiLineString(
-          activity.route.map((segment) =>
-            segment.map((wp) => this.pointToCoordinate(wp.point)),
+    try {
+      const features = track.item.map((activity) => {
+        const lines = new Feature(
+          new OlMultiLineString(
+            activity.route.map((segment) =>
+              segment.map((wp) => this.pointToCoordinate(wp.point)),
+            ),
           ),
-        ),
-      );
-      lines.setStyle(
-        this.mapStyleService.routeStyles()[activity.type].unselected.line,
-      );
-      lines.set("ski-analyzer-activity", activity);
-      lines.set("ski-analyzer-activity-feature", "line");
-      return lines;
-    });
+        );
+        lines.setStyle(
+          this.mapStyleService.routeStyles()[activity.type].unselected.line,
+        );
+        lines.set("ski-analyzer-activity", activity);
+        this.activityLineFeatures.set(activity, lines);
+        return lines;
+      });
 
-    this.trackLayer = new VectorLayer({
-      source: new VectorSource({
-        features: this.trackFeatures,
-      }),
-      minZoom: 10,
-      extent: boundingExtent([
-        this.pointToCoordinate(track.bounding_rect.min),
-        this.pointToCoordinate(track.bounding_rect.max),
-      ]),
-    });
-    this.map!.getLayers().push(this.trackLayer);
+      this.trackLayer = new VectorLayer({
+        source: new VectorSource({
+          features,
+        }),
+        minZoom: 10,
+        extent: boundingExtent([
+          this.pointToCoordinate(track.bounding_rect.min),
+          this.pointToCoordinate(track.bounding_rect.max),
+        ]),
+      });
+      this.map!.getLayers().push(this.trackLayer);
+    } catch (e) {
+      this.unloadTrack();
+      throw e;
+    }
   }
 
   public unselectFeatures() {
@@ -296,9 +307,7 @@ export class MapService {
     this.selectedActivity.set(undefined);
 
     for (const feature of this.selectedFeatures) {
-      this.unselectPiste(feature) ||
-        this.unselectLift(feature) ||
-        this.unselectActivity(feature);
+      feature.feature.setStyle(feature.revertStyle);
     }
     this.selectedFeatures = [];
   }
@@ -307,20 +316,8 @@ export class MapService {
     this.unselectFeatures();
 
     const styles = this.mapStyleService.pisteStyles()[piste.difficulty];
-
-    for (const feature of this.pisteAreaFeatures) {
-      if (feature.get("ski-analyzer-piste") === piste) {
-        feature.setStyle(styles.selected.area);
-        this.selectedFeatures.push(feature);
-      }
-    }
-
-    for (const feature of this.pisteLineFeatures) {
-      if (feature.get("ski-analyzer-piste") === piste) {
-        feature.setStyle(styles.selected.line);
-        this.selectedFeatures.push(feature);
-      }
-    }
+    this.selectFeature(this.pisteAreaFeatures.get(piste), styles.unselected.area, styles.selected.area);
+    this.selectFeature(this.pisteLineFeatures.get(piste), styles.unselected.line, styles.selected.line);
 
     this.selectedPiste.set(piste);
   }
@@ -328,15 +325,8 @@ export class MapService {
   public selectLift(lift: Lift) {
     this.unselectFeatures();
 
-    for (const feature of this.liftFeatures) {
-      if (
-        feature.get("ski-analyzer-lift") === lift &&
-        feature.get("ski-analyzer-lift-line") === true
-      ) {
-        feature.setStyle(this.mapStyleService.liftStyle().selected);
-        this.selectedFeatures.push(feature);
-      }
-    }
+    const style = this.mapStyleService.liftStyle();
+    this.selectFeature(this.liftLineFeatures.get(lift), style.unselected, style.selected);
 
     this.selectedLift.set(lift);
   }
@@ -344,55 +334,19 @@ export class MapService {
   public selectActivity(activity: Activity) {
     this.unselectFeatures();
 
-    for (const feature of this.trackFeatures) {
-      if (
-        feature.get("ski-analyzer-activity") === activity &&
-        feature.get("ski-analyzer-activity-feature") === "line"
-      ) {
-        feature.setStyle(
-          this.mapStyleService.routeStyles()[activity.type].selected.line,
-        );
-        this.selectedFeatures.push(feature);
-      }
-    }
+    const styles = this.mapStyleService.routeStyles()[activity.type];
+    this.selectFeature(this.activityLineFeatures.get(activity), styles.unselected.line, styles.selected.line);
 
     this.selectedActivity.set(activity);
   }
 
-  private unselectPiste(feature: Feature): boolean {
-    const piste = feature.get("ski-analyzer-piste") as Piste;
-    if (!piste) {
-      return false;
-    }
-    const styles = this.mapStyleService.pisteStyles()[piste.difficulty];
-    if (styles) {
-      const isArea = feature.get("ski-analyzer-area");
-      feature.setStyle(
-        isArea ? styles.unselected.area : styles.unselected.line,
-      );
-    }
-    return true;
-  }
-
-  private unselectLift(feature: Feature): boolean {
-    if (!feature.get("ski-analyzer-lift")) {
-      return false;
+  private selectFeature(feature: Feature | undefined, unselected: Style, selected: Style) {
+    if (!feature) {
+      return;
     }
 
-    feature.setStyle(this.mapStyleService.liftStyle().unselected);
-    return true;
-  }
-
-  private unselectActivity(feature: Feature): boolean {
-    const activity = feature.get("ski-analyzer-activity") as Activity;
-    if (!activity) {
-      return false;
-    }
-    const styles = this.mapStyleService.routeStyles()[activity.type];
-    if (styles) {
-      feature.setStyle(styles.unselected);
-    }
-    return true;
+    feature.setStyle(selected);
+    this.selectedFeatures.push({ feature, revertStyle: unselected });
   }
 
   private pointToCoordinate(p: Point): Coordinate {
