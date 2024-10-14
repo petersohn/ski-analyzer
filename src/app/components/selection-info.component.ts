@@ -124,8 +124,8 @@ export class SelectionInfoComponent {
       this.getTime(this.selectedActivity()?.end_time),
   );
 
-  public waypointTime = computed(
-    () => this.getTime(this.selectedWaypoint()?.time)
+  public waypointTime = computed(() =>
+    this.getTime(this.selectedWaypoint()?.time),
   );
 
   private meters(len: number) {

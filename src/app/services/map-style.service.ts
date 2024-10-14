@@ -91,7 +91,7 @@ export class MapStyleService {
               width: 3,
               ...(lineProperties[difficulty] ?? {}),
             }),
-          })
+          }),
         },
         area: {
           unselected: new Style({
@@ -103,7 +103,7 @@ export class MapStyleService {
             fill: new Fill({
               color: colors[difficulty] + "8",
             }),
-          })
+          }),
         },
       };
     }

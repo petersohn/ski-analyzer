@@ -20,7 +20,7 @@ export class MainMenuComponent {
   constructor(
     private readonly dialog: MatDialog,
     public readonly actionsService: ActionsService,
-  ) { }
+  ) {}
 
   public async loadSkiArea(): Promise<void> {
     const path = await open({
@@ -55,5 +55,4 @@ export class MainMenuComponent {
       this.actionsService.loadTrack(path);
     }
   }
-
 }

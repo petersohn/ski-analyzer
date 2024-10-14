@@ -8,7 +8,7 @@ import { RawTrack } from "@/types/track";
 export class ActionsService {
   public loading = signal(false);
 
-  constructor(private readonly mapService: MapService) { }
+  constructor(private readonly mapService: MapService) {}
 
   public async loadSkiArea(path: string) {
     const data = JSON.parse(await invoke("load_file", { path }));

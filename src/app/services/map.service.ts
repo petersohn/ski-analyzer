@@ -62,7 +62,10 @@ class MouseEvent extends PointerInteraction {
       const activity = feature.get("ski-analyzer-activity");
       if (activity) {
         console.log("activity", activity);
-        this.mapService.selectActivity(activity as Activity, event.map.getCoordinateFromPixel(event.pixel));
+        this.mapService.selectActivity(
+          activity as Activity,
+          event.map.getCoordinateFromPixel(event.pixel),
+        );
         return true;
       }
       return false;
@@ -116,7 +119,7 @@ export class MapService {
   private activityNodeFeatures: Map<Activity, ActivityNode[]> = new Map();
   private trackLayer: Layer | undefined;
 
-  constructor(private readonly mapStyleService: MapStyleService) { }
+  constructor(private readonly mapStyleService: MapStyleService) {}
 
   public createMap(targetElement: HTMLElement) {
     if (this.isInitialized()) {
@@ -253,7 +256,6 @@ export class MapService {
       this.map!.getLayers().push(this.skiAreaLayer);
       this.skiArea = index_ski_area(skiArea);
       this.zoomToArea(minCoord, maxCoord);
-
     } catch (e) {
       this.unloadSkiArea();
       throw e;
@@ -289,14 +291,16 @@ export class MapService {
         this.activityLineFeatures.set(activity, lines);
         features.push(lines);
 
-        const nodes: ActivityNode[] = activity.route.flat(1).map(wp => {
+        const nodes: ActivityNode[] = activity.route.flat(1).map((wp) => {
           const coord = this.pointToCoordinate(wp.point);
           const feature = new Feature(new OlPoint(coord));
           feature.setStyle(styles.node.unselected);
           features.push(feature);
           return {
-            coord, feature, waypoint: wp,
-          }
+            coord,
+            feature,
+            waypoint: wp,
+          };
         });
         this.activityNodeFeatures.set(activity, nodes);
       }
