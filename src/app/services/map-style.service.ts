@@ -3,32 +3,32 @@ import { Style, Stroke, Fill, Circle } from "ol/style";
 import { Options as StrokeOptions } from "ol/style/Stroke";
 import { lazy } from "@/utils/lazy";
 
-export type PisteStyle = {
-  line: Style;
-  area: Style;
+export type SelectableStyle = {
+  unselected: Style;
+  selected: Style;
 };
 
-export type SelectableStyle<T> = {
-  unselected: T;
-  selected: T;
+export type PisteStyle = {
+  line: SelectableStyle;
+  area: SelectableStyle;
 };
 
 export type PisteStyles = {
-  [difficulty: string]: SelectableStyle<PisteStyle>;
+  [difficulty: string]: PisteStyle;
 };
 
 export type RouteStyle = {
-  line: Style;
-  node: Style;
+  line: SelectableStyle;
+  node: SelectableStyle;
 };
 
 export type RouteStyles = {
-  [type: string]: SelectableStyle<RouteStyle>;
+  [type: string]: RouteStyle;
 };
 
 @Injectable({ providedIn: "root" })
 export class MapStyleService {
-  public liftStyle = lazy<SelectableStyle<Style>>(() => {
+  public liftStyle = lazy<SelectableStyle>(() => {
     const color = "#333";
     return {
       unselected: new Style({
@@ -77,33 +77,33 @@ export class MapStyleService {
 
     for (const difficulty in colors) {
       result[difficulty] = {
-        unselected: {
-          line: new Style({
+        line: {
+          unselected: new Style({
             stroke: new Stroke({
               color: colors[difficulty],
               width: 2,
               ...(lineProperties[difficulty] ?? {}),
             }),
           }),
-          area: new Style({
-            fill: new Fill({
-              color: colors[difficulty] + "4",
-            }),
-          }),
-        },
-        selected: {
-          line: new Style({
+          selected: new Style({
             stroke: new Stroke({
               color: colors[difficulty],
               width: 3,
               ...(lineProperties[difficulty] ?? {}),
             }),
+          })
+        },
+        area: {
+          unselected: new Style({
+            fill: new Fill({
+              color: colors[difficulty] + "4",
+            }),
           }),
-          area: new Style({
+          selected: new Style({
             fill: new Fill({
               color: colors[difficulty] + "8",
             }),
-          }),
+          })
         },
       };
     }
@@ -121,23 +121,23 @@ export class MapStyleService {
     for (const type in colors) {
       const color = colors[type];
       result[type] = {
-        unselected: {
-          line: new Style({
+        line: {
+          unselected: new Style({
             stroke: new Stroke({
               color,
               width: 2,
             }),
           }),
-          node: new Style({}),
-        },
-        selected: {
-          line: new Style({
+          selected: new Style({
             stroke: new Stroke({
               color,
               width: 3,
             }),
           }),
-          node: new Style({
+        },
+        node: {
+          unselected: new Style({}),
+          selected: new Style({
             image: new Circle({
               radius: 4,
               fill: new Fill({

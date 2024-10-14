@@ -11,7 +11,6 @@ import Zoom from "ol/control/Zoom";
 import ScaleLine from "ol/control/ScaleLine";
 import {
   Pointer as PointerInteraction,
-  Select,
   defaults as defaultInteractions,
 } from "ol/interaction.js";
 import { Projection, fromLonLat } from "ol/proj";
@@ -34,7 +33,7 @@ import {
   index_ski_area,
 } from "@/types/skiArea";
 import { RawTrack, Activity, TrackConverter, Waypoint } from "@/types/track";
-import { MapStyleService } from "./map-style.service";
+import { MapStyleService, SelectableStyle } from "./map-style.service";
 
 class MouseEvent extends PointerInteraction {
   constructor(private mapService: MapService) {
@@ -212,13 +211,13 @@ export class MapService {
       const pisteStyles = this.mapStyleService.pisteStyles();
 
       for (const piste of skiArea.pistes) {
-        const style = pisteStyles[piste.difficulty].unselected;
+        const style = pisteStyles[piste.difficulty];
         if (!style) {
           console.warn("Unknown difficulty", piste.difficulty);
           continue;
         }
         const areas = new Feature(this.createMultiPolygon(piste.areas));
-        areas.setStyle(style.area);
+        areas.setStyle(style.area.unselected);
         areas.set("ski-analyzer-piste", piste);
         this.pisteAreaFeatures.set(piste, areas);
 
@@ -227,7 +226,7 @@ export class MapService {
             piste.lines.map((line) => this.createLineString(line)),
           ),
         );
-        lines.setStyle(style.line);
+        lines.setStyle(style.line.unselected);
         lines.set("ski-analyzer-piste", piste);
         this.pisteLineFeatures.set(piste, lines);
 
@@ -277,7 +276,7 @@ export class MapService {
           ),
         );
         lines.setStyle(
-          this.mapStyleService.routeStyles()[activity.type].unselected.line,
+          this.mapStyleService.routeStyles()[activity.type].line.unselected,
         );
         lines.set("ski-analyzer-activity", activity);
         this.activityLineFeatures.set(activity, lines);
@@ -316,8 +315,8 @@ export class MapService {
     this.unselectFeatures();
 
     const styles = this.mapStyleService.pisteStyles()[piste.difficulty];
-    this.selectFeature(this.pisteAreaFeatures.get(piste), styles.unselected.area, styles.selected.area);
-    this.selectFeature(this.pisteLineFeatures.get(piste), styles.unselected.line, styles.selected.line);
+    this.selectFeature(this.pisteAreaFeatures.get(piste), styles.area);
+    this.selectFeature(this.pisteLineFeatures.get(piste), styles.line);
 
     this.selectedPiste.set(piste);
   }
@@ -326,7 +325,7 @@ export class MapService {
     this.unselectFeatures();
 
     const style = this.mapStyleService.liftStyle();
-    this.selectFeature(this.liftLineFeatures.get(lift), style.unselected, style.selected);
+    this.selectFeature(this.liftLineFeatures.get(lift), style);
 
     this.selectedLift.set(lift);
   }
@@ -335,18 +334,18 @@ export class MapService {
     this.unselectFeatures();
 
     const styles = this.mapStyleService.routeStyles()[activity.type];
-    this.selectFeature(this.activityLineFeatures.get(activity), styles.unselected.line, styles.selected.line);
+    this.selectFeature(this.activityLineFeatures.get(activity), styles.line);
 
     this.selectedActivity.set(activity);
   }
 
-  private selectFeature(feature: Feature | undefined, unselected: Style, selected: Style) {
+  private selectFeature(feature: Feature | undefined, style: SelectableStyle) {
     if (!feature) {
       return;
     }
 
-    feature.setStyle(selected);
-    this.selectedFeatures.push({ feature, revertStyle: unselected });
+    feature.setStyle(style.selected);
+    this.selectedFeatures.push({ feature, revertStyle: style.unselected });
   }
 
   private pointToCoordinate(p: Point): Coordinate {
