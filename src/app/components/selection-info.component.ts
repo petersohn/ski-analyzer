@@ -3,7 +3,7 @@ import { CommonModule } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
 import { MapService } from "@/services/map.service";
 import { Lift, Piste } from "@/types/skiArea";
-import { Activity } from "@/types/track";
+import { Activity, Waypoint } from "@/types/track";
 import { NameValueComponent } from "./name-value.component";
 import { Dayjs } from "dayjs";
 
@@ -59,6 +59,7 @@ export class SelectionInfoComponent {
   public selectedPiste: Signal<Piste | undefined>;
   public selectedLift: Signal<Lift | undefined>;
   public selectedActivity: Signal<Activity | undefined>;
+  public selectedWaypoint: Signal<Waypoint | undefined>;
 
   constructor(
     private readonly mapService: MapService,
@@ -67,6 +68,7 @@ export class SelectionInfoComponent {
     this.selectedPiste = this.mapService.selectedPiste;
     this.selectedLift = this.mapService.selectedLift;
     this.selectedActivity = this.mapService.selectedActivity;
+    this.selectedWaypoint = this.mapService.selectedWaypoint;
     effect(() => {
       const color =
         difficultyColors[this.selectedPiste()?.difficulty ?? "Unknown"];
@@ -120,6 +122,10 @@ export class SelectionInfoComponent {
       this.getTime(this.selectedActivity()?.begin_time) +
       " - " +
       this.getTime(this.selectedActivity()?.end_time),
+  );
+
+  public waypointTime = computed(
+    () => this.getTime(this.selectedWaypoint()?.time)
   );
 
   private meters(len: number) {

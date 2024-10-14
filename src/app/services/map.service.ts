@@ -62,7 +62,7 @@ class MouseEvent extends PointerInteraction {
       const activity = feature.get("ski-analyzer-activity");
       if (activity) {
         console.log("activity", activity);
-        this.mapService.selectActivity(activity as Activity);
+        this.mapService.selectActivity(activity as Activity, event.map.getCoordinateFromPixel(event.pixel));
         return true;
       }
       return false;
@@ -79,6 +79,12 @@ class MouseEvent extends PointerInteraction {
 type SelectedFeature = {
   feature: Feature;
   revertStyle: Style;
+};
+
+type ActivityNode = {
+  coord: Coordinate;
+  feature: Feature;
+  waypoint: Waypoint;
 };
 
 @Injectable({ providedIn: "root" })
@@ -107,6 +113,7 @@ export class MapService {
   private skiArea: SkiArea | undefined;
 
   private activityLineFeatures: Map<Activity, Feature> = new Map();
+  private activityNodeFeatures: Map<Activity, ActivityNode[]> = new Map();
   private trackLayer: Layer | undefined;
 
   constructor(private readonly mapStyleService: MapStyleService) { }
@@ -267,21 +274,32 @@ export class MapService {
     const track = new TrackConverter(this.skiArea).convertTrack(trackRaw);
 
     try {
-      const features = track.item.map((activity) => {
-        const lines = new Feature(
-          new OlMultiLineString(
-            activity.route.map((segment) =>
-              segment.map((wp) => this.pointToCoordinate(wp.point)),
-            ),
-          ),
+      const features: Feature[] = [];
+
+      for (const activity of track.item) {
+        const styles = this.mapStyleService.routeStyles()[activity.type];
+
+        const coords = activity.route.map((segment) =>
+          segment.map((wp) => this.pointToCoordinate(wp.point)),
         );
-        lines.setStyle(
-          this.mapStyleService.routeStyles()[activity.type].line.unselected,
-        );
+        const lines = new Feature(new OlMultiLineString(coords));
+
+        lines.setStyle(styles.line.unselected);
         lines.set("ski-analyzer-activity", activity);
         this.activityLineFeatures.set(activity, lines);
-        return lines;
-      });
+        features.push(lines);
+
+        const nodes: ActivityNode[] = activity.route.flat(1).map(wp => {
+          const coord = this.pointToCoordinate(wp.point);
+          const feature = new Feature(new OlPoint(coord));
+          feature.setStyle(styles.node.unselected);
+          features.push(feature);
+          return {
+            coord, feature, waypoint: wp,
+          }
+        });
+        this.activityNodeFeatures.set(activity, nodes);
+      }
 
       this.trackLayer = new VectorLayer({
         source: new VectorSource({
@@ -330,13 +348,36 @@ export class MapService {
     this.selectedLift.set(lift);
   }
 
-  public selectActivity(activity: Activity) {
+  public selectActivity(activity: Activity, coord: Coordinate) {
     this.unselectFeatures();
 
     const styles = this.mapStyleService.routeStyles()[activity.type];
     this.selectFeature(this.activityLineFeatures.get(activity), styles.line);
 
     this.selectedActivity.set(activity);
+
+    const nodes = this.activityNodeFeatures.get(activity);
+    if (nodes === undefined) {
+      return;
+    }
+
+    let dist = Infinity;
+    let closestNode: ActivityNode | undefined;
+
+    for (const node of nodes) {
+      const dx = coord[0] - node.coord[0];
+      const dy = coord[1] - node.coord[1];
+      const d = dx * dx + dy * dy;
+      if (d < dist) {
+        closestNode = node;
+        dist = d;
+      }
+    }
+
+    if (closestNode !== undefined) {
+      this.selectFeature(closestNode.feature, styles.node);
+      this.selectedWaypoint.set(closestNode.waypoint);
+    }
   }
 
   private selectFeature(feature: Feature | undefined, style: SelectableStyle) {

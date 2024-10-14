@@ -4,6 +4,10 @@
   <name-value name="Time" [value]="activityTime()"></name-value>
 </mat-card>
 
+<mat-card class="card" *ngIf="!!selectedWaypoint()">
+  <name-value name="Time" [value]="waypointTime()"></name-value>
+</mat-card>
+
 <mat-card class="card" *ngIf="!!selectedPiste()">
   <div class="icon-container">
     <div class="piste-icon"></div>
