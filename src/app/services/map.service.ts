@@ -10,7 +10,7 @@ import XYZ from "ol/source/XYZ";
 import Zoom from "ol/control/Zoom";
 import ScaleLine from "ol/control/ScaleLine";
 import {
-  Pointer as PointerInteraction,
+  Interaction,
   defaults as defaultInteractions,
 } from "ol/interaction.js";
 import { Projection, fromLonLat } from "ol/proj";
@@ -35,7 +35,7 @@ import {
 import { RawTrack, Activity, TrackConverter, Waypoint } from "@/types/track";
 import { MapStyleService, SelectableStyle } from "./map-style.service";
 
-class MouseEvent extends PointerInteraction {
+class EventHandler extends Interaction {
   constructor(private mapService: MapService) {
     super({
       handleEvent: (evt) => this.handle(evt),
@@ -43,9 +43,36 @@ class MouseEvent extends PointerInteraction {
   }
 
   private handle(event: MapBrowserEvent<any>): boolean {
-    if (event.type !== "click") {
-      return true;
+    switch (event.type) {
+      case "click":
+        return this.handleClickEvent(event);
+      case "keydown":
+        return this.handleKeyEvent(event);
+      default:
+        return true;
     }
+  }
+
+  private handleKeyEvent(event: MapBrowserEvent<any>): boolean {
+    switch (event.originalEvent.key) {
+      case "ArrowLeft":
+        if (event.originalEvent.shiftKey) {
+          this.mapService.selectPreviousNode();
+          return false;
+        }
+        return true;
+      case "ArrowRight":
+        if (event.originalEvent.shiftKey) {
+          this.mapService.selectNextNode();
+          return false;
+        }
+        return true;
+      default:
+        return true;
+    }
+  }
+
+  private handleClickEvent(event: MapBrowserEvent<any>): boolean {
     const found = event.map.forEachFeatureAtPixel(event.pixel, (feature) => {
       const piste = feature.get("ski-analyzer-piste");
       if (piste) {
@@ -85,6 +112,8 @@ type SelectedFeature = {
 };
 
 type ActivityNode = {
+  index: number;
+  activity: Activity;
   coord: Coordinate;
   feature: Feature;
   waypoint: Waypoint;
@@ -118,6 +147,8 @@ export class MapService {
   private activityLineFeatures: Map<Activity, Feature> = new Map();
   private activityNodeFeatures: Map<Activity, ActivityNode[]> = new Map();
   private trackLayer: Layer | undefined;
+  private allActivityNodes: ActivityNode[] = [];
+  private selectedActivityNode: ActivityNode | undefined;
 
   constructor(private readonly mapStyleService: MapStyleService) {}
 
@@ -128,7 +159,8 @@ export class MapService {
 
     this.targetElement = targetElement;
     this.map = new OlMap({
-      interactions: defaultInteractions().extend([new MouseEvent(this)]),
+      interactions: defaultInteractions().extend([new EventHandler(this)]),
+      keyboardEventTarget: document,
       target: targetElement,
       layers: [this.baseLayer],
       view: new OlView({
@@ -187,6 +219,7 @@ export class MapService {
 
     this.activityLineFeatures.clear();
     this.trackLayer = undefined;
+    this.allActivityNodes = [];
   }
 
   public loadSkiArea(skiArea: RawSkiArea): void {
@@ -296,11 +329,15 @@ export class MapService {
           const feature = new Feature(new OlPoint(coord));
           feature.setStyle(styles.node.unselected);
           features.push(feature);
-          return {
+          const node = {
+            index: this.allActivityNodes.length,
+            activity,
             coord,
             feature,
             waypoint: wp,
           };
+          this.allActivityNodes.push(node);
+          return node;
         });
         this.activityNodeFeatures.set(activity, nodes);
       }
@@ -326,6 +363,7 @@ export class MapService {
     this.selectedPiste.set(undefined);
     this.selectedLift.set(undefined);
     this.selectedActivity.set(undefined);
+    this.selectedActivityNode = undefined;
 
     for (const feature of this.selectedFeatures) {
       feature.feature.setStyle(feature.revertStyle);
@@ -353,6 +391,46 @@ export class MapService {
   }
 
   public selectActivity(activity: Activity, coord: Coordinate) {
+    let closestNode: ActivityNode | undefined;
+    const nodes = this.activityNodeFeatures.get(activity);
+    if (nodes !== undefined) {
+      let dist = Infinity;
+
+      for (const node of nodes) {
+        const dx = coord[0] - node.coord[0];
+        const dy = coord[1] - node.coord[1];
+        const d = dx * dx + dy * dy;
+        if (d < dist) {
+          closestNode = node;
+          dist = d;
+        }
+      }
+    }
+
+    this.selectActivityAndNode(activity, closestNode);
+  }
+
+  public selectPreviousNode() {
+    if (
+      this.selectedActivityNode !== undefined &&
+      this.selectedActivityNode.index > 0
+    ) {
+      const node = this.allActivityNodes[this.selectedActivityNode.index - 1];
+      this.selectActivityAndNode(node.activity, node);
+    }
+  }
+
+  public selectNextNode() {
+    if (
+      this.selectedActivityNode !== undefined &&
+      this.selectedActivityNode.index < this.allActivityNodes.length - 1
+    ) {
+      const node = this.allActivityNodes[this.selectedActivityNode.index + 1];
+      this.selectActivityAndNode(node.activity, node);
+    }
+  }
+
+  private selectActivityAndNode(activity: Activity, node?: ActivityNode) {
     this.unselectFeatures();
 
     const styles = this.mapStyleService.routeStyles()[activity.type];
@@ -360,27 +438,10 @@ export class MapService {
 
     this.selectedActivity.set(activity);
 
-    const nodes = this.activityNodeFeatures.get(activity);
-    if (nodes === undefined) {
-      return;
-    }
-
-    let dist = Infinity;
-    let closestNode: ActivityNode | undefined;
-
-    for (const node of nodes) {
-      const dx = coord[0] - node.coord[0];
-      const dy = coord[1] - node.coord[1];
-      const d = dx * dx + dy * dy;
-      if (d < dist) {
-        closestNode = node;
-        dist = d;
-      }
-    }
-
-    if (closestNode !== undefined) {
-      this.selectFeature(closestNode.feature, styles.node);
-      this.selectedWaypoint.set(closestNode.waypoint);
+    if (node !== undefined) {
+      this.selectedActivityNode = node;
+      this.selectFeature(node.feature, styles.node);
+      this.selectedWaypoint.set(node.waypoint);
     }
   }
 
