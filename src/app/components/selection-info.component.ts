@@ -128,6 +128,11 @@ export class SelectionInfoComponent {
     this.getTime(this.selectedWaypoint()?.time),
   );
 
+  public waypointAccuracy = computed(() => {
+    const hdop = this.selectedWaypoint()?.hdop;
+    return hdop !== undefined ? this.meters(hdop) : "";
+  });
+
   private meters(len: number) {
     return Math.round(len) + " m";
   }

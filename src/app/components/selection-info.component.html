@@ -5,7 +5,16 @@
 </mat-card>
 
 <mat-card class="card" *ngIf="!!selectedWaypoint()">
-  <name-value name="Time" [value]="waypointTime()"></name-value>
+  <name-value
+    *ngIf="!!waypointTime()"
+    name="Time"
+    [value]="waypointTime()"
+  ></name-value>
+  <name-value
+    *ngIf="!!waypointAccuracy()"
+    name="Accuracy"
+    [value]="waypointAccuracy()"
+  ></name-value>
 </mat-card>
 
 <mat-card class="card" *ngIf="!!selectedPiste()">

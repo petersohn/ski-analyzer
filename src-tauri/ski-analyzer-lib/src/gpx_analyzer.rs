@@ -91,6 +91,7 @@ impl<'s, 'g> Serialize for Activity<'s, 'g> {
         struct WaypointDef {
             point: Point,
             time: Option<String>,
+            hdop: Option<f64>,
         }
 
         let route: Vec<Vec<WaypointDef>> = self
@@ -101,6 +102,7 @@ impl<'s, 'g> Serialize for Activity<'s, 'g> {
                     .map(|wp| WaypointDef {
                         point: wp.point(),
                         time: wp.time.map(|t| t.format().unwrap()),
+                        hdop: wp.hdop,
                     })
                     .collect()
             })

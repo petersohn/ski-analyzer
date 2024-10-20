@@ -5,7 +5,8 @@ import { Lift, SkiArea } from "./skiArea";
 
 export type RawWaypoint = {
   point: Point;
-  time: string;
+  time?: string;
+  hdop?: number;
 };
 
 export type RawUseLift = {
@@ -35,7 +36,8 @@ export type RawTrack = {
 
 export type Waypoint = {
   point: Point;
-  time: Dayjs;
+  time?: Dayjs;
+  hdop?: number;
 };
 
 export type Segment = Waypoint[];
@@ -106,7 +108,8 @@ export class TrackConverter {
       s.map((wp) => {
         return {
           point: wp.point,
-          time: dayjs(wp.time),
+          time: wp.time !== undefined ? dayjs(wp.time) : undefined,
+          hdop: wp.hdop,
         };
       }),
     );
