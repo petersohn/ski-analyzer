@@ -51,7 +51,7 @@ pub struct PisteMetadata {
     pub difficulty: Difficulty,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PisteData {
     pub bounding_rect: Rect,
     pub areas: MultiPolygon,
@@ -68,7 +68,7 @@ impl geo::Intersects for PisteData {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Piste {
     unique_id: String,
     #[serde(flatten)]

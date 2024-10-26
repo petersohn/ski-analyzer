@@ -34,7 +34,7 @@ impl PointWithElevation {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SkiArea {
     pub name: String,
     pub lifts: Vec<Lift>,

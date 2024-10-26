@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, ErrorType, Result};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BoundedGeometry<T, C = f64>
 where
     C: CoordNum,

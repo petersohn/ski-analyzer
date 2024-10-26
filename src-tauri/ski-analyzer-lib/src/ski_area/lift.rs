@@ -13,7 +13,7 @@ use crate::osm_reader::{
 };
 use crate::utils::bounded_geometry::BoundedGeometry;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Lift {
     pub unique_id: String,
     #[serde(rename = "ref")]
