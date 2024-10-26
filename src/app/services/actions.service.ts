@@ -11,7 +11,7 @@ export class ActionsService {
   constructor(private readonly mapService: MapService) {}
 
   public async loadSkiArea(path: string) {
-    const data = JSON.parse(await invoke("load_file", { path }));
+    const data = JSON.parse(await invoke("load_ski_area", { path }));
     this.mapService.loadSkiArea(data as RawSkiArea);
   }
 
@@ -21,7 +21,7 @@ export class ActionsService {
   }
 
   public async loadTrack(path: string) {
-    const data = JSON.parse(await invoke("load_file", { path }));
+    const data = JSON.parse(await invoke("load_gpx", { path }));
     this.mapService.loadTrack(data as RawTrack);
   }
 

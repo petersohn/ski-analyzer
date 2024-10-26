@@ -6,33 +6,23 @@ use ski_analyzer_lib::osm_reader::Document;
 use ski_analyzer_lib::ski_area::SkiArea;
 use std::error::Error;
 use std::fs::OpenOptions;
+use std::io::BufReader;
 use std::io::Read;
 use std::sync::Mutex;
 use tauri::Manager;
 
 mod app_state;
 
-fn load_file_inner(path: String) -> Result<Vec<u8>, Box<dyn Error>> {
-    let mut file = OpenOptions::new().read(true).open(path)?;
-    let mut data = Vec::new();
-    file.read_to_end(&mut data)?;
-    Ok(data)
-}
-
-fn parse_ski_area(json: &[u8]) -> ski_analyzer_lib::error::Result<SkiArea> {
-    let doc = Document::parse(&json)?;
-    let ski_area = SkiArea::parse(&doc)?;
-    Ok(ski_area)
-}
-
 fn load_ski_area_inner(
     path: String,
     state: tauri::State<Mutex<AppState>>,
 ) -> Result<String, Box<dyn Error>> {
-    let json = load_file_inner(path)?;
-    let ski_area = parse_ski_area(&json)?;
+    let mut file = OpenOptions::new().read(true).open(path)?;
+    let mut json = Vec::new();
+    file.read_to_end(&mut json)?;
+    let ski_area = serde_json::from_slice(&json)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.active_ski_area = Some(ski_area);
+    app_state.set_ski_area(ski_area);
     Ok(str::from_utf8(&json)?.to_string())
 }
 
@@ -47,7 +37,8 @@ fn load_ski_area(
 fn find_ski_area_inner(name: String) -> Result<SkiArea, Box<dyn Error>> {
     eprintln!("find ski area {}", name);
     let json = query_ski_area(name.as_str())?;
-    let ski_area = parse_ski_area(&json)?;
+    let doc = Document::parse(&json)?;
+    let ski_area = SkiArea::parse(&doc)?;
     Ok(ski_area)
 }
 
@@ -58,8 +49,49 @@ fn find_ski_area(
 ) -> Result<SkiArea, String> {
     let ski_area = find_ski_area_inner(name).map_err(|e| e.to_string())?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.active_ski_area = Some(ski_area.clone());
+    app_state.set_ski_area(ski_area.clone());
     Ok(ski_area)
+}
+
+fn load_gpx_inner(
+    path: String,
+    state: tauri::State<Mutex<AppState>>,
+) -> Result<String, Box<dyn Error>> {
+    let file = OpenOptions::new().read(true).open(path)?;
+    let reader = BufReader::new(file);
+    let gpx = gpx::read(reader)?;
+    let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    app_state.set_gpx(gpx)?;
+    Ok(serde_json::to_string(app_state.get_route().unwrap())?)
+}
+
+#[tauri::command(async)]
+fn load_gpx(
+    path: String,
+    state: tauri::State<Mutex<AppState>>,
+) -> Result<String, String> {
+    load_gpx_inner(path, state).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn get_active_ski_area(
+    state: tauri::State<Mutex<AppState>>,
+) -> Result<Option<SkiArea>, String> {
+    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    Ok(app_state.get_ski_area().cloned())
+}
+
+#[tauri::command]
+fn get_active_route(
+    state: tauri::State<Mutex<AppState>>,
+) -> Result<Option<String>, String> {
+    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    let route = app_state.get_route();
+    let res = match route {
+        None => None,
+        Some(r) => Some(serde_json::to_string(&r).map_err(|e| e.to_string())?),
+    };
+    Ok(res)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -78,7 +110,13 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![load_ski_area, find_ski_area])
+        .invoke_handler(tauri::generate_handler![
+            load_ski_area,
+            find_ski_area,
+            load_gpx,
+            get_active_ski_area,
+            get_active_route,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

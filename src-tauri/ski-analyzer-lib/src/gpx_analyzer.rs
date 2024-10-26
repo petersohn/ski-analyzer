@@ -152,10 +152,12 @@ where
     s.serialize_str(t.get_unique_id())
 }
 
+pub type AnalyzedRoute<'s, 'g> = BoundedGeometry<Vec<Activity<'s, 'g>>>;
+
 pub fn analyze_route<'s, 'g>(
     ski_area: &'s SkiArea,
     gpx: &'g Gpx,
-) -> Result<BoundedGeometry<Vec<Activity<'s, 'g>>>> {
+) -> Result<AnalyzedRoute<'s, 'g>> {
     let segments = get_segments(&gpx)?;
     // println!("{:#?}", segments);
     let result = find_lift_usage(ski_area, &segments.item);

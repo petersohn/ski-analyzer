@@ -49,7 +49,7 @@ export class MainMenuComponent {
 
   public async loadTrack(): Promise<void> {
     const path = await open({
-      filters: [{ name: "JSON", extensions: ["json"] }],
+      filters: [{ name: "GPX", extensions: ["gpx"] }],
     });
     if (!!path) {
       this.actionsService.loadTrack(path);
