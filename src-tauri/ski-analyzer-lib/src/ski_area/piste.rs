@@ -755,11 +755,11 @@ fn handle_unnamed_entities(
     result
 }
 
-// fn clip_lines(pistes: &mut Vec<Piste>) {
-//     for piste in pistes.iter_mut() {
-//         piste.data.lines = piste.data.areas.clip(&piste.data.lines, true);
-//     }
-// }
+fn clip_lines(pistes: &mut Vec<Piste>) {
+    for piste in pistes.iter_mut() {
+        piste.data.lines = piste.data.areas.clip(&piste.data.lines, true);
+    }
+}
 
 pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
     let (mut partial_pistes, unnamed_lines, unnamed_areas) =
@@ -786,7 +786,7 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
         find_anomalies(&pistes);
     }
     pistes.append(&mut unnamed_pistes);
-    // clip_lines(&mut pistes);
+    clip_lines(&mut pistes);
 
     pistes
 }

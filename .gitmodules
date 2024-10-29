@@ -1,0 +1,3 @@
+[submodule "src-tauri/ski-analyzer-lib/geo"]
+	path = src-tauri/ski-analyzer-lib/geo
+	url = git@github.com:georust/geo.git
