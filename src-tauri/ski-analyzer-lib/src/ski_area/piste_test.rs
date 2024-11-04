@@ -3,13 +3,19 @@ use super::{Difficulty, Piste, PisteData, PisteMetadata, SkiArea};
 use crate::osm_reader::{
     Document, Node, Relation, RelationMember, RelationMembers, Tags, Way,
 };
+use crate::utils::rect::union_rects;
 use crate::utils::test_util::{assert_eq_pretty, init, save_ski_area, Init};
 
 use ::function_name::named;
-use geo::{Coord, LineString, MultiLineString, MultiPolygon, Polygon};
+use geo::{
+    bounding_rect, BoundingRect, Coord, LineString, MultiLineString,
+    MultiPolygon, Polygon,
+};
 use rstest::{fixture, rstest};
 use std::collections::{HashMap, HashSet};
+use std::fs;
 use std::hash::Hash;
+use time::OffsetDateTime;
 
 type Point = (i64, i64);
 type Line = Vec<Point>;
@@ -182,6 +188,35 @@ impl Area {
     }
 }
 
+fn to_coord(p: &Point) -> Coord {
+    Coord {
+        x: i2f(p.0),
+        y: i2f(p.1),
+    }
+}
+
+fn to_line_string(l: &Line) -> LineString {
+    LineString::new(l.iter().map(to_coord).collect())
+}
+
+fn to_multi_line_string(lines: &[Line]) -> MultiLineString {
+    MultiLineString::new(lines.iter().map(to_line_string).collect())
+}
+
+fn to_multi_polygon(areas: &[Area]) -> MultiPolygon {
+    MultiPolygon::new(
+        areas
+            .iter()
+            .map(|a| {
+                Polygon::new(
+                    to_line_string(&a.exterior),
+                    a.interiors.iter().map(to_line_string).collect(),
+                )
+            })
+            .collect(),
+    )
+}
+
 #[derive(PartialEq, Eq, Debug, Hash)]
 struct PisteOut {
     metadata: PisteMetadata,
@@ -202,21 +237,62 @@ impl PisteOut {
         pistes.iter().map(PisteOut::new).collect()
     }
 
-    fn to_pistes(&self) -> Vec<Piste> {
-        //let areas: Vec<MultiPolygon> = self.areas.map(a =>
-        //Piste {
-        //    metadata: self.metadata.clone(),
-        //    data: PisteData {
-        //
-        //    }
-        //}
+    fn to_piste(&self) -> Piste {
+        let p = if !self.lines.is_empty() {
+            self.lines[0][0]
+        } else {
+            self.areas[0].exterior[0]
+        };
+        let areas = to_multi_polygon(&self.areas);
+        let lines = to_multi_line_string(&self.lines);
+        let bounding_rect = union_rects(
+            areas.bounding_rect().unwrap(),
+            lines.bounding_rect().unwrap(),
+        );
+        Piste {
+            // Should be unique enough for the tests
+            unique_id: format!("{}, {}", p.0, p.1),
+            metadata: self.metadata.clone(),
+            data: PisteData {
+                areas,
+                lines,
+                bounding_rect,
+            },
+        }
     }
 }
 
-fn save_output(expected: &SkiArea, actual: &SkiArea, name: &str) {
+fn to_ski_area(name: &str, pistes: &[Piste]) -> SkiArea {
+    SkiArea {
+        name: name.to_string(),
+        lifts: vec![],
+        pistes: pistes.to_vec(),
+        bounding_rect: pistes
+            .iter()
+            .map(|p| p.data.bounding_rect)
+            .reduce(union_rects)
+            .unwrap(),
+        date: OffsetDateTime::now_utc(),
+    }
+}
+
+fn save_output<'a, PisteOuts>(expected: PisteOuts, actual: &[Piste], name: &str)
+where
+    PisteOuts: Iterator<Item = &'a PisteOut>,
+{
     let dir = format!("test_output/piste_test/{}", name);
-    save_ski_area(expected, &format!("{}/expected.json", dir));
-    save_ski_area(actual, &format!("{}/actual.json", dir));
+    fs::create_dir_all(&dir).unwrap();
+    save_ski_area(
+        &to_ski_area(
+            "Expected",
+            &expected.map(|p| p.to_piste()).collect::<Vec<Piste>>(),
+        ),
+        &format!("{}/expected.json", dir),
+    );
+    save_ski_area(
+        &to_ski_area("Actual", &actual),
+        &format!("{}/actual.json", dir),
+    );
 }
 
 #[fixture]
@@ -591,11 +667,12 @@ fn find_areas_to_line(_init: Init, line0: Line, area00: Line, area01: Line) {
         areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
     let actual = PisteOut::list(&pistes);
-    save_output(&expected, &actual, function_name!());
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn find_lines_to_area(_init: Init, line0: Line, area00: Line) {
     let line00 = line0[0..5].to_vec();
     let line01 = line0[5..LINE0_MIDPOINT].to_vec();
@@ -638,10 +715,12 @@ fn find_lines_to_area(_init: Init, line0: Line, area00: Line) {
         areas: vec![Area::simple(area00)],
     }];
     let actual = PisteOut::list(&pistes);
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn merge_unnamed_pistes(_init: Init, line0: Line, area00: Line, area01: Line) {
     let line00 = line0[0..8].to_vec();
     let line01 = line0[8..].to_vec();
@@ -690,10 +769,12 @@ fn merge_unnamed_pistes(_init: Init, line0: Line, area00: Line, area01: Line) {
         areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
     let actual = PisteOut::list(&pistes);
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn orphaned_unnamed_area(_init: Init, line0: Line, area01: Line) {
     let line00 = line0[0..LINE0_MIDPOINT].to_vec();
     let document = create_document(vec![
@@ -738,10 +819,12 @@ fn orphaned_unnamed_area(_init: Init, line0: Line, area01: Line) {
         },
     ]);
     let actual = to_set(PisteOut::list(&pistes));
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn orphaned_unnamed_line(_init: Init, line0: Line, area01: Line) {
     let line00 = line0[0..LINE0_MIDPOINT].to_vec();
     let document = create_document(vec![
@@ -786,10 +869,12 @@ fn orphaned_unnamed_line(_init: Init, line0: Line, area01: Line) {
         },
     ]);
     let actual = to_set(PisteOut::list(&pistes));
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn merge_unnamed_line_and_area(
     _init: Init,
     line0: Line,
@@ -854,10 +939,12 @@ fn merge_unnamed_line_and_area(
         },
     ]);
     let actual = to_set(PisteOut::list(&pistes));
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn different_difficulty(_init: Init, line0: Line, area00: Line) {
     let document = create_document(vec![
         WayDef {
@@ -901,10 +988,12 @@ fn different_difficulty(_init: Init, line0: Line, area00: Line) {
         },
     ]);
     let actual = to_set(PisteOut::list(&pistes));
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn different_name(_init: Init, line0: Line, area00: Line) {
     let document = create_document(vec![
         WayDef {
@@ -948,10 +1037,12 @@ fn different_name(_init: Init, line0: Line, area00: Line) {
         },
     ]);
     let actual = to_set(PisteOut::list(&pistes));
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn not_intersecting_line_and_area(_init: Init, line0: Line, area00: Line) {
     let line00 = line0[LINE0_MIDPOINT..].to_vec();
     let document = create_document(vec![
@@ -996,10 +1087,12 @@ fn not_intersecting_line_and_area(_init: Init, line0: Line, area00: Line) {
         },
     ];
     let actual = PisteOut::list(&pistes);
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn use_larger_overlap(_init: Init, line0: Line, area00: Line, area01: Line) {
     let splitpoint = LINE0_MIDPOINT - 1;
     let line00 = line0[..splitpoint].to_vec();
@@ -1061,10 +1154,12 @@ fn use_larger_overlap(_init: Init, line0: Line, area00: Line, area01: Line) {
         },
     ]);
     let actual = to_set(PisteOut::list(&pistes));
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn multipolygon_piste(_init: Init, line1: Line, area10: Line, area11: Line) {
     let mut builder = DocumentBuilder::new();
     builder.add_way(
@@ -1100,10 +1195,12 @@ fn multipolygon_piste(_init: Init, line1: Line, area10: Line, area11: Line) {
         areas: vec![Area::multi(area10, vec![area11])],
     }]);
     let actual = to_set(PisteOut::list(&pistes));
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn multiple_polygons_in_multipolygon(
     _init: Init,
     area00: Line,
@@ -1148,10 +1245,12 @@ fn multiple_polygons_in_multipolygon(
         },
     ]);
     let actual = to_set(PisteOut::list(&pistes));
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn metadata_from_route(_init: Init, line0: Line, line1: Line) {
     let mut builder = DocumentBuilder::new();
     let l0 = builder.add_way(
@@ -1200,10 +1299,12 @@ fn metadata_from_route(_init: Init, line0: Line, line1: Line) {
         },
     ]);
     let actual = to_set(PisteOut::list(&pistes));
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn closed_line_is_area(_init: Init, area00: Line) {
     let document = create_document(vec![WayDef {
         line: area00.clone(),
@@ -1226,10 +1327,12 @@ fn closed_line_is_area(_init: Init, area00: Line) {
         areas: vec![Area::simple(area00)],
     }];
     let actual = PisteOut::list(&pistes);
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn explicit_area(_init: Init, line0: Line) {
     let document = create_document(vec![WayDef {
         line: line0.clone(),
@@ -1256,10 +1359,12 @@ fn explicit_area(_init: Init, line0: Line) {
         areas: vec![Area::simple(expected_area)],
     }];
     let actual = PisteOut::list(&pistes);
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
+#[named]
 fn find_refs_complex(_init: Init, line0: Line, area00: Line, area01: Line) {
     let line00 = line0[0..5].to_vec();
     let line01 = line0[0..8].to_vec();
@@ -1322,5 +1427,6 @@ fn find_refs_complex(_init: Init, line0: Line, area00: Line, area01: Line) {
         areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
     let actual = PisteOut::list(&pistes);
+    save_output(expected.iter(), &pistes, function_name!());
     assert_eq_pretty!(actual, expected);
 }

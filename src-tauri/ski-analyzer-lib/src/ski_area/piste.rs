@@ -70,7 +70,7 @@ impl geo::Intersects for PisteData {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Piste {
-    unique_id: String,
+    pub unique_id: String,
     #[serde(flatten)]
     pub metadata: PisteMetadata,
     #[serde(flatten)]
