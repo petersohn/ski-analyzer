@@ -3,7 +3,7 @@ use super::{Difficulty, Piste, PisteData, PisteMetadata, SkiArea};
 use crate::osm_reader::{
     Document, Node, Relation, RelationMember, RelationMembers, Tags, Way,
 };
-use crate::utils::rect::union_rects;
+use crate::utils::rect::{union_rects, union_rects_if};
 use crate::utils::test_util::{assert_eq_pretty, init, save_ski_area, Init};
 
 use ::function_name::named;
@@ -245,10 +245,9 @@ impl PisteOut {
         };
         let areas = to_multi_polygon(&self.areas);
         let lines = to_multi_line_string(&self.lines);
-        let bounding_rect = union_rects(
-            areas.bounding_rect().unwrap(),
-            lines.bounding_rect().unwrap(),
-        );
+        let bounding_rect =
+            union_rects_if(areas.bounding_rect(), lines.bounding_rect())
+                .unwrap();
         Piste {
             // Should be unique enough for the tests
             unique_id: format!("{}, {}", p.0, p.1),
