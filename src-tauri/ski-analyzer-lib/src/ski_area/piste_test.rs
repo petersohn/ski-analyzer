@@ -1,10 +1,11 @@
 use super::piste::parse_pistes;
-use super::{Difficulty, Piste, PisteMetadata};
+use super::{Difficulty, Piste, PisteData, PisteMetadata, SkiArea};
 use crate::osm_reader::{
     Document, Node, Relation, RelationMember, RelationMembers, Tags, Way,
 };
-use crate::utils::test_util::{assert_eq_pretty, init, Init};
+use crate::utils::test_util::{assert_eq_pretty, init, save_ski_area, Init};
 
+use ::function_name::named;
 use geo::{Coord, LineString, MultiLineString, MultiPolygon, Polygon};
 use rstest::{fixture, rstest};
 use std::collections::{HashMap, HashSet};
@@ -200,6 +201,22 @@ impl PisteOut {
     fn list(pistes: &Vec<Piste>) -> Vec<PisteOut> {
         pistes.iter().map(PisteOut::new).collect()
     }
+
+    fn to_pistes(&self) -> Vec<Piste> {
+        //let areas: Vec<MultiPolygon> = self.areas.map(a =>
+        //Piste {
+        //    metadata: self.metadata.clone(),
+        //    data: PisteData {
+        //
+        //    }
+        //}
+    }
+}
+
+fn save_output(expected: &SkiArea, actual: &SkiArea, name: &str) {
+    let dir = format!("test_output/piste_test/{}", name);
+    save_ski_area(expected, &format!("{}/expected.json", dir));
+    save_ski_area(actual, &format!("{}/actual.json", dir));
 }
 
 #[fixture]
@@ -532,6 +549,7 @@ fn metadata_alternate_naming(_init: Init, line0: Line) {
 }
 
 #[rstest]
+#[named]
 fn find_areas_to_line(_init: Init, line0: Line, area00: Line, area01: Line) {
     let document = create_document(vec![
         WayDef {
@@ -573,6 +591,7 @@ fn find_areas_to_line(_init: Init, line0: Line, area00: Line, area01: Line) {
         areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
     let actual = PisteOut::list(&pistes);
+    save_output(&expected, &actual, function_name!());
     assert_eq_pretty!(actual, expected);
 }
 

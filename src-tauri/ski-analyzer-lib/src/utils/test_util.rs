@@ -1,9 +1,12 @@
 use crate::config::{set_config, Config};
 use crate::osm_reader as r;
+use crate::ski_area::SkiArea;
 
 use geo::{coord, LineString};
 use rstest::fixture;
+
 use std::collections::HashMap;
+use std::fs::OpenOptions;
 
 pub fn node(x: f64, y: f64) -> r::Node {
     r::Node {
@@ -50,6 +53,16 @@ pub fn line(points: &[(f64, f64)]) -> LineString {
             .map(|(x, y)| coord! { x: *x, y: *y })
             .collect(),
     )
+}
+
+pub fn save_ski_area(piste: &SkiArea, filename: &str) {
+    let file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(filename)
+        .unwrap();
+    serde_json::to_writer_pretty(file, &piste).unwrap();
 }
 
 pub struct Init;
