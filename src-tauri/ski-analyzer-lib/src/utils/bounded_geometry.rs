@@ -1,5 +1,5 @@
 use geo::{
-    coord, BoundingRect, CoordFloat, CoordNum, HaversineDestination, Point,
+    coord, BoundingRect, CoordFloat, CoordNum, Destination, Haversine, Point,
     Rect,
 };
 use num_traits::cast::FromPrimitive;
@@ -42,11 +42,13 @@ where
         let min_p = Point::from(self.bounding_rect.min());
         let max_p = Point::from(self.bounding_rect.max());
         let min_x =
-            min_p.haversine_destination(C::from(-90.0).unwrap(), amount);
+            Haversine::destination(min_p, C::from(-90.0).unwrap(), amount);
         let min_y =
-            min_p.haversine_destination(C::from(180.0).unwrap(), amount);
-        let max_x = max_p.haversine_destination(C::from(90.0).unwrap(), amount);
-        let max_y = max_p.haversine_destination(C::from(0.0).unwrap(), amount);
+            Haversine::destination(min_p, C::from(180.0).unwrap(), amount);
+        let max_x =
+            Haversine::destination(max_p, C::from(90.0).unwrap(), amount);
+        let max_y =
+            Haversine::destination(max_p, C::from(0.0).unwrap(), amount);
         self.bounding_rect = Rect::new(
             coord! { x: min_x.x(), y: min_y.y() },
             coord! { x: max_x.x(), y: max_y.y() },

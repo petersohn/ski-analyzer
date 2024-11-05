@@ -1,4 +1,4 @@
-use geo::{HaversineLength, Line, Point};
+use geo::{Haversine, Length, Line, Point};
 use gpx::{Gpx, Time};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
 use time::format_description::well_known::Iso8601;
@@ -63,7 +63,8 @@ impl<'s, 'g> Activity<'s, 'g> {
             .iter()
             .map(|s| {
                 s.windows(2).map(|wps| {
-                    Line::new(wps[0].point(), wps[1].point()).haversine_length()
+                    Line::new(wps[0].point(), wps[1].point())
+                        .length::<Haversine>()
                 })
             })
             .flatten()

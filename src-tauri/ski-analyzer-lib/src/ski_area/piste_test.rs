@@ -8,8 +8,7 @@ use crate::utils::test_util::{assert_eq_pretty, init, save_ski_area, Init};
 
 use ::function_name::named;
 use geo::{
-    bounding_rect, BoundingRect, Coord, LineString, MultiLineString,
-    MultiPolygon, Polygon,
+    BoundingRect, Coord, LineString, MultiLineString, MultiPolygon, Polygon,
 };
 use rstest::{fixture, rstest};
 use std::collections::{HashMap, HashSet};

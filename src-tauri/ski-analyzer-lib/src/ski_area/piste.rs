@@ -1,6 +1,6 @@
 use geo::{
-    BooleanOps, BoundingRect, CoordNum, HasDimensions, HaversineLength,
-    Intersects, LineString, MultiLineString, MultiPolygon, Polygon, Rect,
+    BooleanOps, BoundingRect, CoordNum, HasDimensions, Haversine, Intersects,
+    Length, LineString, MultiLineString, MultiPolygon, Polygon, Rect,
 };
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
@@ -368,7 +368,7 @@ fn get_intersection_length(
     let intersection = area
         .item
         .clip(&MultiLineString::new(vec![line.item.clone()]), false);
-    intersection.haversine_length()
+    intersection.length::<Haversine>()
 }
 
 fn find_differing_metadata<It>(metadatas: It)
@@ -418,7 +418,7 @@ where
 
 fn find_overlapping_pistes(pistes: &Vec<Piste>) {
     for (i, piste) in pistes.iter().enumerate() {
-        let length = piste.data.lines.haversine_length();
+        let length = piste.data.lines.length::<Haversine>();
         let threshold = length / 2.0;
 
         for (j, piste2) in pistes.iter().enumerate() {
@@ -434,7 +434,7 @@ fn find_overlapping_pistes(pistes: &Vec<Piste>) {
                 .data
                 .areas
                 .clip(&piste.data.lines, false)
-                .haversine_length();
+                .length::<Haversine>();
             if intersection > threshold {
                 eprintln!(
                     "Line {:?} intersects area {:?} {:.0}/{:.0} m",

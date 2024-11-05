@@ -6,8 +6,8 @@ use std::fmt::Debug;
 use std::mem::take;
 
 use geo::{
-    BoundingRect, Closest, HaversineClosestPoint, HaversineDistance,
-    HaversineLength, Intersects, Point,
+    BoundingRect, Closest, Distance, Haversine, HaversineClosestPoint,
+    Intersects, Length, Point,
 };
 use gpx::Waypoint;
 use serde::Serialize;
@@ -25,30 +25,30 @@ pub struct UseLift<'s> {
     pub is_reverse: bool,
 }
 
-fn get_station(lift: &Lift, p: &Point) -> LiftEnd {
+fn get_station(lift: &Lift, p: Point) -> LiftEnd {
     lift.stations
         .iter()
         .enumerate()
-        .map(|(i, m)| (i, m.point.haversine_distance(p)))
+        .map(|(i, m)| (i, Haversine::distance(m.point, p)))
         .filter(|(_, m)| *m < MIN_DISTANCE)
         .min_by(|(_, d1), (_, d2)| d1.total_cmp(d2))
         .map(|(i, _)| i)
 }
 
-struct Distance {
+struct LiftDistance {
     from_begin: f64,
     from_line: f64,
 }
 
-impl Distance {
-    fn get(lift: &Lift, p: &Point) -> Option<Self> {
+impl LiftDistance {
+    fn get(lift: &Lift, p: Point) -> Option<Self> {
         let (segment, line, p2, from_line) = lift
             .line
             .item
             .lines()
             .enumerate()
             .map(|(i, line)| {
-                let p2 = match line.haversine_closest_point(p) {
+                let p2 = match line.haversine_closest_point(&p) {
                     Closest::Intersection(p2) => p2,
                     Closest::SinglePoint(p2) => p2,
                     Closest::Indeterminate => {
@@ -58,20 +58,20 @@ impl Distance {
                         );
                     }
                 };
-                (i, line, p2, p.haversine_distance(&p2))
+                (i, line, p2, Haversine::distance(p, p2))
             })
             .min_by(|(_, _, _, d1), (_, _, _, d2)| d1.total_cmp(d2))?;
         if from_line > MIN_DISTANCE {
             return None;
         }
-        Some(Distance {
+        Some(LiftDistance {
             from_begin: lift
                 .line
                 .item
                 .lines()
                 .take(segment)
-                .fold(0.0, |acc, l| acc + l.haversine_length())
-                + p2.haversine_distance(&line.start.into()),
+                .fold(0.0, |acc, l| acc + l.length::<Haversine>())
+                + Haversine::distance(p2, line.start.into()),
             from_line,
         })
     }
@@ -105,9 +105,9 @@ impl<'s> LiftCandidate<'s> {
         point: &Waypoint,
     ) -> Option<Self> {
         let p = point.point();
-        Distance::get(lift, &p).and_then(|distance| {
-            let lift_length = lift.line.item.haversine_length();
-            let station = get_station(lift, &p);
+        LiftDistance::get(lift, p).and_then(|distance| {
+            let lift_length = lift.line.item.length::<Haversine>();
+            let station = get_station(lift, p);
             if station.is_none() && coordinate.1 != 0 {
                 return None;
             }
@@ -166,7 +166,7 @@ impl<'s> LiftCandidate<'s> {
             panic!("Already finished");
         }
         let p = point.point();
-        let distance = match Distance::get(self.data.lift, &p) {
+        let distance = match LiftDistance::get(self.data.lift, p) {
             Some(d) => d,
             None => return self.leave(coordinate),
         };
@@ -185,7 +185,7 @@ impl<'s> LiftCandidate<'s> {
             self.distance_from_begin = distance.from_begin;
         }
         self.avg_distance.add(distance.from_line);
-        let station = get_station(self.data.lift, &p);
+        let station = get_station(self.data.lift, p);
         match station {
             Some(s) => {
                 if self.data.begin_station == Some(s) {

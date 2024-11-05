@@ -1,4 +1,4 @@
-use geo::{HaversineLength, Line, LineString};
+use geo::{Haversine, Length, Line, LineString};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 
@@ -265,7 +265,7 @@ pub fn parse_lift<'d>(
         .map(|ss| {
             line_points[ss[0].num..(ss[1].num + 1)]
                 .windows(2)
-                .map(|ps| Line::new(ps[0], ps[1]).haversine_length())
+                .map(|ps| Line::new(ps[0], ps[1]).length::<Haversine>())
                 .sum()
         })
         .collect();

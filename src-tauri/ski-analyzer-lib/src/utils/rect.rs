@@ -13,6 +13,7 @@ pub fn union_rects(r1: Rect, r2: Rect) -> Rect {
     )
 }
 
+#[cfg(test)]
 pub fn union_rects_if(r1: Option<Rect>, r2: Option<Rect>) -> Option<Rect> {
     match (r1, r2) {
         (None, None) => None,
