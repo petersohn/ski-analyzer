@@ -44,6 +44,12 @@ pub struct SkiArea {
     pub date: OffsetDateTime,
 }
 
+impl SkiArea {
+    pub fn clip_piste_lines(&mut self) {
+        self.pistes.iter_mut().for_each(|p| p.clip_lines());
+    }
+}
+
 pub trait UniqueId {
     fn get_unique_id(&self) -> &str;
 }

@@ -77,6 +77,12 @@ pub struct Piste {
     pub data: PisteData,
 }
 
+impl Piste {
+    pub fn clip_lines(&mut self) {
+        self.data.lines = self.data.areas.clip(&self.data.lines, true);
+    }
+}
+
 impl UniqueId for Piste {
     fn get_unique_id(&self) -> &str {
         &self.unique_id
@@ -755,12 +761,6 @@ fn handle_unnamed_entities(
     result
 }
 
-fn clip_lines(pistes: &mut Vec<Piste>) {
-    for piste in pistes.iter_mut() {
-        piste.data.lines = piste.data.areas.clip(&piste.data.lines, true);
-    }
-}
-
 pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
     let (mut partial_pistes, unnamed_lines, unnamed_areas) =
         parse_partial_pistes(&doc);
@@ -786,7 +786,6 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
         find_anomalies(&pistes);
     }
     pistes.append(&mut unnamed_pistes);
-    clip_lines(&mut pistes);
 
     pistes
 }

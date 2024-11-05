@@ -67,6 +67,9 @@ enum Command {
         input: String,
         #[command(flatten)]
         output: SerializedOutput,
+        /// Remove line parts from inside areas of the same piste.
+        #[arg(short, long)]
+        clip: bool,
     },
     Gpx {
         /// GPX file name
@@ -93,7 +96,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .open(output)?;
             file.write(&json)?;
         }
-        Command::ParseOsm { input, output } => {
+        Command::ParseOsm {
+            input,
+            output,
+            clip,
+        } => {
             let ski_area = {
                 let mut file = OpenOptions::new().read(true).open(input)?;
                 let mut data = Vec::new();
@@ -106,7 +113,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                         doc.elements.ways.len(),
                     );
                 }
-                SkiArea::parse(&doc)?
+                let mut ski_area = SkiArea::parse(&doc)?;
+                if clip {
+                    ski_area.clip_piste_lines();
+                }
+                ski_area
             };
 
             output.write_to_file(&ski_area)?;
