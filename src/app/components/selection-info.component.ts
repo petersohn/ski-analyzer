@@ -133,6 +133,11 @@ export class SelectionInfoComponent {
     return hdop !== undefined ? this.meters(hdop) : "";
   });
 
+  public waypointSpeed = computed(() => {
+    const speed = this.selectedWaypoint()?.speed;
+    return speed !== undefined ? speed.toFixed(1) : "";
+  });
+
   private meters(len: number) {
     return Math.round(len) + " m";
   }

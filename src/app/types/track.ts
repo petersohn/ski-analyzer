@@ -38,6 +38,7 @@ export type Waypoint = {
   point: Point;
   time?: Dayjs;
   hdop?: number;
+  speed?: number;
 };
 
 export type Segment = Waypoint[];

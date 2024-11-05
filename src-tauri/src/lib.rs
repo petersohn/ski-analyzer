@@ -1,5 +1,7 @@
 use app_state::AppState;
 use core::str;
+use geo::{Distance, Haversine, Point};
+use serde::Deserialize;
 use ski_analyzer_lib::config::{set_config, Config};
 use ski_analyzer_lib::osm_query::query_ski_area;
 use ski_analyzer_lib::osm_reader::Document;
@@ -94,6 +96,26 @@ fn get_active_route(
     Ok(res)
 }
 
+#[derive(Deserialize)]
+struct WaypointIn {
+    point: Point,
+    time: Option<f64>,
+}
+
+#[tauri::command]
+fn get_speed(wp1: WaypointIn, wp2: WaypointIn) -> Option<f64> {
+    match (wp1.time, wp2.time) {
+        (Some(t1), Some(t2)) => {
+            if t1 == t2 {
+                None
+            } else {
+                Some(Haversine::distance(wp1.point, wp2.point) / (t2 - t1))
+            }
+        }
+        _ => None,
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     set_config(Config { verbose: 0 }).unwrap();
@@ -116,6 +138,7 @@ pub fn run() {
             load_gpx,
             get_active_ski_area,
             get_active_route,
+            get_speed,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

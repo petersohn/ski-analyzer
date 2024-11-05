@@ -15,6 +15,11 @@
     name="Accuracy"
     [value]="waypointAccuracy()"
   ></name-value>
+  <name-value
+    *ngIf="!!waypointSpeed()"
+    name="GPX speed"
+    [value]="waypointSpeed()"
+  ></name-value>
 </mat-card>
 
 <mat-card class="card" *ngIf="!!selectedPiste()">
