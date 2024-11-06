@@ -2,7 +2,7 @@ import { Injectable, signal } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
 import { MapService } from "./map.service";
 import { RawSkiArea } from "@/types/skiArea";
-import { RawTrack } from "@/types/track";
+import { RawTrack, Waypoint } from "@/types/track";
 
 @Injectable({ providedIn: "root" })
 export class ActionsService {
@@ -23,6 +23,10 @@ export class ActionsService {
   public async loadTrack(path: string) {
     const data = JSON.parse(await invoke("load_gpx", { path }));
     this.mapService.loadTrack(data as RawTrack);
+  }
+
+  public getSpeed(wp1: Waypoint, wp2: Waypoint): Promise<number | undefined> {
+    return invoke("get_speed", { wp1, wp2 });
   }
 
   private async doJob<T>(job: Promise<T>): Promise<T> {

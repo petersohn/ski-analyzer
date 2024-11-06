@@ -20,6 +20,7 @@
     name="GPX speed"
     [value]="waypointSpeed()"
   ></name-value>
+  <name-value *ngIf="!!speed()" name="Speed" [value]="speed()"></name-value>
 </mat-card>
 
 <mat-card class="card" *ngIf="!!selectedPiste()">

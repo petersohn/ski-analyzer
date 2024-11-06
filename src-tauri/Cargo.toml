@@ -24,3 +24,4 @@ tauri-plugin-dialog = "2.0.0-rc"
 ouroboros = "0.18.4"
 gpx = "0.10.0"
 geo = { version = "0.29.0", features = ["serde"] }
+time = { version = "0.3.36", features = ["macros", "parsing"] }

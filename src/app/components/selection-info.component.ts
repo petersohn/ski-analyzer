@@ -60,7 +60,7 @@ export class SelectionInfoComponent {
   public selectedLift: Signal<Lift | undefined>;
   public selectedActivity: Signal<Activity | undefined>;
   public selectedWaypoint: Signal<Waypoint | undefined>;
-  public previousWaypoint: Signal<Waypoint | undefined>;
+  public currentWaypointSpeed: Signal<number | undefined>;
 
   constructor(
     private readonly mapService: MapService,
@@ -70,7 +70,7 @@ export class SelectionInfoComponent {
     this.selectedLift = this.mapService.selectedLift;
     this.selectedActivity = this.mapService.selectedActivity;
     this.selectedWaypoint = this.mapService.selectedWaypoint;
-    this.previousWaypoint = this.mapService.previousWaypoint;
+    this.currentWaypointSpeed = this.mapService.currentWaypointSpeed;
     effect(() => {
       const color =
         difficultyColors[this.selectedPiste()?.difficulty ?? "Unknown"];
@@ -137,11 +137,20 @@ export class SelectionInfoComponent {
 
   public waypointSpeed = computed(() => {
     const speed = this.selectedWaypoint()?.speed;
-    return speed !== undefined ? speed.toFixed(1) : "";
+    return speed !== undefined ? this.metersPerSecond(speed) : "";
+  });
+
+  public speed = computed(() => {
+    const speed = this.currentWaypointSpeed();
+    return speed !== undefined ? this.metersPerSecond(speed) : "";
   });
 
   private meters(len: number) {
     return Math.round(len) + " m";
+  }
+
+  private metersPerSecond(speed: number) {
+    return speed.toFixed(1) + " m/s";
   }
 
   private getTime(time?: Dayjs | null): string {

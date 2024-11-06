@@ -4000,6 +4000,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tauri-plugin-log",
+ "time",
 ]
 
 [[package]]

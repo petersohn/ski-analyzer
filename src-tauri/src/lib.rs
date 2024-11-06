@@ -1,7 +1,7 @@
 use app_state::AppState;
 use core::str;
 use geo::{Distance, Haversine, Point};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use ski_analyzer_lib::config::{set_config, Config};
 use ski_analyzer_lib::osm_query::query_ski_area;
 use ski_analyzer_lib::osm_reader::Document;
@@ -12,6 +12,8 @@ use std::io::BufReader;
 use std::io::Read;
 use std::sync::Mutex;
 use tauri::Manager;
+use time::format_description::well_known::Rfc3339;
+use time::OffsetDateTime;
 
 mod app_state;
 
@@ -99,9 +101,26 @@ fn get_active_route(
 #[derive(Deserialize)]
 struct WaypointIn {
     point: Point,
-    time: Option<f64>,
+    #[serde(default, deserialize_with = "parse_time")]
+    time: Option<OffsetDateTime>,
 }
 
+fn parse_time<'de, D>(
+    deserializer: D,
+) -> Result<Option<OffsetDateTime>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let time_str: Option<String> = Option::deserialize(deserializer)?;
+    match time_str {
+        None => Ok(None),
+        Some(s) => {
+            let t = OffsetDateTime::parse(&s, &Rfc3339)
+                .map_err(serde::de::Error::custom)?;
+            Ok(Some(t))
+        }
+    }
+}
 #[tauri::command]
 fn get_speed(wp1: WaypointIn, wp2: WaypointIn) -> Option<f64> {
     match (wp1.time, wp2.time) {
@@ -109,7 +128,8 @@ fn get_speed(wp1: WaypointIn, wp2: WaypointIn) -> Option<f64> {
             if t1 == t2 {
                 None
             } else {
-                Some(Haversine::distance(wp1.point, wp2.point) / (t2 - t1))
+                let t = (t2 - t1).as_seconds_f64();
+                Some(Haversine::distance(wp1.point, wp2.point) / t)
             }
         }
         _ => None,

@@ -34,6 +34,7 @@ import {
 } from "@/types/skiArea";
 import { RawTrack, Activity, TrackConverter, Waypoint } from "@/types/track";
 import { MapStyleService, SelectableStyle } from "./map-style.service";
+import { invoke } from "@tauri-apps/api/core";
 
 class EventHandler extends Interaction {
   constructor(private mapService: MapService) {
@@ -126,7 +127,7 @@ export class MapService {
   public selectedLift = signal<Lift | undefined>(undefined);
   public selectedActivity = signal<Activity | undefined>(undefined);
   public selectedWaypoint = signal<Waypoint | undefined>(undefined);
-  public previousWaypoint = signal<Waypoint | undefined>(undefined);
+  public currentWaypointSpeed = signal<number | undefined>(undefined);
 
   private map: OlMap | undefined;
   private readonly baseLayer = new TileLayer({
@@ -453,7 +454,14 @@ export class MapService {
       this.selectedActivityNode = node;
       this.selectFeature(node.feature, styles.node);
       this.selectedWaypoint.set(node.waypoint);
-      this.previousWaypoint.set(node.previousNode?.waypoint);
+      if (node.previousNode !== undefined) {
+        invoke("get_speed", {
+          wp1: node.previousNode.waypoint,
+          wp2: node.waypoint,
+        }).then((speed) =>
+          this.currentWaypointSpeed.set(speed as number | undefined),
+        );
+      }
     }
   }
 
