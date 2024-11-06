@@ -450,19 +450,23 @@ export class MapService {
 
     this.selectedActivity.set(activity);
 
-    if (node !== undefined) {
-      this.selectedActivityNode = node;
-      this.selectFeature(node.feature, styles.node);
-      this.selectedWaypoint.set(node.waypoint);
-      if (node.previousNode !== undefined) {
-        invoke("get_speed", {
-          wp1: node.previousNode.waypoint,
-          wp2: node.waypoint,
-        }).then((speed) =>
-          this.currentWaypointSpeed.set(speed as number | undefined),
-        );
-      }
+    if (node === undefined) {
+      return;
     }
+
+    this.selectedActivityNode = node;
+    this.selectFeature(node.feature, styles.node);
+    this.selectedWaypoint.set(node.waypoint);
+    if (node.previousNode !== undefined) {
+      invoke("get_speed", {
+        wp1: node.previousNode.waypoint,
+        wp2: node.waypoint,
+      }).then((speed) =>
+        this.currentWaypointSpeed.set(speed as number | undefined),
+      );
+    }
+
+    this.ensureWithinView(this.pointToCoordinate(node.waypoint.point));
   }
 
   private selectFeature(feature: Feature | undefined, style: SelectableStyle) {
@@ -500,5 +504,30 @@ export class MapService {
     const view = this.map!.getView();
     view.setResolution(resolution);
     view.setCenter(center);
+  }
+
+  private ensureWithinView(coord: Coordinate) {
+    const view = this.map!.getView();
+    const center = view.getCenter();
+    if (!center) {
+      view.setCenter(coord);
+      return;
+    }
+    const [cx, cy] = center;
+    const resolution = view.getResolution();
+    if (!resolution) {
+      return;
+    }
+    const dx = this.targetElement!.clientWidth * 0.4 * resolution;
+    const minx = cx - dx;
+    const maxx = cx + dx;
+    const dy = this.targetElement!.clientHeight * 0.4 * resolution;
+    const miny = cy - dy;
+    const maxy = cy + dy;
+
+    let [x, y] = coord;
+    if (x < minx || x > maxx || y < miny || y > maxy) {
+      view.setCenter(coord);
+    }
   }
 }
