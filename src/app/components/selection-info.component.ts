@@ -60,6 +60,7 @@ export class SelectionInfoComponent {
   public selectedLift: Signal<Lift | undefined>;
   public selectedActivity: Signal<Activity | undefined>;
   public selectedWaypoint: Signal<Waypoint | undefined>;
+  public previousWaypoint: Signal<Waypoint | undefined>;
 
   constructor(
     private readonly mapService: MapService,
@@ -69,6 +70,7 @@ export class SelectionInfoComponent {
     this.selectedLift = this.mapService.selectedLift;
     this.selectedActivity = this.mapService.selectedActivity;
     this.selectedWaypoint = this.mapService.selectedWaypoint;
+    this.previousWaypoint = this.mapService.previousWaypoint;
     effect(() => {
       const color =
         difficultyColors[this.selectedPiste()?.difficulty ?? "Unknown"];

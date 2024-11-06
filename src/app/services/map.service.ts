@@ -117,6 +117,7 @@ type ActivityNode = {
   coord: Coordinate;
   feature: Feature;
   waypoint: Waypoint;
+  previousNode?: ActivityNode;
 };
 
 @Injectable({ providedIn: "root" })
@@ -125,6 +126,7 @@ export class MapService {
   public selectedLift = signal<Lift | undefined>(undefined);
   public selectedActivity = signal<Activity | undefined>(undefined);
   public selectedWaypoint = signal<Waypoint | undefined>(undefined);
+  public previousWaypoint = signal<Waypoint | undefined>(undefined);
 
   private map: OlMap | undefined;
   private readonly baseLayer = new TileLayer({
@@ -324,21 +326,30 @@ export class MapService {
         this.activityLineFeatures.set(activity, lines);
         features.push(lines);
 
-        const nodes: ActivityNode[] = activity.route.flat(1).map((wp) => {
-          const coord = this.pointToCoordinate(wp.point);
-          const feature = new Feature(new OlPoint(coord));
-          feature.setStyle(styles.node.unselected);
-          features.push(feature);
-          const node = {
-            index: this.allActivityNodes.length,
-            activity,
-            coord,
-            feature,
-            waypoint: wp,
-          };
-          this.allActivityNodes.push(node);
-          return node;
-        });
+        let previousNode: ActivityNode | undefined;
+
+        const nodes: ActivityNode[] = activity.route
+          .map((segment) => {
+            previousNode = undefined;
+            return segment.map((wp) => {
+              const coord = this.pointToCoordinate(wp.point);
+              const feature = new Feature(new OlPoint(coord));
+              feature.setStyle(styles.node.unselected);
+              features.push(feature);
+              const node = {
+                index: this.allActivityNodes.length,
+                activity,
+                coord,
+                feature,
+                waypoint: wp,
+                previousNode,
+              };
+              previousNode = node;
+              this.allActivityNodes.push(node);
+              return node;
+            });
+          })
+          .flat(1);
         this.activityNodeFeatures.set(activity, nodes);
       }
 
@@ -442,6 +453,7 @@ export class MapService {
       this.selectedActivityNode = node;
       this.selectFeature(node.feature, styles.node);
       this.selectedWaypoint.set(node.waypoint);
+      this.previousWaypoint.set(node.previousNode?.waypoint);
     }
   }
 
