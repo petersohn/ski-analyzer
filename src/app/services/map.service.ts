@@ -379,6 +379,9 @@ export class MapService {
     this.selectedLift.set(undefined);
     this.selectedActivity.set(undefined);
     this.selectedActivityNode = undefined;
+    this.selectedWaypoint.set(undefined);
+    this.currentWaypointSpeed.set(undefined);
+    this.currentWaypointClosestLift.set(undefined);
 
     for (const feature of this.selectedFeatures) {
       feature.feature.setStyle(feature.revertStyle);
