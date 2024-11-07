@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use geo::{Distance, Haversine, Point};
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use ski_analyzer_lib::osm_query::query_ski_area;
 use ski_analyzer_lib::osm_reader::Document;
 use ski_analyzer_lib::ski_area::SkiArea;
@@ -118,17 +118,38 @@ where
         }
     }
 }
+
 #[tauri::command]
 pub fn get_speed(wp1: WaypointIn, wp2: WaypointIn) -> Option<f64> {
-    match (wp1.time, wp2.time) {
-        (Some(t1), Some(t2)) => {
-            if t1 == t2 {
-                None
-            } else {
-                let t = (t2 - t1).as_seconds_f64();
-                Some(Haversine::distance(wp1.point, wp2.point) / t)
-            }
-        }
-        _ => None,
+    let t1 = wp1.time?;
+    let t2 = wp2.time?;
+    if t1 == t2 {
+        None
+    } else {
+        let t = (t2 - t1).as_seconds_f64();
+        Some(Haversine::distance(wp1.point, wp2.point) / t)
     }
+}
+
+#[derive(Serialize)]
+pub struct ClosestLift {
+    lift_id: String,
+    distance: f64,
+}
+
+#[tauri::command]
+pub fn get_closest_lift(
+    state: tauri::State<Mutex<AppState>>,
+    p: Point,
+    limit: f64,
+) -> Result<Option<ClosestLift>, String> {
+    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    Ok((|| {
+        let (lift, distance) =
+            app_state.get_ski_area()?.get_closest_lift(p, limit)?;
+        Some(ClosestLift {
+            lift_id: lift.unique_id.clone(),
+            distance,
+        })
+    })())
 }

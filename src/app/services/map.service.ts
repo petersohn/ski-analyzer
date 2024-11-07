@@ -128,6 +128,9 @@ export class MapService {
   public selectedActivity = signal<Activity | undefined>(undefined);
   public selectedWaypoint = signal<Waypoint | undefined>(undefined);
   public currentWaypointSpeed = signal<number | undefined>(undefined);
+  public currentWaypointClosestLift = signal<
+    { lift: Lift; distance: number } | undefined
+  >(undefined);
 
   private map: OlMap | undefined;
   private readonly baseLayer = new TileLayer({
@@ -465,6 +468,20 @@ export class MapService {
         this.currentWaypointSpeed.set(speed as number | undefined),
       );
     }
+
+    invoke("get_closest_lift", {
+      p: node.waypoint.point,
+      limit: 100.0,
+    }).then((data) => {
+      if (!data) {
+        this.currentWaypointClosestLift.set(undefined);
+      }
+      let { lift_id, distance } = data as { lift_id: string; distance: number };
+      this.currentWaypointClosestLift.set({
+        lift: this.skiArea!.lifts.get(lift_id)!,
+        distance,
+      });
+    });
 
     this.ensureWithinView(this.pointToCoordinate(node.waypoint.point));
   }

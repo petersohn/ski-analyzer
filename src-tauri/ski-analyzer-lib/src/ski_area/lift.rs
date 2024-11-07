@@ -1,4 +1,7 @@
-use geo::{Haversine, Length, Line, LineString};
+use geo::{
+    Closest, Distance, Haversine, HaversineClosestPoint, Length, Line,
+    LineString, Point,
+};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 
@@ -13,6 +16,13 @@ use crate::osm_reader::{
 };
 use crate::utils::bounded_geometry::BoundedGeometry;
 
+pub struct LiftClosestPoint {
+    pub line_id: usize,
+    pub line: Line,
+    pub point: Point,
+    pub distance: f64,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Lift {
     pub unique_id: String,
@@ -26,6 +36,34 @@ pub struct Lift {
     pub can_go_reverse: bool,
     pub can_disembark: bool,
     pub lengths: Vec<f64>,
+}
+
+impl Lift {
+    pub fn get_closest_point(&self, p: Point) -> Option<LiftClosestPoint> {
+        self.line
+            .item
+            .lines()
+            .enumerate()
+            .map(|(line_id, line)| {
+                let point = match line.haversine_closest_point(&p) {
+                    Closest::Intersection(p2) => p2,
+                    Closest::SinglePoint(p2) => p2,
+                    Closest::Indeterminate => {
+                        panic!(
+                            "Cannot determine distance between {:?} and {:?}",
+                            p, line
+                        );
+                    }
+                };
+                LiftClosestPoint {
+                    line_id,
+                    line,
+                    point,
+                    distance: Haversine::distance(p, point),
+                }
+            })
+            .min_by(|d1, d2| d1.distance.total_cmp(&d2.distance))
+    }
 }
 
 impl UniqueId for Lift {
@@ -281,8 +319,7 @@ pub fn parse_lift<'d>(
         lengths.reverse();
     }
 
-    let mut line = BoundedGeometry::new(LineString::new(line_points))?;
-    line.expand(10.0);
+    let line = BoundedGeometry::new(LineString::new(line_points))?;
     let can_disembark = DRAGLIFT_TYPES.contains(&aerialway_type.as_str());
 
     Ok(Some(Lift {

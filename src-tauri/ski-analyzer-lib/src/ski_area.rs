@@ -1,4 +1,4 @@
-use geo::{Point, Rect};
+use geo::{Intersects, Point, Rect};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
@@ -42,12 +42,6 @@ pub struct SkiArea {
     pub bounding_rect: Rect,
     #[serde(with = "time_ser")]
     pub date: OffsetDateTime,
-}
-
-impl SkiArea {
-    pub fn clip_piste_lines(&mut self) {
-        self.pistes.iter_mut().for_each(|p| p.clip_lines());
-    }
 }
 
 pub trait UniqueId {
@@ -120,5 +114,23 @@ impl SkiArea {
             bounding_rect,
             date: doc.osm3s.timestamp_osm_base,
         })
+    }
+
+    pub fn clip_piste_lines(&mut self) {
+        self.pistes.iter_mut().for_each(|p| p.clip_lines());
+    }
+
+    pub fn get_closest_lift<'a>(
+        &'a self,
+        p: Point,
+        limit: f64,
+    ) -> Option<(&'a Lift, f64)> {
+        let (lift, c) = self
+            .lifts
+            .iter()
+            .filter(|l| l.line.expanded_rect(limit).intersects(&p))
+            .filter_map(|l| Some((l, l.get_closest_point(p)?)))
+            .min_by(|(_, c1), (_, c2)| c1.distance.total_cmp(&c2.distance))?;
+        Some((lift, c.distance))
     }
 }

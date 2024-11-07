@@ -5,10 +5,7 @@ use crate::utils::collection::Avg;
 use std::fmt::Debug;
 use std::mem::take;
 
-use geo::{
-    BoundingRect, Closest, Distance, Haversine, HaversineClosestPoint,
-    Intersects, Length, Point,
-};
+use geo::{Distance, Haversine, Intersects, Length, Point};
 use gpx::Waypoint;
 use serde::Serialize;
 
@@ -42,26 +39,8 @@ struct LiftDistance {
 
 impl LiftDistance {
     fn get(lift: &Lift, p: Point) -> Option<Self> {
-        let (segment, line, p2, from_line) = lift
-            .line
-            .item
-            .lines()
-            .enumerate()
-            .map(|(i, line)| {
-                let p2 = match line.haversine_closest_point(&p) {
-                    Closest::Intersection(p2) => p2,
-                    Closest::SinglePoint(p2) => p2,
-                    Closest::Indeterminate => {
-                        panic!(
-                            "Cannot determine distance between {:?} and {:?}",
-                            p, line
-                        );
-                    }
-                };
-                (i, line, p2, Haversine::distance(p, p2))
-            })
-            .min_by(|(_, _, _, d1), (_, _, _, d2)| d1.total_cmp(d2))?;
-        if from_line > MIN_DISTANCE {
+        let distance = lift.get_closest_point(p)?;
+        if distance.distance > MIN_DISTANCE {
             return None;
         }
         Some(LiftDistance {
@@ -69,10 +48,13 @@ impl LiftDistance {
                 .line
                 .item
                 .lines()
-                .take(segment)
+                .take(distance.line_id)
                 .fold(0.0, |acc, l| acc + l.length::<Haversine>())
-                + Haversine::distance(p2, line.start.into()),
-            from_line,
+                + Haversine::distance(
+                    distance.point,
+                    distance.line.start.into(),
+                ),
+            from_line: distance.distance,
         })
     }
 }
@@ -139,9 +121,13 @@ impl<'s> LiftCandidate<'s> {
     where
         It: Iterator<Item = &'s Lift>,
     {
-        it.filter(|l| l.line.bounding_rect().intersects(&point.point()))
-            .filter_map(|l| LiftCandidate::create(l, coordinate, point))
-            .collect()
+        it.filter(|l| {
+            l.line
+                .expanded_rect(MIN_DISTANCE)
+                .intersects(&point.point())
+        })
+        .filter_map(|l| LiftCandidate::create(l, coordinate, point))
+        .collect()
     }
 
     fn leave(&mut self, coordinate: SegmentCoordinate) -> LiftResult {

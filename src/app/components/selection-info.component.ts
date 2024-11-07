@@ -61,6 +61,9 @@ export class SelectionInfoComponent {
   public selectedActivity: Signal<Activity | undefined>;
   public selectedWaypoint: Signal<Waypoint | undefined>;
   public currentWaypointSpeed: Signal<number | undefined>;
+  public currentWaypointClosestLift: Signal<
+    { lift: Lift; distance: number } | undefined
+  >;
 
   constructor(
     private readonly mapService: MapService,
@@ -71,6 +74,8 @@ export class SelectionInfoComponent {
     this.selectedActivity = this.mapService.selectedActivity;
     this.selectedWaypoint = this.mapService.selectedWaypoint;
     this.currentWaypointSpeed = this.mapService.currentWaypointSpeed;
+    this.currentWaypointClosestLift =
+      this.mapService.currentWaypointClosestLift;
     effect(() => {
       const color =
         difficultyColors[this.selectedPiste()?.difficulty ?? "Unknown"];
@@ -143,6 +148,13 @@ export class SelectionInfoComponent {
   public speed = computed(() => {
     const speed = this.currentWaypointSpeed();
     return speed !== undefined ? this.metersPerSecond(speed) : "";
+  });
+
+  public closestLift = computed(() => {
+    const lift = this.currentWaypointClosestLift();
+    return lift !== undefined
+      ? `${lift.lift.name} (${this.meters(lift.distance)})`
+      : "";
   });
 
   private meters(len: number) {

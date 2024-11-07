@@ -33,8 +33,7 @@ fn lift(
             elevation: 0,
         })
         .collect();
-    let mut line = BoundedGeometry::new(line_).unwrap();
-    line.expand(10.0);
+    let line = BoundedGeometry::new(line_).unwrap();
     Lift {
         unique_id: String::new(),
         ref_: String::new(),

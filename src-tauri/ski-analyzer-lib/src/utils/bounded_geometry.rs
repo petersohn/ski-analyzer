@@ -1,10 +1,8 @@
-use geo::{
-    coord, BoundingRect, CoordFloat, CoordNum, Destination, Haversine, Point,
-    Rect,
-};
+use geo::{BoundingRect, CoordFloat, CoordNum, Rect};
 use num_traits::cast::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
+use super::rect::expand_rect;
 use crate::error::{Error, ErrorType, Result};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -35,24 +33,13 @@ where
         })
     }
 
-    pub fn expand(&mut self, amount: C)
+    pub fn expanded_rect(&self, amount: C) -> Rect<C>
     where
         C: CoordFloat + FromPrimitive,
     {
-        let min_p = Point::from(self.bounding_rect.min());
-        let max_p = Point::from(self.bounding_rect.max());
-        let min_x =
-            Haversine::destination(min_p, C::from(-90.0).unwrap(), amount);
-        let min_y =
-            Haversine::destination(min_p, C::from(180.0).unwrap(), amount);
-        let max_x =
-            Haversine::destination(max_p, C::from(90.0).unwrap(), amount);
-        let max_y =
-            Haversine::destination(max_p, C::from(0.0).unwrap(), amount);
-        self.bounding_rect = Rect::new(
-            coord! { x: min_x.x(), y: min_y.y() },
-            coord! { x: max_x.x(), y: max_y.y() },
-        );
+        let mut rect = self.bounding_rect;
+        expand_rect(&mut rect, amount);
+        rect
     }
 }
 

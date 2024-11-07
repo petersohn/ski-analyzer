@@ -30,6 +30,7 @@ pub fn run() {
             commands::get_active_ski_area,
             commands::get_active_route,
             commands::get_speed,
+            commands::get_closest_lift,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
