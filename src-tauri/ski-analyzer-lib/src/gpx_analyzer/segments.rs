@@ -2,7 +2,7 @@ use super::{format_time_option, to_odt};
 use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use crate::utils::bounded_geometry::BoundedGeometry;
-use crate::utils::rect::union_rects;
+use crate::utils::rect::union_rects_if;
 
 use geo::{Coord, Rect};
 use gpx::{Gpx, Time, Waypoint};
@@ -76,10 +76,7 @@ pub fn get_segments<'g>(gpx: &'g Gpx) -> Result<BoundedGeometry<Segments<'g>>> {
                     current.push(waypoint);
                     let coord = Coord::from(waypoint.point());
                     let r0 = Rect::new(coord, coord);
-                    bounding_rect = Some(match bounding_rect {
-                        None => r0,
-                        Some(r) => union_rects(r, r0),
-                    });
+                    bounding_rect = union_rects_if(bounding_rect, Some(r0));
                 }
             }
             add(&mut current);

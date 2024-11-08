@@ -4,11 +4,14 @@ use super::Segments;
 use super::{Activity, ActivityType, LiftEnd, UseLift};
 use crate::ski_area::{Lift, PointWithElevation, SkiArea};
 use crate::utils::bounded_geometry::BoundedGeometry;
-use crate::utils::test_util::{init, Init};
+use crate::utils::rect::union_rects_all;
+use crate::utils::test_util::{init, save_ski_area, Init};
 
+use ::function_name::named;
 use geo::{coord, point, LineString, Rect};
 use gpx::{Gpx, Track, TrackSegment, Waypoint};
 use rstest::{fixture, rstest};
+use std::fs;
 use time::OffsetDateTime;
 
 fn line(input: &[(f64, f64)]) -> LineString {
@@ -47,15 +50,14 @@ fn lift(
     }
 }
 
-fn ski_area(lifts: Vec<Lift>) -> SkiArea {
+fn ski_area(name: &str, lifts: Vec<Lift>) -> SkiArea {
+    let bounding_rect =
+        union_rects_all(lifts.iter().map(|l| l.line.iter())).unwrap();
     SkiArea {
-        name: String::new(),
+        name: name.to_string(),
         lifts,
         pistes: Vec::new(),
-        bounding_rect: Rect::new(
-            coord! { x: 0.0, y: 0.0 },
-            coord! { x: 0.0, y: 0.0 },
-        ),
+        bounding_rect,
         date: OffsetDateTime::UNIX_EPOCH,
     }
 }
@@ -366,8 +368,13 @@ fn restart_segment_2() -> TrackSegment {
     ])
 }
 
-fn run(s: &SkiArea, segments: &Segments, expected: &Vec<Activity>) {
+fn run(s: &SkiArea, segments: &Segments, expected: &Vec<Activity>, name: &str) {
+    let dir = format!("test_output/use_lift_test/{}", name);
+    fs::create_dir_all(&dir).unwrap();
+    save_ski_area(s, &format!("{}/ski_area.json", dir));
+
     let actual = find_lift_usage(&s, &segments);
+
     assert!(
         ptrize_activities(&actual) == ptrize_activities(&expected),
         "Actual: {:#?}\nExpected: {:#?}",
@@ -377,9 +384,12 @@ fn run(s: &SkiArea, segments: &Segments, expected: &Vec<Activity>) {
 }
 
 #[rstest]
+#[named]
 fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, false)],
+    );
     let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
     let expected: Vec<Activity> = vec![
@@ -402,17 +412,20 @@ fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn simple_reverse_bad(
     _init: Init,
     line00: LineString,
     mut simple_segment: TrackSegment,
 ) {
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, false)],
+    );
     simple_segment.points.reverse();
     let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
@@ -422,17 +435,20 @@ fn simple_reverse_bad(
         get_segment_part(&segments, (0, 0), (0, 21)),
     )];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn simple_reverse_good(
     _init: Init,
     line00: LineString,
     mut simple_segment: TrackSegment,
 ) {
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[], true, false)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], true, false)],
+    );
     simple_segment.points.reverse();
     let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
@@ -457,13 +473,16 @@ fn simple_reverse_good(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn get_out_bad(_init: Init, line00: LineString, get_out_segment: TrackSegment) {
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, false)],
+    );
     let g = make_gpx(vec![get_out_segment]);
     let segments = get_segments(&g);
 
@@ -472,17 +491,20 @@ fn get_out_bad(_init: Init, line00: LineString, get_out_segment: TrackSegment) {
         get_segment_part(&segments, (0, 0), (0, 30)),
     )];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn get_out_good(
     _init: Init,
     line00: LineString,
     get_out_segment: TrackSegment,
 ) {
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, true)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, true)],
+    );
     let g = make_gpx(vec![get_out_segment]);
     let segments = get_segments(&g);
 
@@ -506,17 +528,20 @@ fn get_out_good(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn get_out_good_2(
     _init: Init,
     line00: LineString,
     get_out_segment_2: TrackSegment,
 ) {
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, true)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, true)],
+    );
     let g = make_gpx(vec![get_out_segment_2]);
     let segments = get_segments(&g);
 
@@ -540,17 +565,20 @@ fn get_out_good_2(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn get_out_good_multisegment(
     _init: Init,
     line00: LineString,
     mut get_out_segment: TrackSegment,
 ) {
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, false)],
+    );
     let mut seg2 = TrackSegment::new();
     seg2.points
         .append(&mut get_out_segment.points.split_off(28));
@@ -578,13 +606,16 @@ fn get_out_good_multisegment(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn get_in_bad(_init: Init, line00: LineString, get_in_segment: TrackSegment) {
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, false)],
+    );
     let g = make_gpx(vec![get_in_segment]);
     let segments = get_segments(&g);
 
@@ -593,10 +624,11 @@ fn get_in_bad(_init: Init, line00: LineString, get_in_segment: TrackSegment) {
         get_segment_part(&segments, (0, 0), (0, 14)),
     )];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn get_in_good_multisegment(
     _init: Init,
     line00: LineString,
@@ -606,8 +638,10 @@ fn get_in_good_multisegment(
     get_in_segment_2
         .points
         .append(&mut get_in_segment.points.drain(3..).collect());
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, false)],
+    );
     let g = make_gpx(vec![get_in_segment, get_in_segment_2]);
     let segments = get_segments(&g);
 
@@ -631,20 +665,24 @@ fn get_in_good_multisegment(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn multiple_distinct_lifts(
     _init: Init,
     line00: LineString,
     line10: LineString,
     multiple_distinct_lifts_segment: TrackSegment,
 ) {
-    let s = ski_area(vec![
-        lift("Lift 1".to_string(), line00, &[], false, false),
-        lift("Lift 2".to_string(), line10, &[], false, false),
-    ]);
+    let s = ski_area(
+        function_name!(),
+        vec![
+            lift("Lift 1".to_string(), line00, &[], false, false),
+            lift("Lift 2".to_string(), line10, &[], false, false),
+        ],
+    );
     let g = make_gpx(vec![multiple_distinct_lifts_segment]);
     let segments = get_segments(&g);
 
@@ -681,10 +719,11 @@ fn multiple_distinct_lifts(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn multiple_lifts_same_start_take_longer(
     _init: Init,
     mut line00: LineString,
@@ -692,10 +731,13 @@ fn multiple_lifts_same_start_take_longer(
     simple_segment: TrackSegment,
 ) {
     line00.0.pop();
-    let s = ski_area(vec![
-        lift("Lift 1".to_string(), line00, &[], false, false),
-        lift("Lift 2".to_string(), line01, &[], false, false),
-    ]);
+    let s = ski_area(
+        function_name!(),
+        vec![
+            lift("Lift 1".to_string(), line00, &[], false, false),
+            lift("Lift 2".to_string(), line01, &[], false, false),
+        ],
+    );
     let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
 
@@ -719,10 +761,11 @@ fn multiple_lifts_same_start_take_longer(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn multiple_lifts_same_end_take_longer(
     _init: Init,
     line00: LineString,
@@ -730,10 +773,13 @@ fn multiple_lifts_same_end_take_longer(
     simple_segment: TrackSegment,
 ) {
     line01.0.remove(0);
-    let s = ski_area(vec![
-        lift("Lift 1".to_string(), line00, &[], false, false),
-        lift("Lift 2".to_string(), line01, &[], false, false),
-    ]);
+    let s = ski_area(
+        function_name!(),
+        vec![
+            lift("Lift 1".to_string(), line00, &[], false, false),
+            lift("Lift 2".to_string(), line01, &[], false, false),
+        ],
+    );
     let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
 
@@ -757,10 +803,11 @@ fn multiple_lifts_same_end_take_longer(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn multiple_lifts_same_end_take_shorter(
     _init: Init,
     mut line00: LineString,
@@ -768,10 +815,13 @@ fn multiple_lifts_same_end_take_shorter(
     get_in_segment: TrackSegment,
 ) {
     line00.0.drain(0..3);
-    let s = ski_area(vec![
-        lift("Lift 1".to_string(), line00, &[], false, false),
-        lift("Lift 2".to_string(), line01, &[], false, false),
-    ]);
+    let s = ski_area(
+        function_name!(),
+        vec![
+            lift("Lift 1".to_string(), line00, &[], false, false),
+            lift("Lift 2".to_string(), line01, &[], false, false),
+        ],
+    );
     let g = make_gpx(vec![get_in_segment]);
     let segments = get_segments(&g);
 
@@ -795,10 +845,11 @@ fn multiple_lifts_same_end_take_shorter(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn multiple_lifts_same_start_take_shorter(
     _init: Init,
     mut line00: LineString,
@@ -809,10 +860,13 @@ fn multiple_lifts_same_start_take_shorter(
     line01.0.reverse();
     get_in_segment.points.reverse();
     line01.0.truncate(2);
-    let s = ski_area(vec![
-        lift("Lift 1".to_string(), line00, &[], false, false),
-        lift("Lift 2".to_string(), line01, &[], false, false),
-    ]);
+    let s = ski_area(
+        function_name!(),
+        vec![
+            lift("Lift 1".to_string(), line00, &[], false, false),
+            lift("Lift 2".to_string(), line01, &[], false, false),
+        ],
+    );
     let g = make_gpx(vec![get_in_segment]);
     let segments = get_segments(&g);
 
@@ -836,17 +890,20 @@ fn multiple_lifts_same_start_take_shorter(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn midstation_get_in(
     _init: Init,
     line00: LineString,
     get_in_segment: TrackSegment,
 ) {
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[3], false, false)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[3], false, false)],
+    );
     let g = make_gpx(vec![get_in_segment]);
     let segments = get_segments(&g);
 
@@ -870,10 +927,11 @@ fn midstation_get_in(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn midstation_get_out(
     _init: Init,
     mut line00: LineString,
@@ -881,8 +939,10 @@ fn midstation_get_out(
 ) {
     line00.0.reverse();
     get_in_segment.points.reverse();
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[1], false, false)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[1], false, false)],
+    );
     let g = make_gpx(vec![get_in_segment]);
     let segments = get_segments(&g);
 
@@ -906,7 +966,7 @@ fn midstation_get_out(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
@@ -916,10 +976,13 @@ fn parallel_lifts(
     line01: LineString,
     simple_segment: TrackSegment,
 ) {
-    let s = ski_area(vec![
-        lift("Lift 1".to_string(), line00, &[], false, false),
-        lift("Lift 2".to_string(), line01, &[], false, false),
-    ]);
+    let s = ski_area(
+        function_name!(),
+        vec![
+            lift("Lift 1".to_string(), line00, &[], false, false),
+            lift("Lift 2".to_string(), line01, &[], false, false),
+        ],
+    );
     let g = make_gpx(vec![simple_segment]);
     let segments = get_segments(&g);
 
@@ -943,13 +1006,16 @@ fn parallel_lifts(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, false)],
+    );
     let g = make_gpx(vec![zigzag_segment]);
     let segments = get_segments(&g);
 
@@ -973,18 +1039,21 @@ fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn restart_with_new_segment(
     _init: Init,
     line00: LineString,
     restart_segment_1: TrackSegment,
     restart_segment_2: TrackSegment,
 ) {
-    let s =
-        ski_area(vec![lift("Lift 1".to_string(), line00, &[], false, false)]);
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, false)],
+    );
     let g = make_gpx(vec![restart_segment_1, restart_segment_2]);
     let segments = get_segments(&g);
 
@@ -1017,5 +1086,5 @@ fn restart_with_new_segment(
         ),
     ];
 
-    run(&s, &segments, &expected);
+    run(&s, &segments, &expected, function_name!());
 }

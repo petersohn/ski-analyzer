@@ -1,7 +1,13 @@
 use geo::{coord, CoordFloat, Destination, Haversine, Point, Rect};
 use num_traits::cast::FromPrimitive;
 
-pub fn union_rects(r1: Rect, r2: Rect) -> Rect {
+#[cfg(test)]
+use geo::BoundingRect;
+
+pub fn union_rects<C>(r1: Rect<C>, r2: Rect<C>) -> Rect<C>
+where
+    C: CoordFloat,
+{
     Rect::new(
         coord! {
             x: r1.min().x.min(r2.min().x),
@@ -29,12 +35,23 @@ where
     rect.set_max(coord! { x: max_x.x(), y: max_y.y() });
 }
 
+pub fn union_rects_if<C>(
+    r1: Option<Rect<C>>,
+    r2: Option<Rect<C>>,
+) -> Option<Rect<C>>
+where
+    C: CoordFloat,
+{
+    Some(union_rects(r1?, r2?))
+}
+
 #[cfg(test)]
-pub fn union_rects_if(r1: Option<Rect>, r2: Option<Rect>) -> Option<Rect> {
-    match (r1, r2) {
-        (None, None) => None,
-        (Some(r), None) => Some(r),
-        (None, Some(r)) => Some(r),
-        (Some(r1), Some(r2)) => Some(union_rects(r1, r2)),
-    }
+pub fn union_rects_all<It, C>(it: It) -> Option<Rect<C>>
+where
+    It: Iterator,
+    It::Item: AsRef<BoundingRect<C>>,
+    C: CoordFloat,
+{
+    it.map(|x| x.bounding_rect().into())
+        .reduce(union_rects_if)?
 }

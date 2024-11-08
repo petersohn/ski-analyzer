@@ -260,9 +260,9 @@ impl PisteOut {
     }
 }
 
-fn to_ski_area(name: &str, pistes: &[Piste]) -> SkiArea {
+fn to_ski_area(name: String, pistes: &[Piste]) -> SkiArea {
     SkiArea {
-        name: name.to_string(),
+        name: name,
         lifts: vec![],
         pistes: pistes.to_vec(),
         bounding_rect: pistes
@@ -282,13 +282,13 @@ where
     fs::create_dir_all(&dir).unwrap();
     save_ski_area(
         &to_ski_area(
-            "Expected",
+            format!("{}.Expected", name),
             &expected.map(|p| p.to_piste()).collect::<Vec<Piste>>(),
         ),
         &format!("{}/expected.json", dir),
     );
     save_ski_area(
-        &to_ski_area("Actual", &actual),
+        &to_ski_area(format!("{}.Actual", name), &actual),
         &format!("{}/actual.json", dir),
     );
 }
