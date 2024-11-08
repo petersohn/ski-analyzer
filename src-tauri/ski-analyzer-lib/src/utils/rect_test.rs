@@ -1,4 +1,4 @@
-use super::rect::union_rects;
+use super::rect::{union_rects, union_rects_if};
 use geo::{coord, Rect};
 
 fn rect(x1: f64, y1: f64, x2: f64, y2: f64) -> Rect {
@@ -45,4 +45,29 @@ fn b_right_up_of_a() {
     let a = rect(3.0, 1.0, 20.0, 10.0);
     let b = rect(9.0, -10.0, 15.0, 2.0);
     assert_eq!(union_rects(a, b), rect(3.0, -10.0, 20.0, 10.0));
+}
+
+#[test]
+fn union_rects_if_both_none() {
+    assert_eq!(union_rects_if::<f64>(None, None), None);
+}
+
+#[test]
+fn union_rects_if_left_none() {
+    let r = rect(0.0, 1.0, 5.0, 10.0);
+    assert_eq!(union_rects_if(None, Some(r)), Some(r));
+}
+
+#[test]
+fn union_rects_if_right_none() {
+    let r = rect(0.0, 1.0, 5.0, 10.0);
+    assert_eq!(union_rects_if(Some(r), None), Some(r));
+}
+
+#[test]
+fn union_rects_if_both_some() {
+    let a = rect(3.0, 1.0, 20.0, 10.0);
+    let b = rect(9.0, -10.0, 15.0, 2.0);
+    let res = rect(3.0, -10.0, 20.0, 10.0);
+    assert_eq!(union_rects_if(Some(a), Some(b)), Some(res));
 }

@@ -8,7 +8,7 @@ use piste::parse_pistes;
 use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{get_tag, Document};
-use crate::utils::rect::union_rects;
+use crate::utils::rect::union_rects_all;
 use crate::utils::time_ser;
 
 mod lift;
@@ -98,21 +98,29 @@ impl SkiArea {
             eprintln!("Found {} pistes.", pistes.len());
         }
 
-        let bounding_rect = lifts
-            .iter()
-            .map(|l| l.line.bounding_rect)
-            .chain(pistes.iter().map(|p| p.data.bounding_rect))
-            .reduce(union_rects)
-            .ok_or_else(|| {
-                Error::new_s(ErrorType::OSMError, "Empty ski area")
-            })?;
+        SkiArea::new(name, lifts, pistes, doc.osm3s.timestamp_osm_base)
+    }
+
+    pub fn new(
+        name: String,
+        lifts: Vec<Lift>,
+        pistes: Vec<Piste>,
+        date: OffsetDateTime,
+    ) -> Result<Self> {
+        let bounding_rect = union_rects_all(
+            lifts
+                .iter()
+                .map(|l| l.line.bounding_rect)
+                .chain(pistes.iter().map(|p| p.data.bounding_rect)),
+        )
+        .ok_or_else(|| Error::new_s(ErrorType::OSMError, "Empty ski area"))?;
 
         Ok(SkiArea {
             name,
             lifts,
             pistes,
             bounding_rect,
-            date: doc.osm3s.timestamp_osm_base,
+            date,
         })
     }
 

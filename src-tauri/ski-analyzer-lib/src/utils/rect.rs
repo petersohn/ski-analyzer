@@ -1,9 +1,6 @@
 use geo::{coord, CoordFloat, Destination, Haversine, Point, Rect};
 use num_traits::cast::FromPrimitive;
 
-#[cfg(test)]
-use geo::BoundingRect;
-
 pub fn union_rects<C>(r1: Rect<C>, r2: Rect<C>) -> Rect<C>
 where
     C: CoordFloat,
@@ -42,16 +39,28 @@ pub fn union_rects_if<C>(
 where
     C: CoordFloat,
 {
-    Some(union_rects(r1?, r2?))
+    match (r1, r2) {
+        (None, None) => None,
+        (Some(r), None) => Some(r),
+        (None, Some(r)) => Some(r),
+        (Some(r1), Some(r2)) => Some(union_rects(r1, r2)),
+    }
 }
 
-#[cfg(test)]
 pub fn union_rects_all<It, C>(it: It) -> Option<Rect<C>>
 where
-    It: Iterator,
-    It::Item: AsRef<BoundingRect<C>>,
+    It: Iterator<Item = Rect<C>>,
     C: CoordFloat,
 {
-    it.map(|x| x.bounding_rect().into())
-        .reduce(union_rects_if)?
+    it.reduce(union_rects)
 }
+
+//pub fn union_bounding_rects_all<'a, It, C, T>(it: It) -> Option<Rect<C>>
+//where
+//    It: Iterator<Item = &'a T>,
+//    T: BoundingRect<C> + 'a,
+//    C: CoordFloat,
+//{
+//    it.map(|x| x.bounding_rect().into())
+//        .reduce(union_rects_if)?
+//}

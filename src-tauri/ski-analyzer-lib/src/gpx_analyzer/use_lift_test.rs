@@ -1,4 +1,4 @@
-use super::test_util::{ptrize, SegmentsPtr};
+use super::test_util::{ptrize, save_analyzed_route, SegmentsPtr};
 use super::use_lift::find_lift_usage;
 use super::Segments;
 use super::{Activity, ActivityType, LiftEnd, UseLift};
@@ -51,15 +51,13 @@ fn lift(
 }
 
 fn ski_area(name: &str, lifts: Vec<Lift>) -> SkiArea {
-    let bounding_rect =
-        union_rects_all(lifts.iter().map(|l| l.line.iter())).unwrap();
-    SkiArea {
-        name: name.to_string(),
+    SkiArea::new(
+        name.to_string(),
         lifts,
-        pistes: Vec::new(),
-        bounding_rect,
-        date: OffsetDateTime::UNIX_EPOCH,
-    }
+        Vec::new(),
+        OffsetDateTime::UNIX_EPOCH,
+    )
+    .unwrap()
 }
 
 fn segment(input: &[(f64, f64, Option<OffsetDateTime>)]) -> TrackSegment {
@@ -368,18 +366,42 @@ fn restart_segment_2() -> TrackSegment {
     ])
 }
 
-fn run(s: &SkiArea, segments: &Segments, expected: &Vec<Activity>, name: &str) {
+fn run<'s, 'g>(
+    s: &'s SkiArea,
+    segments: Segments<'g>,
+    expected: Vec<Activity<'s, 'g>>,
+    name: &str,
+) {
     let dir = format!("test_output/use_lift_test/{}", name);
     fs::create_dir_all(&dir).unwrap();
     save_ski_area(s, &format!("{}/ski_area.json", dir));
 
+    let bounding_rect = union_rects_all(
+        segments
+            .iter()
+            .flatten()
+            .map(|wp| Rect::new(wp.point(), wp.point())),
+    )
+    .unwrap();
+    let expected_route = BoundedGeometry {
+        item: expected,
+        bounding_rect,
+    };
+    save_analyzed_route(&expected_route, &format!("{}/expected.json", dir));
+
     let actual = find_lift_usage(&s, &segments);
+    let actual_route = BoundedGeometry {
+        item: actual,
+        bounding_rect,
+    };
+    save_analyzed_route(&actual_route, &format!("{}/actual.json", dir));
 
     assert!(
-        ptrize_activities(&actual) == ptrize_activities(&expected),
+        ptrize_activities(&actual_route.item)
+            == ptrize_activities(&expected_route.item),
         "Actual: {:#?}\nExpected: {:#?}",
-        actual,
-        expected
+        actual_route.item,
+        expected_route.item
     );
 }
 
@@ -412,7 +434,7 @@ fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -435,7 +457,7 @@ fn simple_reverse_bad(
         get_segment_part(&segments, (0, 0), (0, 21)),
     )];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -473,7 +495,7 @@ fn simple_reverse_good(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -491,7 +513,7 @@ fn get_out_bad(_init: Init, line00: LineString, get_out_segment: TrackSegment) {
         get_segment_part(&segments, (0, 0), (0, 30)),
     )];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -528,7 +550,7 @@ fn get_out_good(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -565,7 +587,7 @@ fn get_out_good_2(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -606,7 +628,7 @@ fn get_out_good_multisegment(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -624,7 +646,7 @@ fn get_in_bad(_init: Init, line00: LineString, get_in_segment: TrackSegment) {
         get_segment_part(&segments, (0, 0), (0, 14)),
     )];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -665,7 +687,7 @@ fn get_in_good_multisegment(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -719,7 +741,7 @@ fn multiple_distinct_lifts(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -761,7 +783,7 @@ fn multiple_lifts_same_start_take_longer(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -803,7 +825,7 @@ fn multiple_lifts_same_end_take_longer(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -845,7 +867,7 @@ fn multiple_lifts_same_end_take_shorter(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -890,7 +912,7 @@ fn multiple_lifts_same_start_take_shorter(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -927,7 +949,7 @@ fn midstation_get_in(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -966,10 +988,11 @@ fn midstation_get_out(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
+#[named]
 fn parallel_lifts(
     _init: Init,
     line00: LineString,
@@ -1006,7 +1029,7 @@ fn parallel_lifts(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -1039,7 +1062,7 @@ fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
 
 #[rstest]
@@ -1086,5 +1109,5 @@ fn restart_with_new_segment(
         ),
     ];
 
-    run(&s, &segments, &expected, function_name!());
+    run(&s, segments, expected, function_name!());
 }
