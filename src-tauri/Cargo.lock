@@ -1759,6 +1759,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfabaf0e8a17a6fb7977fac3bd5846488462edb9f8b246605835483a5501e698"
 dependencies = [
  "geo-types",
+ "serde",
  "thiserror",
  "time",
  "xml-rs",

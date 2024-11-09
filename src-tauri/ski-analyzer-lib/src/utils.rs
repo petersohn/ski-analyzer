@@ -1,5 +1,6 @@
 pub mod bounded_geometry;
 pub mod collection;
+pub mod option_time_ser;
 pub mod rect;
 pub mod result;
 pub mod time_ser;

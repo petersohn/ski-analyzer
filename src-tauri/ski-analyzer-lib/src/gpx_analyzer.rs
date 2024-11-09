@@ -1,6 +1,6 @@
-use geo::{Haversine, Length, Line, Point};
+use geo::{Haversine, Length, Line};
 use gpx::{Gpx, Time};
-use serde::{ser::SerializeStruct, Serialize, Serializer};
+use serde::{Serialize, Serializer};
 use std::mem::take;
 use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;
@@ -8,7 +8,7 @@ use time::OffsetDateTime;
 use crate::error::Result;
 use crate::ski_area::{SkiArea, UniqueId};
 use crate::utils::bounded_geometry::BoundedGeometry;
-use crate::utils::result::extract_option_result;
+use crate::utils::option_time_ser;
 use segments::get_segments;
 use use_lift::find_lift_usage;
 
@@ -37,11 +37,14 @@ impl<'s> Default for ActivityType<'s> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct Activity<'s> {
+    #[serde(rename = "type")]
     pub type_: ActivityType<'s>,
     pub route: Segments,
+    #[serde(with = "option_time_ser")]
     pub begin_time: Option<OffsetDateTime>,
+    #[serde(with = "option_time_ser")]
     pub end_time: Option<OffsetDateTime>,
     pub length: f64,
 }
@@ -78,59 +81,6 @@ impl<'s> Activity<'s> {
             end_time,
             length,
         }
-    }
-}
-
-impl<'s> Serialize for Activity<'s> {
-    fn serialize<S>(
-        &self,
-        serializer: S,
-    ) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        #[derive(Serialize)]
-        struct WaypointDef {
-            point: Point,
-            time: Option<String>,
-            hdop: Option<f64>,
-            speed: Option<f64>,
-        }
-
-        let route: Vec<Vec<WaypointDef>> = self
-            .route
-            .iter()
-            .map(|s| {
-                s.iter()
-                    .map(|wp| WaypointDef {
-                        point: wp.point(),
-                        time: wp.time.map(|t| t.format().unwrap()),
-                        hdop: wp.hdop,
-                        speed: wp.speed,
-                    })
-                    .collect()
-            })
-            .collect();
-
-        let mut state = serializer.serialize_struct("Activity", 5)?;
-        state.serialize_field("type", &self.type_)?;
-        state.serialize_field("route", &route)?;
-        state.serialize_field(
-            "begin_time",
-            &extract_option_result(
-                self.begin_time.map(|t| t.format(&Iso8601::DEFAULT)),
-            )
-            .map_err(|e| serde::ser::Error::custom(e))?,
-        )?;
-        state.serialize_field(
-            "end_time",
-            &extract_option_result(
-                self.end_time.map(|t| t.format(&Iso8601::DEFAULT)),
-            )
-            .map_err(|e| serde::ser::Error::custom(e))?,
-        )?;
-        state.serialize_field("length", &self.length)?;
-        state.end()
     }
 }
 

@@ -222,6 +222,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b42b6fa04a440b495c8b04d0e71b707c585f83cb9cb28cf8cd0d976c315e31b4"
 dependencies = [
  "powerfmt",
+ "serde",
 ]
 
 [[package]]
@@ -418,6 +419,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfabaf0e8a17a6fb7977fac3bd5846488462edb9f8b246605835483a5501e698"
 dependencies = [
  "geo-types",
+ "serde",
  "thiserror",
  "time",
  "xml-rs",
