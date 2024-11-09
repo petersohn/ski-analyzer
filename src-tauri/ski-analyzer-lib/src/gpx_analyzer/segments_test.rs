@@ -1,6 +1,8 @@
 use super::segments::get_segments;
-use super::test_util::ptrize;
-use crate::utils::test_util::{init, Init};
+use crate::{
+    assert_eq_pretty,
+    utils::test_util::{init, Init},
+};
 
 use geo::point;
 use gpx::{Gpx, Track, TrackSegment, Waypoint};
@@ -36,8 +38,8 @@ fn get_wp(
     track_id: usize,
     segment_id: usize,
     id: usize,
-) -> &Waypoint {
-    &gpx.tracks[track_id].segments[segment_id].points[id]
+) -> Waypoint {
+    gpx.tracks[track_id].segments[segment_id].points[id].clone()
 }
 
 #[rstest]
@@ -61,7 +63,7 @@ fn multiple_tracks_and_segments(_init: Init) {
         ])]),
     ]);
 
-    let actual = get_segments(&gpx).unwrap().item;
+    let actual = get_segments(gpx.clone()).unwrap().item;
     let expected = vec![
         vec![
             get_wp(&gpx, 0, 0, 0),
@@ -75,13 +77,7 @@ fn multiple_tracks_and_segments(_init: Init) {
         ],
         vec![get_wp(&gpx, 1, 0, 0), get_wp(&gpx, 1, 0, 1)],
     ];
-    assert_eq!(
-        ptrize(&actual),
-        ptrize(&expected),
-        "actual={:#?}\nexpected={:#?}",
-        actual,
-        expected
-    );
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]
@@ -113,7 +109,7 @@ fn bad_accuracy(_init: Init) {
         ]),
     ])]);
 
-    let actual = get_segments(&gpx).unwrap().item;
+    let actual = get_segments(gpx.clone()).unwrap().item;
     let expected = vec![
         vec![
             get_wp(&gpx, 0, 0, 0),
@@ -137,11 +133,5 @@ fn bad_accuracy(_init: Init) {
             get_wp(&gpx, 0, 2, 2),
         ],
     ];
-    assert_eq!(
-        ptrize(&actual),
-        ptrize(&expected),
-        "actual={:#?}\nexpected={:#?}",
-        actual,
-        expected
-    );
+    assert_eq_pretty!(actual, expected);
 }

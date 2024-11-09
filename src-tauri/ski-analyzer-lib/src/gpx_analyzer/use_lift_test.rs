@@ -1,4 +1,4 @@
-use super::test_util::{ptrize, save_analyzed_route, SegmentsPtr};
+use super::test_util::save_analyzed_route;
 use super::use_lift::find_lift_usage;
 use super::Segments;
 use super::{Activity, ActivityType, LiftEnd, UseLift};
@@ -81,10 +81,10 @@ fn make_gpx(input: Vec<TrackSegment>) -> Gpx {
     result
 }
 
-fn get_segments<'g>(gpx: &'g Gpx) -> Segments<'g> {
+fn get_segments(gpx: Gpx) -> Segments {
     gpx.tracks
-        .iter()
-        .map(|t| t.segments.iter().map(|s| s.points.iter().collect()))
+        .into_iter()
+        .map(|t| t.segments.into_iter().map(|s| s.points))
         .flatten()
         .collect()
 }
@@ -97,7 +97,7 @@ pub struct UseLiftPtr {
     is_reverse: bool,
 }
 
-type ComparableActivity = (Option<UseLiftPtr>, SegmentsPtr);
+type ComparableActivity = (Option<UseLiftPtr>, Segments);
 
 fn ptrize_activities(input: &[Activity]) -> Vec<ComparableActivity> {
     input
@@ -112,16 +112,16 @@ fn ptrize_activities(input: &[Activity]) -> Vec<ComparableActivity> {
                 }),
                 _ => None,
             };
-            (type_, ptrize(&a.route))
+            (type_, a.route.clone())
         })
         .collect()
 }
 
-fn get_segment_part<'g>(
-    segments: &Segments<'g>,
+fn get_segment_part(
+    segments: &Segments,
     begin: (usize, usize),
     end: (usize, usize),
-) -> Segments<'g> {
+) -> Segments {
     if begin.0 == end.0 {
         return vec![segments[begin.0].get(begin.1..end.1).unwrap().into()];
     }
@@ -366,10 +366,10 @@ fn restart_segment_2() -> TrackSegment {
     ])
 }
 
-fn run<'s, 'g>(
+fn run<'s>(
     s: &'s SkiArea,
-    segments: Segments<'g>,
-    expected: Vec<Activity<'s, 'g>>,
+    segments: Segments,
+    expected: Vec<Activity<'s>>,
     name: &str,
 ) {
     let dir = format!("test_output/use_lift_test/{}", name);
@@ -389,7 +389,7 @@ fn run<'s, 'g>(
     };
     save_analyzed_route(&expected_route, &format!("{}/expected.json", dir));
 
-    let actual = find_lift_usage(&s, &segments);
+    let actual = find_lift_usage(&s, segments);
     let actual_route = BoundedGeometry {
         item: actual,
         bounding_rect,
@@ -413,7 +413,7 @@ fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
         vec![lift("Lift 1".to_string(), line00, &[], false, false)],
     );
     let g = make_gpx(vec![simple_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
@@ -450,7 +450,7 @@ fn simple_reverse_bad(
     );
     simple_segment.points.reverse();
     let g = make_gpx(vec![simple_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![Activity::new(
         ActivityType::Unknown(()),
@@ -473,7 +473,7 @@ fn simple_reverse_good(
     );
     simple_segment.points.reverse();
     let g = make_gpx(vec![simple_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -506,7 +506,7 @@ fn get_out_bad(_init: Init, line00: LineString, get_out_segment: TrackSegment) {
         vec![lift("Lift 1".to_string(), line00, &[], false, false)],
     );
     let g = make_gpx(vec![get_out_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![Activity::new(
         ActivityType::Unknown(()),
@@ -528,7 +528,7 @@ fn get_out_good(
         vec![lift("Lift 1".to_string(), line00, &[], false, true)],
     );
     let g = make_gpx(vec![get_out_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -565,7 +565,7 @@ fn get_out_good_2(
         vec![lift("Lift 1".to_string(), line00, &[], false, true)],
     );
     let g = make_gpx(vec![get_out_segment_2]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -605,8 +605,7 @@ fn get_out_good_multisegment(
     seg2.points
         .append(&mut get_out_segment.points.split_off(28));
     let g = make_gpx(vec![get_out_segment, seg2]);
-    let segments = get_segments(&g);
-    eprintln!("{:#?}", g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -639,7 +638,7 @@ fn get_in_bad(_init: Init, line00: LineString, get_in_segment: TrackSegment) {
         vec![lift("Lift 1".to_string(), line00, &[], false, false)],
     );
     let g = make_gpx(vec![get_in_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![Activity::new(
         ActivityType::Unknown(()),
@@ -665,7 +664,7 @@ fn get_in_good_multisegment(
         vec![lift("Lift 1".to_string(), line00, &[], false, false)],
     );
     let g = make_gpx(vec![get_in_segment, get_in_segment_2]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -706,7 +705,7 @@ fn multiple_distinct_lifts(
         ],
     );
     let g = make_gpx(vec![multiple_distinct_lifts_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -761,7 +760,7 @@ fn multiple_lifts_same_start_take_longer(
         ],
     );
     let g = make_gpx(vec![simple_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -803,7 +802,7 @@ fn multiple_lifts_same_end_take_longer(
         ],
     );
     let g = make_gpx(vec![simple_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -845,7 +844,7 @@ fn multiple_lifts_same_end_take_shorter(
         ],
     );
     let g = make_gpx(vec![get_in_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -890,7 +889,7 @@ fn multiple_lifts_same_start_take_shorter(
         ],
     );
     let g = make_gpx(vec![get_in_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -927,7 +926,7 @@ fn midstation_get_in(
         vec![lift("Lift 1".to_string(), line00, &[3], false, false)],
     );
     let g = make_gpx(vec![get_in_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -966,7 +965,7 @@ fn midstation_get_out(
         vec![lift("Lift 1".to_string(), line00, &[1], false, false)],
     );
     let g = make_gpx(vec![get_in_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -1007,7 +1006,7 @@ fn parallel_lifts(
         ],
     );
     let g = make_gpx(vec![simple_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -1040,7 +1039,7 @@ fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
         vec![lift("Lift 1".to_string(), line00, &[], false, false)],
     );
     let g = make_gpx(vec![zigzag_segment]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(
@@ -1078,7 +1077,7 @@ fn restart_with_new_segment(
         vec![lift("Lift 1".to_string(), line00, &[], false, false)],
     );
     let g = make_gpx(vec![restart_segment_1, restart_segment_2]);
-    let segments = get_segments(&g);
+    let segments = get_segments(g);
 
     let expected: Vec<Activity> = vec![
         Activity::new(

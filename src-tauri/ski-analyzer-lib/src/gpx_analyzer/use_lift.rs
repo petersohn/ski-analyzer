@@ -287,10 +287,7 @@ fn commit_lift_candidates<'s>(
     result
 }
 
-fn split_route<'g>(
-    route: &mut Segments<'g>,
-    coord: SegmentCoordinate,
-) -> Segments<'g> {
+fn split_route(route: &mut Segments, coord: SegmentCoordinate) -> Segments {
     if coord.1 == 0 {
         route.drain(coord.0..).collect()
     } else {
@@ -306,14 +303,14 @@ fn split_route<'g>(
     }
 }
 
-pub fn find_lift_usage<'s, 'g>(
+pub fn find_lift_usage<'s>(
     ski_area: &'s SkiArea,
-    segments: &Segments<'g>,
-) -> Vec<Activity<'s, 'g>> {
+    segments: Segments,
+) -> Vec<Activity<'s>> {
     let mut result = Vec::new();
 
     type Candidates<'s> = Vec<LiftCandidate<'s>>;
-    let mut current_route: Segments<'g> = Vec::new();
+    let mut current_route: Segments = Vec::new();
     let mut candidates: Candidates = Vec::new();
     let mut finished_candidates: Candidates = Vec::new();
 
@@ -324,7 +321,7 @@ pub fn find_lift_usage<'s, 'g>(
             let (mut finished, unfinished): (Candidates, Candidates) =
                 candidates
                     .into_iter()
-                    .filter_map(|mut l| match l.add_point(point, coordinate) {
+                    .filter_map(|mut l| match l.add_point(&point, coordinate) {
                         LiftResult::Failure => None,
                         _ => Some(l),
                     })
@@ -336,7 +333,7 @@ pub fn find_lift_usage<'s, 'g>(
                 if !route_segment.is_empty() {
                     current_route.push(take(&mut route_segment));
                 }
-                let mut to_add: Vec<Activity<'s, 'g>> = Vec::new();
+                let mut to_add: Vec<Activity<'s>> = Vec::new();
                 for (type_, coord) in
                     commit_lift_candidates(take(&mut finished_candidates))
                         .into_iter()
@@ -367,7 +364,7 @@ pub fn find_lift_usage<'s, 'g>(
                         .is_none()
                 }),
                 coordinate,
-                point,
+                &point,
             );
             candidates.append(&mut new_candidates);
 

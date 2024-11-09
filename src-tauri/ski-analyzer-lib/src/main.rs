@@ -141,7 +141,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 serde_json::from_reader(reader)?
             };
 
-            let result = analyze_route(&ski_area, &gpx)?;
+            let result = analyze_route(&ski_area, gpx)?;
             output.write_to_file(&result)?;
         }
     };

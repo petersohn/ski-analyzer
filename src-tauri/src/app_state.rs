@@ -9,23 +9,21 @@ use std::mem::take;
 #[self_referencing]
 struct LoadedRoute {
     ski_area: SkiArea,
-    gpx: Gpx,
-    #[borrows(ski_area, gpx)]
+    #[borrows(ski_area)]
     #[covariant]
-    route: Result<AnalyzedRoute<'this, 'this>>,
+    route: Result<AnalyzedRoute<'this>>,
 }
 
 impl LoadedRoute {
     fn create(ski_area: SkiArea, gpx: Gpx) -> Self {
         LoadedRouteBuilder {
             ski_area,
-            gpx,
-            route_builder: |ski_area, gpx| analyze_route(&ski_area, &gpx),
+            route_builder: |ski_area| analyze_route(&ski_area, gpx),
         }
         .build()
     }
 
-    fn get_route<'a>(&'a self) -> &'a AnalyzedRoute<'a, 'a> {
+    fn get_route<'a>(&'a self) -> &'a AnalyzedRoute<'a> {
         self.borrow_route().as_ref().unwrap()
     }
 }
@@ -52,7 +50,7 @@ impl AppState {
         }
     }
 
-    pub fn get_route<'a>(&'a self) -> Option<&AnalyzedRoute<'a, 'a>> {
+    pub fn get_route<'a>(&'a self) -> Option<&AnalyzedRoute<'a>> {
         match &self.loaded_data {
             LoadedData::Route(r) => Some(r.get_route()),
             _ => None,

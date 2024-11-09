@@ -1,6 +1,7 @@
 use geo::{Haversine, Length, Line, Point};
 use gpx::{Gpx, Time};
 use serde::{ser::SerializeStruct, Serialize, Serializer};
+use std::mem::take;
 use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;
 
@@ -37,16 +38,16 @@ impl<'s> Default for ActivityType<'s> {
 }
 
 #[derive(Debug, Default)]
-pub struct Activity<'s, 'g> {
+pub struct Activity<'s> {
     pub type_: ActivityType<'s>,
-    pub route: Segments<'g>,
+    pub route: Segments,
     pub begin_time: Option<OffsetDateTime>,
     pub end_time: Option<OffsetDateTime>,
     pub length: f64,
 }
 
-impl<'s, 'g> Activity<'s, 'g> {
-    fn new(type_: ActivityType<'s>, route: Segments<'g>) -> Self {
+impl<'s> Activity<'s> {
+    fn new(type_: ActivityType<'s>, route: Segments) -> Self {
         let begin_time = route
             .first()
             .map(|s| s.first())
@@ -80,7 +81,7 @@ impl<'s, 'g> Activity<'s, 'g> {
     }
 }
 
-impl<'s, 'g> Serialize for Activity<'s, 'g> {
+impl<'s> Serialize for Activity<'s> {
     fn serialize<S>(
         &self,
         serializer: S,
@@ -155,15 +156,15 @@ where
     s.serialize_str(t.get_unique_id())
 }
 
-pub type AnalyzedRoute<'s, 'g> = BoundedGeometry<Vec<Activity<'s, 'g>>>;
+pub type AnalyzedRoute<'s> = BoundedGeometry<Vec<Activity<'s>>>;
 
-pub fn analyze_route<'s, 'g>(
+pub fn analyze_route<'s>(
     ski_area: &'s SkiArea,
-    gpx: &'g Gpx,
-) -> Result<AnalyzedRoute<'s, 'g>> {
-    let segments = get_segments(&gpx)?;
+    gpx: Gpx,
+) -> Result<AnalyzedRoute<'s>> {
+    let mut segments = get_segments(gpx)?;
     // println!("{:#?}", segments);
-    let result = find_lift_usage(ski_area, &segments.item);
+    let result = find_lift_usage(ski_area, take(&mut segments.item));
     Ok(BoundedGeometry {
         item: result,
         bounding_rect: segments.bounding_rect,

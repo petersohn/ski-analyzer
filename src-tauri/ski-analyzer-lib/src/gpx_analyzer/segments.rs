@@ -9,12 +9,12 @@ use gpx::{Gpx, Time, Waypoint};
 
 use std::mem;
 
-pub type Segment<'g> = Vec<&'g Waypoint>;
-pub type Segments<'g> = Vec<Segment<'g>>;
+pub type Segment = Vec<Waypoint>;
+pub type Segments = Vec<Segment>;
 
 const PRECISION_LIMIT: f64 = 10.0;
 
-pub fn get_segments<'g>(gpx: &'g Gpx) -> Result<BoundedGeometry<Segments<'g>>> {
+pub fn get_segments(gpx: Gpx) -> Result<BoundedGeometry<Segments>> {
     let mut result = Vec::new();
     let mut bounding_rect: Option<Rect> = None;
     let config = get_config();
@@ -26,9 +26,9 @@ pub fn get_segments<'g>(gpx: &'g Gpx) -> Result<BoundedGeometry<Segments<'g>>> {
         max_precision: f64,
     }
 
-    for track in &gpx.tracks {
-        for segment in &track.segments {
-            let mut add = |current: &mut Vec<&'g Waypoint>| {
+    for track in gpx.tracks {
+        for segment in track.segments {
+            let mut add = |current: &mut Vec<Waypoint>| {
                 if !current.is_empty() {
                     result.push(mem::take(current));
                 }
@@ -37,7 +37,7 @@ pub fn get_segments<'g>(gpx: &'g Gpx) -> Result<BoundedGeometry<Segments<'g>>> {
 
             let mut bad_precision_debug: Option<BadPrecisionDebug> = None;
 
-            for waypoint in &segment.points {
+            for waypoint in segment.points {
                 let precision = match waypoint.hdop {
                     Some(p) => p,
                     None => 0.0,
@@ -73,10 +73,10 @@ pub fn get_segments<'g>(gpx: &'g Gpx) -> Result<BoundedGeometry<Segments<'g>>> {
                         }
                         bad_precision_debug = None;
                     }
-                    current.push(waypoint);
                     let coord = Coord::from(waypoint.point());
                     let r0 = Rect::new(coord, coord);
                     bounding_rect = union_rects_if(bounding_rect, Some(r0));
+                    current.push(waypoint);
                 }
             }
             add(&mut current);

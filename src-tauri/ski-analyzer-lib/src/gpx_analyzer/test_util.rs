@@ -1,15 +1,6 @@
-use super::{segments::Segments, AnalyzedRoute};
-use gpx::Waypoint;
+use super::AnalyzedRoute;
 
 use std::fs::OpenOptions;
-
-pub type SegmentsPtr = Vec<Vec<*const Waypoint>>;
-pub fn ptrize(segments: &Segments) -> SegmentsPtr {
-    segments
-        .iter()
-        .map(|s| s.iter().map(|w| -> *const Waypoint { *w }).collect())
-        .collect()
-}
 
 pub fn save_analyzed_route(piste: &AnalyzedRoute, filename: &str) {
     let file = OpenOptions::new()
