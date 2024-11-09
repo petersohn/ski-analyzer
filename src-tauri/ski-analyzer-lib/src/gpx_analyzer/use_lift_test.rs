@@ -2,6 +2,7 @@ use super::test_util::save_analyzed_route;
 use super::use_lift::find_lift_usage;
 use super::Segments;
 use super::{Activity, ActivityType, LiftEnd, UseLift};
+use crate::assert_eq_pretty;
 use crate::ski_area::{Lift, PointWithElevation, SkiArea};
 use crate::utils::bounded_geometry::BoundedGeometry;
 use crate::utils::rect::union_rects_all;
@@ -95,26 +96,6 @@ pub struct UseLiftPtr {
     begin_station: LiftEnd,
     end_station: LiftEnd,
     is_reverse: bool,
-}
-
-type ComparableActivity = (Option<UseLiftPtr>, Segments);
-
-fn ptrize_activities(input: &[Activity]) -> Vec<ComparableActivity> {
-    input
-        .iter()
-        .map(|a| {
-            let type_ = match &a.type_ {
-                ActivityType::UseLift(u) => Some(UseLiftPtr {
-                    lift: u.lift,
-                    begin_station: u.begin_station,
-                    end_station: u.end_station,
-                    is_reverse: u.is_reverse,
-                }),
-                _ => None,
-            };
-            (type_, a.route.clone())
-        })
-        .collect()
 }
 
 fn get_segment_part(
@@ -366,12 +347,7 @@ fn restart_segment_2() -> TrackSegment {
     ])
 }
 
-fn run<'s>(
-    s: &'s SkiArea,
-    segments: Segments,
-    expected: Vec<Activity<'s>>,
-    name: &str,
-) {
+fn run(s: &SkiArea, segments: Segments, expected: Vec<Activity>, name: &str) {
     let dir = format!("test_output/use_lift_test/{}", name);
     fs::create_dir_all(&dir).unwrap();
     save_ski_area(s, &format!("{}/ski_area.json", dir));
@@ -389,20 +365,14 @@ fn run<'s>(
     };
     save_analyzed_route(&expected_route, &format!("{}/expected.json", dir));
 
-    let actual = find_lift_usage(&s, segments);
+    let actual = find_lift_usage(s, segments);
     let actual_route = BoundedGeometry {
         item: actual,
         bounding_rect,
     };
     save_analyzed_route(&actual_route, &format!("{}/actual.json", dir));
 
-    assert!(
-        ptrize_activities(&actual_route.item)
-            == ptrize_activities(&expected_route.item),
-        "Actual: {:#?}\nExpected: {:#?}",
-        actual_route.item,
-        expected_route.item
-    );
+    assert_eq_pretty!(actual_route.item, expected_route.item);
 }
 
 #[rstest]
@@ -421,7 +391,7 @@ fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -482,7 +452,7 @@ fn simple_reverse_good(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(1),
                 end_station: Some(0),
                 is_reverse: true,
@@ -537,7 +507,7 @@ fn get_out_good(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: None,
                 is_reverse: false,
@@ -574,7 +544,7 @@ fn get_out_good_2(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: None,
                 is_reverse: false,
@@ -614,7 +584,7 @@ fn get_out_good_multisegment(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: None,
                 is_reverse: false,
@@ -673,7 +643,7 @@ fn get_in_good_multisegment(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: None,
                 end_station: Some(1),
                 is_reverse: false,
@@ -714,7 +684,7 @@ fn multiple_distinct_lifts(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -727,7 +697,7 @@ fn multiple_distinct_lifts(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[1],
+                lift_id: s.lifts[1].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -769,7 +739,7 @@ fn multiple_lifts_same_start_take_longer(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[1],
+                lift_id: s.lifts[1].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -811,7 +781,7 @@ fn multiple_lifts_same_end_take_longer(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -853,7 +823,7 @@ fn multiple_lifts_same_end_take_shorter(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -898,7 +868,7 @@ fn multiple_lifts_same_start_take_shorter(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[1],
+                lift_id: s.lifts[1].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -935,7 +905,7 @@ fn midstation_get_in(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(1),
                 end_station: Some(2),
                 is_reverse: false,
@@ -974,7 +944,7 @@ fn midstation_get_out(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -1015,7 +985,7 @@ fn parallel_lifts(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -1048,7 +1018,7 @@ fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -1086,7 +1056,7 @@ fn restart_with_new_segment(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: Some(0),
                 end_station: None,
                 is_reverse: false,
@@ -1095,7 +1065,7 @@ fn restart_with_new_segment(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift: &s.lifts[0],
+                lift_id: s.lifts[0].unique_id.clone(),
                 begin_station: None,
                 end_station: Some(1),
                 is_reverse: false,

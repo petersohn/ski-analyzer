@@ -1,4 +1,4 @@
-use super::{serialize_unique_id, Activity, ActivityType, Segment, Segments};
+use super::{Activity, ActivityType, Segment, Segments};
 use crate::ski_area::{Lift, SkiArea};
 use crate::utils::collection::Avg;
 
@@ -13,10 +13,9 @@ const MIN_DISTANCE: f64 = 10.0;
 
 pub type LiftEnd = Option<usize>;
 
-#[derive(Debug, Serialize)]
-pub struct UseLift<'s> {
-    #[serde(serialize_with = "serialize_unique_id")]
-    pub lift: &'s Lift,
+#[derive(Debug, Serialize, PartialEq)]
+pub struct UseLift {
+    pub lift_id: String,
     pub begin_station: LiftEnd,
     pub end_station: LiftEnd,
     pub is_reverse: bool,
@@ -70,7 +69,8 @@ type SegmentCoordinate = (usize, usize);
 
 #[derive(Debug)]
 struct LiftCandidate<'s> {
-    data: UseLift<'s>,
+    lift: &'s Lift,
+    data: UseLift,
     result: LiftResult,
     lift_length: f64,
     possible_begins: Vec<SegmentCoordinate>,
@@ -96,8 +96,9 @@ impl<'s> LiftCandidate<'s> {
             let mut avg_distance = Avg::new();
             avg_distance.add(distance.from_line);
             Some(LiftCandidate {
+                lift,
                 data: UseLift {
-                    lift,
+                    lift_id: lift.unique_id.clone(),
                     begin_station: station,
                     end_station: None,
                     is_reverse: false,
@@ -133,7 +134,7 @@ impl<'s> LiftCandidate<'s> {
     fn leave(&mut self, coordinate: SegmentCoordinate) -> LiftResult {
         if coordinate.1 == 0 // We might have lost some data
                     // You fell out of a draglift
-                    || (self.data.lift.can_disembark
+                    || (self.lift.can_disembark
                         && !self.possible_ends.is_empty())
                     || self.data.end_station.is_some()
         {
@@ -152,7 +153,7 @@ impl<'s> LiftCandidate<'s> {
             panic!("Already finished");
         }
         let p = point.point();
-        let distance = match LiftDistance::get(self.data.lift, p) {
+        let distance = match LiftDistance::get(self.lift, p) {
             Some(d) => d,
             None => return self.leave(coordinate),
         };
@@ -160,7 +161,7 @@ impl<'s> LiftCandidate<'s> {
         {
             let reverse = distance.from_begin < self.distance_from_begin;
             if !self.direction_known {
-                if reverse && !self.data.lift.can_go_reverse {
+                if reverse && !self.lift.can_go_reverse {
                     return self.transition(LiftResult::Failure);
                 }
                 self.direction_known = true;
@@ -171,7 +172,7 @@ impl<'s> LiftCandidate<'s> {
             self.distance_from_begin = distance.from_begin;
         }
         self.avg_distance.add(distance.from_line);
-        let station = get_station(self.data.lift, p);
+        let station = get_station(self.lift, p);
         match station {
             Some(s) => {
                 if self.data.begin_station == Some(s) {
@@ -184,7 +185,7 @@ impl<'s> LiftCandidate<'s> {
             None => {
                 self.data.end_station = None;
                 self.possible_ends.clear();
-                if self.data.lift.can_disembark {
+                if self.lift.can_disembark {
                     self.possible_ends.push(coordinate);
                 }
             }
@@ -197,7 +198,7 @@ impl<'s> LiftCandidate<'s> {
         result
     }
 
-    fn commit(self) -> UseLift<'s> {
+    fn commit(self) -> UseLift {
         self.data
     }
 
@@ -239,7 +240,7 @@ fn group_lift_candidates<'s>(
 
 fn commit_lift_candidates<'s>(
     candidates: Vec<LiftCandidate<'s>>,
-) -> Vec<(ActivityType<'s>, SegmentCoordinate)> {
+) -> Vec<(ActivityType, SegmentCoordinate)> {
     let mut groups = group_lift_candidates(candidates);
 
     groups.sort_by(|lhs, rhs| {
@@ -306,7 +307,7 @@ fn split_route(route: &mut Segments, coord: SegmentCoordinate) -> Segments {
 pub fn find_lift_usage<'s>(
     ski_area: &'s SkiArea,
     segments: Segments,
-) -> Vec<Activity<'s>> {
+) -> Vec<Activity> {
     let mut result = Vec::new();
 
     type Candidates<'s> = Vec<LiftCandidate<'s>>;
@@ -333,7 +334,7 @@ pub fn find_lift_usage<'s>(
                 if !route_segment.is_empty() {
                     current_route.push(take(&mut route_segment));
                 }
-                let mut to_add: Vec<Activity<'s>> = Vec::new();
+                let mut to_add: Vec<Activity> = Vec::new();
                 for (type_, coord) in
                     commit_lift_candidates(take(&mut finished_candidates))
                         .into_iter()
@@ -359,7 +360,7 @@ pub fn find_lift_usage<'s>(
                         .iter()
                         .chain(finished_candidates.iter())
                         .find(|c| {
-                            (*l as *const Lift) == (c.data.lift as *const Lift)
+                            (*l as *const Lift) == (c.lift as *const Lift)
                         })
                         .is_none()
                 }),

@@ -1,12 +1,12 @@
 use geo::{Haversine, Length, Line};
 use gpx::{Gpx, Time};
-use serde::{Serialize, Serializer};
+use serde::Serialize;
 use std::mem::take;
 use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;
 
 use crate::error::Result;
-use crate::ski_area::{SkiArea, UniqueId};
+use crate::ski_area::SkiArea;
 use crate::utils::bounded_geometry::BoundedGeometry;
 use crate::utils::option_time_ser;
 use segments::get_segments;
@@ -25,22 +25,22 @@ mod use_lift_test;
 pub use segments::{Segment, Segments};
 pub use use_lift::{LiftEnd, UseLift};
 
-#[derive(Debug, Serialize)]
-pub enum ActivityType<'s> {
+#[derive(Debug, Serialize, PartialEq)]
+pub enum ActivityType {
     Unknown(()),
-    UseLift(UseLift<'s>),
+    UseLift(UseLift),
 }
 
-impl<'s> Default for ActivityType<'s> {
+impl Default for ActivityType {
     fn default() -> Self {
         ActivityType::Unknown(())
     }
 }
 
-#[derive(Debug, Default, Serialize)]
-pub struct Activity<'s> {
+#[derive(Debug, Default, Serialize, PartialEq)]
+pub struct Activity {
     #[serde(rename = "type")]
-    pub type_: ActivityType<'s>,
+    pub type_: ActivityType,
     pub route: Segments,
     #[serde(with = "option_time_ser")]
     pub begin_time: Option<OffsetDateTime>,
@@ -49,8 +49,8 @@ pub struct Activity<'s> {
     pub length: f64,
 }
 
-impl<'s> Activity<'s> {
-    fn new(type_: ActivityType<'s>, route: Segments) -> Self {
+impl Activity {
+    fn new(type_: ActivityType, route: Segments) -> Self {
         let begin_time = route
             .first()
             .map(|s| s.first())
@@ -95,23 +95,9 @@ fn format_time_option(time: Option<OffsetDateTime>) -> String {
     }
 }
 
-fn serialize_unique_id<S, T>(
-    t: &&T,
-    s: S,
-) -> std::result::Result<S::Ok, S::Error>
-where
-    T: UniqueId,
-    S: Serializer,
-{
-    s.serialize_str(t.get_unique_id())
-}
+pub type AnalyzedRoute = BoundedGeometry<Vec<Activity>>;
 
-pub type AnalyzedRoute<'s> = BoundedGeometry<Vec<Activity<'s>>>;
-
-pub fn analyze_route<'s>(
-    ski_area: &'s SkiArea,
-    gpx: Gpx,
-) -> Result<AnalyzedRoute<'s>> {
+pub fn analyze_route(ski_area: &SkiArea, gpx: Gpx) -> Result<AnalyzedRoute> {
     let mut segments = get_segments(gpx)?;
     // println!("{:#?}", segments);
     let result = find_lift_usage(ski_area, take(&mut segments.item));

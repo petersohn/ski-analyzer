@@ -10,7 +10,7 @@ export type RawWaypoint = {
 };
 
 export type RawUseLift = {
-  lift: string;
+  lift_id: string;
   begin_station: number;
   end_station: number;
   is_reverse: boolean;
@@ -91,9 +91,9 @@ export class TrackConverter {
       return;
     }
 
-    const lift = this.skiArea.lifts.get(input.lift);
+    const lift = this.skiArea.lifts.get(input.lift_id);
     if (!lift) {
-      throw new Error(`Lift not found with id: ${input.lift}`);
+      throw new Error(`Lift not found with id: ${input.lift_id}`);
     }
 
     return {
