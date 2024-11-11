@@ -9,7 +9,6 @@ use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
-use super::UniqueId;
 use crate::config::get_config;
 // use crate::error::{Error, ErrorType, Result};
 use crate::error::Result;
@@ -80,12 +79,6 @@ pub struct Piste {
 impl Piste {
     pub fn clip_lines(&mut self) {
         self.data.lines = self.data.areas.clip(&self.data.lines, true);
-    }
-}
-
-impl UniqueId for Piste {
-    fn get_unique_id(&self) -> &str {
-        &self.unique_id
     }
 }
 

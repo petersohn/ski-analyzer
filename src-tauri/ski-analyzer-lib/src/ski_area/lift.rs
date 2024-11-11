@@ -7,7 +7,7 @@ use strum_macros::EnumString;
 
 use std::str::FromStr;
 
-use super::{PointWithElevation, UniqueId};
+use super::PointWithElevation;
 
 use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
@@ -63,12 +63,6 @@ impl Lift {
                 }
             })
             .min_by(|d1, d2| d1.distance.total_cmp(&d2.distance))
-    }
-}
-
-impl UniqueId for Lift {
-    fn get_unique_id(&self) -> &str {
-        &self.unique_id
     }
 }
 
