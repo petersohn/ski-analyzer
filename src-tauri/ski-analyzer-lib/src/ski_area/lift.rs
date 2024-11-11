@@ -8,7 +8,6 @@ use strum_macros::EnumString;
 use std::str::FromStr;
 
 use super::PointWithElevation;
-
 use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{
@@ -25,7 +24,6 @@ pub struct LiftClosestPoint {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Lift {
-    pub unique_id: String,
     #[serde(rename = "ref")]
     pub ref_: String,
     pub name: String,
@@ -68,8 +66,7 @@ impl Lift {
 
 impl PartialEq for Lift {
     fn eq(&self, other: &Self) -> bool {
-        self.unique_id == other.unique_id
-            && self.ref_ == other.ref_
+        self.ref_ == other.ref_
             && self.name == other.name
             && self.type_ == other.type_
             && self.line == other.line
@@ -317,7 +314,6 @@ pub fn parse_lift<'d>(
     let can_disembark = DRAGLIFT_TYPES.contains(&aerialway_type.as_str());
 
     Ok(Some(Lift {
-        unique_id: id.to_string(),
         ref_,
         name,
         type_: aerialway_type.clone(),

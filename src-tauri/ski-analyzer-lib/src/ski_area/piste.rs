@@ -10,13 +10,13 @@ use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
 use crate::config::get_config;
-// use crate::error::{Error, ErrorType, Result};
 use crate::error::Result;
 use crate::multipolygon::parse_multipolygon;
 use crate::osm_reader::{get_tag, parse_way, Document, Tags, Way};
 use crate::utils::bounded_geometry::BoundedGeometry;
 use crate::utils::collection::max_if;
 use crate::utils::rect::union_rects;
+use crate::utils::with_id::WithId;
 
 #[derive(
     Serialize,
@@ -69,7 +69,6 @@ impl geo::Intersects for PisteData {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Piste {
-    pub unique_id: String,
     #[serde(flatten)]
     pub metadata: PisteMetadata,
     #[serde(flatten)]
@@ -112,18 +111,6 @@ fn parse_metadata(tags: &Tags) -> PisteMetadata {
         ref_: ref_.to_string(),
         name: name.to_string(),
         difficulty,
-    }
-}
-
-#[derive(Default, Debug)]
-struct WithId<T> {
-    id: String,
-    obj: T,
-}
-
-impl<T> WithId<T> {
-    fn new(id: String, obj: T) -> Self {
-        WithId { id, obj }
     }
 }
 
@@ -325,10 +312,10 @@ fn parse_partial_pistes(
         match parse_multipolygon(&doc, &relation) {
             Ok(mp) => {
                 let metadata = parse_metadata(&relation.tags);
-                for p in mp.0 {
+                for (i, p) in mp.0.into_iter().enumerate() {
                     match BoundedGeometry::new(MultiPolygon::new(vec![p])) {
                         Ok(geometry) => add_piste(
-                            id.to_string(),
+                            format!("{}_{}", id, i),
                             metadata.clone(),
                             PisteGeometry::Area(geometry),
                             &mut result,
@@ -409,37 +396,42 @@ where
     }
 }
 
-fn find_overlapping_pistes(pistes: &Vec<Piste>) {
+fn find_overlapping_pistes(pistes: &Vec<WithId<Piste>>) {
     for (i, piste) in pistes.iter().enumerate() {
-        let length = piste.data.lines.length::<Haversine>();
+        let length = piste.obj.data.lines.length::<Haversine>();
         let threshold = length / 2.0;
 
         for (j, piste2) in pistes.iter().enumerate() {
             if i == j
                 || !piste
+                    .obj
                     .data
                     .bounding_rect
-                    .intersects(&piste2.data.bounding_rect)
+                    .intersects(&piste2.obj.data.bounding_rect)
             {
                 continue;
             }
             let intersection = piste2
+                .obj
                 .data
                 .areas
-                .clip(&piste.data.lines, false)
+                .clip(&piste.obj.data.lines, false)
                 .length::<Haversine>();
             if intersection > threshold {
                 eprintln!(
                     "Line {:?} intersects area {:?} {:.0}/{:.0} m",
-                    piste.metadata, piste2.metadata, intersection, length
+                    piste.obj.metadata,
+                    piste2.obj.metadata,
+                    intersection,
+                    length
                 );
             }
         }
     }
 }
 
-fn find_anomalies(pistes: &Vec<Piste>) {
-    find_differing_metadata(pistes.iter().map(|p| &p.metadata));
+fn find_anomalies(pistes: &Vec<WithId<Piste>>) {
+    find_differing_metadata(pistes.iter().map(|p| &p.obj.metadata));
     find_overlapping_pistes(&pistes);
 }
 
@@ -568,21 +560,23 @@ fn merge_partial_pistes(
 fn make_piste(
     metadata: PisteMetadata,
     data: WithId<PisteData>,
-    result: &mut Vec<Piste>,
+    result: &mut Vec<WithId<Piste>>,
 ) {
     if !data.obj.areas.is_empty() || !data.obj.lines.is_empty() {
-        result.push(Piste {
-            unique_id: data.id,
-            metadata,
-            data: data.obj,
-        });
+        result.push(WithId::new(
+            data.id,
+            Piste {
+                metadata,
+                data: data.obj,
+            },
+        ));
     }
 }
 
 fn make_pistes(
     metadata: PisteMetadata,
     mut datas: Vec<WithId<PisteData>>,
-    result: &mut Vec<Piste>,
+    result: &mut Vec<WithId<Piste>>,
 ) {
     match datas.len() {
         0 => (),
@@ -608,7 +602,7 @@ fn make_pistes(
 
 fn create_pistes(
     partial_pistes: HashMap<PisteMetadata, PartialPistes>,
-) -> Vec<Piste> {
+) -> Vec<WithId<Piste>> {
     let mut refless: HashMap<PisteMetadata, PartialPistes> = HashMap::new();
     let mut reffed: HashMap<PisteMetadata, PartialPistes> = HashMap::new();
     for (metadata, piste) in partial_pistes {
@@ -635,7 +629,7 @@ fn create_pistes(
 fn merge_unnamed_pistes(
     unnamed_lines: Vec<UnnamedPiste<LineString>>,
     unnamed_areas: Vec<UnnamedPiste<MultiPolygon>>,
-) -> Vec<Piste> {
+) -> Vec<WithId<Piste>> {
     let mut pistes: HashMap<Difficulty, Vec<WithId<PisteData>>> =
         HashMap::new();
     for line in unnamed_lines {
@@ -656,14 +650,18 @@ fn merge_unnamed_pistes(
     }
 
     let it = pistes.into_iter().map(|(difficulty, datas)| {
-        datas.into_iter().map(move |data| Piste {
-            unique_id: data.id,
-            metadata: PisteMetadata {
-                ref_: String::new(),
-                name: String::new(),
-                difficulty,
-            },
-            data: data.obj,
+        datas.into_iter().map(move |data| {
+            WithId::new(
+                data.id,
+                Piste {
+                    metadata: PisteMetadata {
+                        ref_: String::new(),
+                        name: String::new(),
+                        difficulty,
+                    },
+                    data: data.obj,
+                },
+            )
         })
     });
     it.flatten().collect()
@@ -712,7 +710,7 @@ fn handle_unnamed_entities(
     mut unnamed_lines: Vec<UnnamedPiste<LineString>>,
     mut unnamed_areas: Vec<UnnamedPiste<MultiPolygon>>,
     partial_pistes: &mut HashMap<PisteMetadata, PartialPistes>,
-) -> Vec<Piste> {
+) -> Vec<WithId<Piste>> {
     loop {
         let (unnamed_areas2, changed1) = merge_unnamed_entities(
             unnamed_areas,
@@ -754,7 +752,7 @@ fn handle_unnamed_entities(
     result
 }
 
-pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
+pub fn parse_pistes(doc: &Document) -> HashMap<String, Piste> {
     let (mut partial_pistes, unnamed_lines, unnamed_areas) =
         parse_partial_pistes(&doc);
 
@@ -779,6 +777,5 @@ pub fn parse_pistes(doc: &Document) -> Vec<Piste> {
         find_anomalies(&pistes);
     }
     pistes.append(&mut unnamed_pistes);
-
-    pistes
+    pistes.into_iter().map(|p| (p.id, p.obj)).collect()
 }

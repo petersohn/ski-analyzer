@@ -3,14 +3,16 @@ use super::{Difficulty, Piste, PisteData, PisteMetadata, SkiArea};
 use crate::osm_reader::{
     Document, Node, Relation, RelationMember, RelationMembers, Tags, Way,
 };
-use crate::utils::rect::{union_rects, union_rects_if};
+use crate::utils::rect::union_rects_if;
 use crate::utils::test_util::{assert_eq_pretty, init, save_ski_area, Init};
 
 use ::function_name::named;
 use geo::{
     BoundingRect, Coord, LineString, MultiLineString, MultiPolygon, Polygon,
+    Rect,
 };
 use rstest::{fixture, rstest};
+use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::hash::Hash;
@@ -232,16 +234,14 @@ impl PisteOut {
         }
     }
 
-    fn list(pistes: &Vec<Piste>) -> Vec<PisteOut> {
-        pistes.iter().map(PisteOut::new).collect()
+    fn list<'a, It>(pistes: It) -> Vec<PisteOut>
+    where
+        It: Iterator<Item = &'a Piste>,
+    {
+        pistes.map(PisteOut::new).collect()
     }
 
     fn to_piste(&self) -> Piste {
-        let p = if !self.lines.is_empty() {
-            self.lines[0][0]
-        } else {
-            self.areas[0].exterior[0]
-        };
         let areas = to_multi_polygon(&self.areas);
         let lines = to_multi_line_string(&self.lines);
         let bounding_rect =
@@ -249,7 +249,6 @@ impl PisteOut {
                 .unwrap();
         Piste {
             // Should be unique enough for the tests
-            unique_id: format!("{}, {}", p.0, p.1),
             metadata: self.metadata.clone(),
             data: PisteData {
                 areas,
@@ -260,35 +259,53 @@ impl PisteOut {
     }
 }
 
-fn to_ski_area(name: String, pistes: &[Piste]) -> SkiArea {
+fn to_ski_area<Pistes, T>(name: String, pistes_in: Pistes) -> SkiArea
+where
+    Pistes: Iterator<Item = T>,
+    T: Borrow<Piste>,
+{
+    let mut pistes = HashMap::new();
+    let mut bounding_rect: Option<Rect> = None;
+
+    for p in pistes_in {
+        let piste = p.borrow();
+        pistes.insert(
+            format!("{}_{}", piste.metadata.ref_, piste.metadata.name),
+            piste.clone(),
+        );
+        bounding_rect =
+            union_rects_if(bounding_rect, Some(piste.data.bounding_rect));
+    }
+
     SkiArea {
-        name: name,
-        lifts: vec![],
-        pistes: pistes.to_vec(),
-        bounding_rect: pistes
-            .iter()
-            .map(|p| p.data.bounding_rect)
-            .reduce(union_rects)
-            .unwrap(),
+        name,
+        lifts: HashMap::new(),
+        pistes,
+        bounding_rect: bounding_rect.unwrap(),
         date: OffsetDateTime::now_utc(),
     }
 }
 
-fn save_output<'a, PisteOuts>(expected: PisteOuts, actual: &[Piste], name: &str)
-where
+fn save_output<'a, PisteOuts, Pistes, T>(
+    expected: PisteOuts,
+    actual: Pistes,
+    name: &str,
+) where
     PisteOuts: Iterator<Item = &'a PisteOut>,
+    Pistes: Iterator<Item = T>,
+    T: Borrow<Piste>,
 {
     let dir = format!("test_output/piste_test/{}", name);
     fs::create_dir_all(&dir).unwrap();
     save_ski_area(
         &to_ski_area(
             format!("{}.Expected", name),
-            &expected.map(|p| p.to_piste()).collect::<Vec<Piste>>(),
+            expected.map(|p| p.to_piste()),
         ),
         &format!("{}/expected.json", dir),
     );
     save_ski_area(
-        &to_ski_area(format!("{}.Actual", name), &actual),
+        &to_ski_area(format!("{}.Actual", name), actual),
         &format!("{}/actual.json", dir),
     );
 }
@@ -506,9 +523,10 @@ fn metadta_basic(_init: Init, line0: Line) {
     let pistes = parse_pistes(&document);
 
     assert_eq!(pistes.len(), 1);
-    assert_eq!(pistes[0].metadata.name, "Piste 1");
-    assert_eq!(pistes[0].metadata.ref_, "a");
-    assert_eq!(pistes[0].metadata.difficulty, Difficulty::Advanced);
+    let piste = pistes.iter().next().unwrap().1;
+    assert_eq!(piste.metadata.name, "Piste 1");
+    assert_eq!(piste.metadata.ref_, "a");
+    assert_eq!(piste.metadata.difficulty, Difficulty::Advanced);
 }
 
 #[rstest]
@@ -525,9 +543,10 @@ fn metadata_no_difficulty(_init: Init, line0: Line) {
     let pistes = parse_pistes(&document);
 
     assert_eq!(pistes.len(), 1);
-    assert_eq!(pistes[0].metadata.name, "Piste 1");
-    assert_eq!(pistes[0].metadata.ref_, "a");
-    assert_eq!(pistes[0].metadata.difficulty, Difficulty::Unknown);
+    let piste = pistes.iter().next().unwrap().1;
+    assert_eq!(piste.metadata.name, "Piste 1");
+    assert_eq!(piste.metadata.ref_, "a");
+    assert_eq!(piste.metadata.difficulty, Difficulty::Unknown);
 }
 
 #[rstest]
@@ -544,9 +563,10 @@ fn metadata_no_name(_init: Init, line0: Line) {
     let pistes = parse_pistes(&document);
 
     assert_eq!(pistes.len(), 1);
-    assert_eq!(pistes[0].metadata.name, "");
-    assert_eq!(pistes[0].metadata.ref_, "b");
-    assert_eq!(pistes[0].metadata.difficulty, Difficulty::Novice);
+    let piste = pistes.iter().next().unwrap().1;
+    assert_eq!(piste.metadata.name, "");
+    assert_eq!(piste.metadata.ref_, "b");
+    assert_eq!(piste.metadata.difficulty, Difficulty::Novice);
 }
 
 #[rstest]
@@ -563,9 +583,10 @@ fn metadata_no_ref(_init: Init, line0: Line) {
     let pistes = parse_pistes(&document);
 
     assert_eq!(pistes.len(), 1);
-    assert_eq!(pistes[0].metadata.name, "Some Name");
-    assert_eq!(pistes[0].metadata.ref_, "");
-    assert_eq!(pistes[0].metadata.difficulty, Difficulty::Intermediate);
+    let piste = pistes.iter().next().unwrap().1;
+    assert_eq!(piste.metadata.name, "Some Name");
+    assert_eq!(piste.metadata.ref_, "");
+    assert_eq!(piste.metadata.difficulty, Difficulty::Intermediate);
 }
 
 #[rstest]
@@ -578,9 +599,10 @@ fn metadata_no_name_or_ref(_init: Init, line0: Line) {
     let pistes = parse_pistes(&document);
 
     assert_eq!(pistes.len(), 1);
-    assert_eq!(pistes[0].metadata.name, "");
-    assert_eq!(pistes[0].metadata.ref_, "");
-    assert_eq!(pistes[0].metadata.difficulty, Difficulty::Novice);
+    let piste = pistes.iter().next().unwrap().1;
+    assert_eq!(piste.metadata.name, "");
+    assert_eq!(piste.metadata.ref_, "");
+    assert_eq!(piste.metadata.difficulty, Difficulty::Novice);
 }
 
 #[rstest]
@@ -617,9 +639,10 @@ fn metadata_alternate_naming(_init: Init, line0: Line) {
     let pistes = parse_pistes(&document);
 
     assert_eq!(pistes.len(), 1);
-    assert_eq!(pistes[0].metadata.name, "Good Name");
-    assert_eq!(pistes[0].metadata.ref_, "b");
-    assert_eq!(pistes[0].metadata.difficulty, Difficulty::Easy);
+    let piste = pistes.iter().next().unwrap().1;
+    assert_eq!(piste.metadata.name, "Good Name");
+    assert_eq!(piste.metadata.ref_, "b");
+    assert_eq!(piste.metadata.difficulty, Difficulty::Easy);
 }
 
 #[rstest]
@@ -664,8 +687,8 @@ fn find_areas_to_line(_init: Init, line0: Line, area00: Line, area01: Line) {
         lines: vec![line0],
         areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
-    let actual = PisteOut::list(&pistes);
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = PisteOut::list(pistes.values());
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -712,8 +735,8 @@ fn find_lines_to_area(_init: Init, line0: Line, area00: Line) {
         lines: vec![line00, line01],
         areas: vec![Area::simple(area00)],
     }];
-    let actual = PisteOut::list(&pistes);
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = PisteOut::list(pistes.values());
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -766,8 +789,8 @@ fn merge_unnamed_pistes(_init: Init, line0: Line, area00: Line, area01: Line) {
         lines: vec![line00, line01],
         areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
-    let actual = PisteOut::list(&pistes);
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = PisteOut::list(pistes.values());
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -816,8 +839,8 @@ fn orphaned_unnamed_area(_init: Init, line0: Line, area01: Line) {
             areas: vec![Area::simple(area01)],
         },
     ]);
-    let actual = to_set(PisteOut::list(&pistes));
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = to_set(PisteOut::list(pistes.values()));
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -866,8 +889,8 @@ fn orphaned_unnamed_line(_init: Init, line0: Line, area01: Line) {
             areas: vec![Area::simple(area01)],
         },
     ]);
-    let actual = to_set(PisteOut::list(&pistes));
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = to_set(PisteOut::list(pistes.values()));
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -936,8 +959,8 @@ fn merge_unnamed_line_and_area(
             areas: vec![Area::simple(area01)],
         },
     ]);
-    let actual = to_set(PisteOut::list(&pistes));
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = to_set(PisteOut::list(pistes.values()));
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -985,8 +1008,8 @@ fn different_difficulty(_init: Init, line0: Line, area00: Line) {
             areas: vec![Area::simple(area00)],
         },
     ]);
-    let actual = to_set(PisteOut::list(&pistes));
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = to_set(PisteOut::list(pistes.values()));
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -1034,8 +1057,8 @@ fn different_name(_init: Init, line0: Line, area00: Line) {
             areas: vec![Area::simple(area00)],
         },
     ]);
-    let actual = to_set(PisteOut::list(&pistes));
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = to_set(PisteOut::list(pistes.values()));
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -1064,7 +1087,7 @@ fn not_intersecting_line_and_area(_init: Init, line0: Line, area00: Line) {
     ]);
 
     let pistes = parse_pistes(&document);
-    let expected = vec![
+    let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
                 ref_: String::new(),
@@ -1083,9 +1106,9 @@ fn not_intersecting_line_and_area(_init: Init, line0: Line, area00: Line) {
             lines: vec![],
             areas: vec![Area::simple(area00)],
         },
-    ];
-    let actual = PisteOut::list(&pistes);
-    save_output(expected.iter(), &pistes, function_name!());
+    ]);
+    let actual = to_set(PisteOut::list(pistes.values()));
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -1151,8 +1174,8 @@ fn use_larger_overlap(_init: Init, line0: Line, area00: Line, area01: Line) {
             areas: vec![Area::simple(area01)],
         },
     ]);
-    let actual = to_set(PisteOut::list(&pistes));
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = to_set(PisteOut::list(pistes.values()));
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -1192,8 +1215,8 @@ fn multipolygon_piste(_init: Init, line1: Line, area10: Line, area11: Line) {
         lines: vec![line1],
         areas: vec![Area::multi(area10, vec![area11])],
     }]);
-    let actual = to_set(PisteOut::list(&pistes));
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = to_set(PisteOut::list(pistes.values()));
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -1242,8 +1265,8 @@ fn multiple_polygons_in_multipolygon(
             areas: vec![Area::multi(area10, vec![area11])],
         },
     ]);
-    let actual = to_set(PisteOut::list(&pistes));
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = to_set(PisteOut::list(pistes.values()));
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -1296,8 +1319,8 @@ fn metadata_from_route(_init: Init, line0: Line, line1: Line) {
             areas: vec![],
         },
     ]);
-    let actual = to_set(PisteOut::list(&pistes));
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = to_set(PisteOut::list(pistes.values()));
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -1324,8 +1347,8 @@ fn closed_line_is_area(_init: Init, area00: Line) {
         lines: vec![],
         areas: vec![Area::simple(area00)],
     }];
-    let actual = PisteOut::list(&pistes);
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = PisteOut::list(pistes.values());
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -1356,8 +1379,8 @@ fn explicit_area(_init: Init, line0: Line) {
         lines: vec![],
         areas: vec![Area::simple(expected_area)],
     }];
-    let actual = PisteOut::list(&pistes);
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = PisteOut::list(pistes.values());
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }
 
@@ -1424,7 +1447,7 @@ fn find_refs_complex(_init: Init, line0: Line, area00: Line, area01: Line) {
         lines: vec![line00, line01, line02],
         areas: vec![Area::simple(area00), Area::simple(area01)],
     }];
-    let actual = PisteOut::list(&pistes);
-    save_output(expected.iter(), &pistes, function_name!());
+    let actual = PisteOut::list(pistes.values());
+    save_output(expected.iter(), pistes.values(), function_name!());
     assert_eq_pretty!(actual, expected);
 }

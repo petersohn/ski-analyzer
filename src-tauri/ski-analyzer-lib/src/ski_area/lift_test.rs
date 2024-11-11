@@ -32,7 +32,6 @@ fn simple_minimal_info(_init: Init) {
     let actual =
         parse_lift(&doc, &101, doc.elements.ways.get(&101).unwrap()).unwrap();
     let expected = Some(Lift {
-        unique_id: "101".to_string(),
         ref_: String::new(),
         name: "<unnamed chair_lift>".to_string(),
         type_: "chair_lift".to_string(),
@@ -93,7 +92,6 @@ fn simple_more_info(_init: Init) {
     let actual =
         parse_lift(&doc, &101, doc.elements.ways.get(&101).unwrap()).unwrap();
     let expected = Some(Lift {
-        unique_id: "101".to_string(),
         ref_: "A".to_string(),
         name: "Lift 1".to_string(),
         type_: "t-bar".to_string(),
@@ -182,7 +180,6 @@ fn multiple_stations(_init: Init) {
     let actual =
         parse_lift(&doc, &101, doc.elements.ways.get(&101).unwrap()).unwrap();
     let expected = Some(Lift {
-        unique_id: "101".to_string(),
         ref_: String::new(),
         name: "Lift 2".to_string(),
         type_: "gondola".to_string(),

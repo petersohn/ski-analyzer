@@ -12,6 +12,7 @@ use ::function_name::named;
 use geo::{coord, point, LineString, Rect};
 use gpx::{Gpx, Track, TrackSegment, Waypoint};
 use rstest::{fixture, rstest};
+use std::collections::HashMap;
 use std::fs;
 use time::OffsetDateTime;
 
@@ -39,7 +40,6 @@ fn lift(
         .collect();
     let line = BoundedGeometry::new(line_).unwrap();
     Lift {
-        unique_id: String::new(),
         ref_: String::new(),
         name,
         type_: String::new(),
@@ -54,8 +54,8 @@ fn lift(
 fn ski_area(name: &str, lifts: Vec<Lift>) -> SkiArea {
     SkiArea::new(
         name.to_string(),
-        lifts,
-        Vec::new(),
+        lifts.into_iter().map(|l| (l.name.clone(), l)).collect(),
+        HashMap::new(),
         OffsetDateTime::UNIX_EPOCH,
     )
     .unwrap()
@@ -391,7 +391,7 @@ fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -452,7 +452,7 @@ fn simple_reverse_good(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(1),
                 end_station: Some(0),
                 is_reverse: true,
@@ -507,7 +507,7 @@ fn get_out_good(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(0),
                 end_station: None,
                 is_reverse: false,
@@ -544,7 +544,7 @@ fn get_out_good_2(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(0),
                 end_station: None,
                 is_reverse: false,
@@ -584,7 +584,7 @@ fn get_out_good_multisegment(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(0),
                 end_station: None,
                 is_reverse: false,
@@ -643,7 +643,7 @@ fn get_in_good_multisegment(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: None,
                 end_station: Some(1),
                 is_reverse: false,
@@ -684,7 +684,7 @@ fn multiple_distinct_lifts(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -697,7 +697,7 @@ fn multiple_distinct_lifts(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[1].unique_id.clone(),
+                lift_id: "Lift 2".to_string(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -739,7 +739,7 @@ fn multiple_lifts_same_start_take_longer(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[1].unique_id.clone(),
+                lift_id: "Lift 2".to_string(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -781,7 +781,7 @@ fn multiple_lifts_same_end_take_longer(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -823,7 +823,7 @@ fn multiple_lifts_same_end_take_shorter(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -868,7 +868,7 @@ fn multiple_lifts_same_start_take_shorter(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[1].unique_id.clone(),
+                lift_id: "Lift 2".to_string(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -905,7 +905,7 @@ fn midstation_get_in(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(1),
                 end_station: Some(2),
                 is_reverse: false,
@@ -944,7 +944,7 @@ fn midstation_get_out(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -985,7 +985,7 @@ fn parallel_lifts(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -1018,7 +1018,7 @@ fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(0),
                 end_station: Some(1),
                 is_reverse: false,
@@ -1056,7 +1056,7 @@ fn restart_with_new_segment(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: Some(0),
                 end_station: None,
                 is_reverse: false,
@@ -1065,7 +1065,7 @@ fn restart_with_new_segment(
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
-                lift_id: s.lifts[0].unique_id.clone(),
+                lift_id: "Lift 1".to_string(),
                 begin_station: None,
                 end_station: Some(1),
                 is_reverse: false,

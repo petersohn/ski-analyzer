@@ -8,7 +8,6 @@ import {
 } from "./geo";
 
 export type Lift = {
-  unique_id: string;
   ref: string;
   name: string;
   type: string;
@@ -29,7 +28,6 @@ export type Difficulty =
   | "Freeride";
 
 export type Piste = {
-  unique_id: string;
   ref: string;
   name: string;
   difficulty: Difficulty;
@@ -40,8 +38,8 @@ export type Piste = {
 
 export type RawSkiArea = {
   name: string;
-  lifts: Lift[];
-  pistes: Piste[];
+  lifts: { [id: string]: Lift };
+  pistes: { [id: string]: Piste };
   bounding_rect: Rect;
 };
 
@@ -52,8 +50,8 @@ export type SkiArea = {
   bounding_rect: Rect;
 };
 
-function indexData<T extends { unique_id: string }>(data: T[]): Map<string, T> {
-  return new Map(data.map((x) => [x.unique_id, x]));
+function indexData<T>(data: { [id: string]: T }): Map<string, T> {
+  return new Map(Object.keys(data).map((id) => [id, data[id]]));
 }
 
 export function index_ski_area(ski_area: RawSkiArea): SkiArea {

@@ -95,7 +95,7 @@ pub fn get_active_route(
     Ok(res)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct WaypointIn {
     point: Point,
     #[serde(default, deserialize_with = "parse_time")]
@@ -121,6 +121,7 @@ where
 
 #[tauri::command]
 pub fn get_speed(wp1: WaypointIn, wp2: WaypointIn) -> Option<f64> {
+    eprintln!("{:#?} -> {:#?}", wp1, wp2);
     let t1 = wp1.time?;
     let t2 = wp2.time?;
     if t1 == t2 {
@@ -145,10 +146,10 @@ pub fn get_closest_lift(
 ) -> Result<Option<ClosestLift>, String> {
     let app_state = state.inner().lock().map_err(|e| e.to_string())?;
     Ok((|| {
-        let (lift, distance) =
+        let (lift_id, distance) =
             app_state.get_ski_area()?.get_closest_lift(p, limit)?;
         Some(ClosestLift {
-            lift_id: lift.unique_id.clone(),
+            lift_id: lift_id.to_string(),
             distance,
         })
     })())

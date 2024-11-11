@@ -82,6 +82,7 @@ struct LiftCandidate<'s> {
 
 impl<'s> LiftCandidate<'s> {
     fn create(
+        unique_id: String,
         lift: &'s Lift,
         coordinate: SegmentCoordinate,
         point: &Waypoint,
@@ -98,7 +99,7 @@ impl<'s> LiftCandidate<'s> {
             Some(LiftCandidate {
                 lift,
                 data: UseLift {
-                    lift_id: lift.unique_id.clone(),
+                    lift_id: unique_id,
                     begin_station: station,
                     end_station: None,
                     is_reverse: false,
@@ -120,14 +121,16 @@ impl<'s> LiftCandidate<'s> {
         point: &Waypoint,
     ) -> Vec<LiftCandidate<'s>>
     where
-        It: Iterator<Item = &'s Lift>,
+        It: Iterator<Item = (&'s String, &'s Lift)>,
     {
         it.filter(|l| {
-            l.line
+            l.1.line
                 .expanded_rect(MIN_DISTANCE)
                 .intersects(&point.point())
         })
-        .filter_map(|l| LiftCandidate::create(l, coordinate, point))
+        .filter_map(|l| {
+            LiftCandidate::create(l.0.clone(), l.1, coordinate, point)
+        })
         .collect()
     }
 
@@ -360,7 +363,7 @@ pub fn find_lift_usage<'s>(
                         .iter()
                         .chain(finished_candidates.iter())
                         .find(|c| {
-                            (*l as *const Lift) == (c.lift as *const Lift)
+                            (*&l.1 as *const Lift) == (c.lift as *const Lift)
                         })
                         .is_none()
                 }),

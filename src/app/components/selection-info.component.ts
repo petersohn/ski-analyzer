@@ -142,12 +142,12 @@ export class SelectionInfoComponent {
 
   public waypointSpeed = computed(() => {
     const speed = this.selectedWaypoint()?.speed;
-    return speed !== undefined ? this.metersPerSecond(speed) : "";
+    return !!speed ? this.metersPerSecond(speed) : "";
   });
 
   public speed = computed(() => {
     const speed = this.currentWaypointSpeed();
-    return speed !== undefined ? this.metersPerSecond(speed) : "";
+    return !!speed ? this.metersPerSecond(speed) : "";
   });
 
   public closestLift = computed(() => {

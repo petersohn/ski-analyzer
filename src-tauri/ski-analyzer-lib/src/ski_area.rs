@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use geo::{Intersects, Point, Rect};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -37,8 +39,8 @@ impl PointWithElevation {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SkiArea {
     pub name: String,
-    pub lifts: Vec<Lift>,
-    pub pistes: Vec<Piste>,
+    pub lifts: HashMap<String, Lift>,
+    pub pistes: HashMap<String, Piste>,
     pub bounding_rect: Rect,
     #[serde(with = "time_ser")]
     pub date: OffsetDateTime,
@@ -65,15 +67,17 @@ fn find_name(doc: &Document) -> Result<String> {
     }
 }
 
-fn find_lifts(doc: &Document) -> Vec<Lift> {
+fn find_lifts(doc: &Document) -> HashMap<String, Lift> {
     doc.elements
         .ways
         .iter()
         .filter_map(|(id, way)| {
-            parse_lift(&doc, &id, &way).unwrap_or_else(|e| {
-                eprintln!("Error parsing way {}: {}", id, e);
-                None
-            })
+            parse_lift(&doc, &id, &way)
+                .unwrap_or_else(|e| {
+                    eprintln!("Error parsing way {}: {}", id, e);
+                    None
+                })
+                .map(|l| (id.to_string(), l))
         })
         .collect()
 }
@@ -99,15 +103,15 @@ impl SkiArea {
 
     pub fn new(
         name: String,
-        lifts: Vec<Lift>,
-        pistes: Vec<Piste>,
+        lifts: HashMap<String, Lift>,
+        pistes: HashMap<String, Piste>,
         date: OffsetDateTime,
     ) -> Result<Self> {
         let bounding_rect = union_rects_all(
             lifts
-                .iter()
+                .values()
                 .map(|l| l.line.bounding_rect)
-                .chain(pistes.iter().map(|p| p.data.bounding_rect)),
+                .chain(pistes.values().map(|p| p.data.bounding_rect)),
         )
         .ok_or_else(|| Error::new_s(ErrorType::OSMError, "Empty ski area"))?;
 
@@ -121,20 +125,20 @@ impl SkiArea {
     }
 
     pub fn clip_piste_lines(&mut self) {
-        self.pistes.iter_mut().for_each(|p| p.clip_lines());
+        self.pistes.values_mut().for_each(|p| p.clip_lines());
     }
 
     pub fn get_closest_lift<'a>(
         &'a self,
         p: Point,
         limit: f64,
-    ) -> Option<(&'a Lift, f64)> {
-        let (lift, c) = self
+    ) -> Option<(&'a str, f64)> {
+        let (lift_id, c) = self
             .lifts
             .iter()
-            .filter(|l| l.line.expanded_rect(limit).intersects(&p))
-            .filter_map(|l| Some((l, l.get_closest_point(p)?)))
+            .filter(|(_, l)| l.line.expanded_rect(limit).intersects(&p))
+            .filter_map(|(id, l)| Some((id, l.get_closest_point(p)?)))
             .min_by(|(_, c1), (_, c2)| c1.distance.total_cmp(&c2.distance))?;
-        Some((lift, c.distance))
+        Some((lift_id, c.distance))
     }
 }

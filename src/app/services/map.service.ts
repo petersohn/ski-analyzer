@@ -228,16 +228,18 @@ export class MapService {
     this.allActivityNodes = [];
   }
 
-  public loadSkiArea(skiArea: RawSkiArea): void {
+  public loadSkiArea(rawSkiArea: RawSkiArea): void {
     if (!this.isInitialized()) {
       throw new Error("Not initialized");
     }
 
     this.unloadSkiArea();
 
+    let skiArea = index_ski_area(rawSkiArea);
+
     try {
       const features: Feature[] = [];
-      for (const lift of skiArea.lifts) {
+      for (const lift of skiArea.lifts.values()) {
         const line = new Feature(
           new OlLineString(this.createLineString(lift.line.item)),
         );
@@ -259,7 +261,7 @@ export class MapService {
 
       const pisteStyles = this.mapStyleService.pisteStyles();
 
-      for (const piste of skiArea.pistes) {
+      for (const piste of skiArea.pistes.values()) {
         const style = pisteStyles[piste.difficulty];
         if (!style) {
           console.warn("Unknown difficulty", piste.difficulty);
@@ -293,7 +295,7 @@ export class MapService {
         extent: boundingExtent([minCoord, maxCoord]),
       });
       this.map!.getLayers().push(this.skiAreaLayer);
-      this.skiArea = index_ski_area(skiArea);
+      this.skiArea = skiArea;
       this.zoomToArea(minCoord, maxCoord);
     } catch (e) {
       this.unloadSkiArea();
@@ -312,7 +314,11 @@ export class MapService {
 
     this.unloadTrack();
 
+    console.log(trackRaw);
+
     const track = new TrackConverter(this.skiArea).convertTrack(trackRaw);
+
+    console.log(track);
 
     try {
       const features: Feature[] = [];
@@ -460,6 +466,7 @@ export class MapService {
       return;
     }
 
+    console.log(node.waypoint);
     this.selectedActivityNode = node;
     this.selectFeature(node.feature, styles.node);
     this.selectedWaypoint.set(node.waypoint);
@@ -467,9 +474,9 @@ export class MapService {
       invoke("get_speed", {
         wp1: node.previousNode.waypoint,
         wp2: node.waypoint,
-      }).then((speed) =>
-        this.currentWaypointSpeed.set(speed as number | undefined),
-      );
+      }).then((speed) => {
+        return this.currentWaypointSpeed.set(speed as number | undefined);
+      });
     }
 
     invoke("get_closest_lift", {
