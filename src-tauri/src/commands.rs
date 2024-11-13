@@ -36,7 +36,6 @@ pub fn load_ski_area(
 }
 
 fn find_ski_area_inner(name: String) -> Result<SkiArea, Box<dyn Error>> {
-    eprintln!("find ski area {}", name);
     let json = query_ski_area(name.as_str())?;
     let doc = Document::parse(&json)?;
     let ski_area = SkiArea::parse(&doc)?;
@@ -121,7 +120,6 @@ where
 
 #[tauri::command]
 pub fn get_speed(wp1: WaypointIn, wp2: WaypointIn) -> Option<f64> {
-    eprintln!("{:#?} -> {:#?}", wp1, wp2);
     let t1 = wp1.time?;
     let t2 = wp2.time?;
     if t1 == t2 {

@@ -13,6 +13,7 @@ use segments::get_segments;
 use use_lift::find_lift_usage;
 
 mod segments;
+mod segments_ser;
 mod use_lift;
 
 #[cfg(test)]
@@ -41,6 +42,7 @@ impl Default for ActivityType {
 pub struct Activity {
     #[serde(rename = "type")]
     pub type_: ActivityType,
+    #[serde(with = "segments_ser")]
     pub route: Segments,
     #[serde(with = "option_time_ser")]
     pub begin_time: Option<OffsetDateTime>,
