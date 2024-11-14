@@ -14,13 +14,17 @@ impl AppState {
         self.ski_area.as_ref()
     }
 
+    pub fn set_ski_area(&mut self, ski_area: SkiArea) {
+        self.ski_area = Some(ski_area);
+        self.analyzed_route = None;
+    }
+
     pub fn get_route(&self) -> Option<&AnalyzedRoute> {
         self.analyzed_route.as_ref()
     }
 
-    pub fn set_ski_area(&mut self, ski_area: SkiArea) {
-        self.ski_area = Some(ski_area);
-        self.analyzed_route = None;
+    pub fn set_route(&mut self, route: AnalyzedRoute) {
+        self.analyzed_route = Some(route);
     }
 
     pub fn set_gpx(&mut self, gpx: Gpx) -> Result<()> {

@@ -47,12 +47,21 @@ export class MainMenuComponent {
     }
   }
 
-  public async loadTrack(): Promise<void> {
+  public async loadGpx(): Promise<void> {
     const path = await open({
       filters: [{ name: "GPX", extensions: ["gpx"] }],
     });
     if (!!path) {
-      this.actionsService.loadTrack(path);
+      this.actionsService.loadGpx(path);
+    }
+  }
+
+  public async loadRoute(): Promise<void> {
+    const path = await open({
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (!!path) {
+      this.actionsService.loadRoute(path);
     }
   }
 }

@@ -1,5 +1,5 @@
 use crate::utils::result::extract_option_result;
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;
 
@@ -13,16 +13,16 @@ pub fn serialize<S: Serializer>(
     }))?;
     time_str.serialize(s)
 }
-//
-//pub fn deserialize<'de, D>(
-//    deserializer: D,
-//) -> Result<Option<OffsetDateTime>, D::Error>
-//where
-//    D: Deserializer<'de>,
-//{
-//    let s = Option::<String>::deserialize(deserializer)?;
-//    extract_option_result(s.map(|ss| {
-//        OffsetDateTime::parse(&ss, &Iso8601::DEFAULT)
-//            .map_err(|e| serde::de::Error::custom(e))
-//    }))
-//}
+
+pub fn deserialize<'de, D>(
+    deserializer: D,
+) -> Result<Option<OffsetDateTime>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = Option::<String>::deserialize(deserializer)?;
+    extract_option_result(s.map(|ss| {
+        OffsetDateTime::parse(&ss, &Iso8601::DEFAULT)
+            .map_err(|e| serde::de::Error::custom(e))
+    }))
+}

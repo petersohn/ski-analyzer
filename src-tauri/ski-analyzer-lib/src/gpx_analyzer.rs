@@ -1,6 +1,6 @@
 use geo::{Haversine, Length, Line};
 use gpx::{Gpx, Time};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::mem::take;
 use time::format_description::well_known::Iso8601;
 use time::OffsetDateTime;
@@ -26,7 +26,7 @@ mod use_lift_test;
 pub use segments::{Segment, Segments};
 pub use use_lift::{LiftEnd, UseLift};
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum ActivityType {
     Unknown(()),
     UseLift(UseLift),
@@ -38,7 +38,7 @@ impl Default for ActivityType {
     }
 }
 
-#[derive(Debug, Default, Serialize, PartialEq)]
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Activity {
     #[serde(rename = "type")]
     pub type_: ActivityType,

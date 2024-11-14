@@ -20,8 +20,13 @@ export class ActionsService {
     this.mapService.loadSkiArea(data as RawSkiArea);
   }
 
-  public async loadTrack(path: string) {
+  public async loadGpx(path: string) {
     const data = JSON.parse(await invoke("load_gpx", { path }));
+    this.mapService.loadTrack(data as RawTrack);
+  }
+
+  public async loadRoute(path: string) {
+    const data = JSON.parse(await invoke("load_route", { path }));
     this.mapService.loadTrack(data as RawTrack);
   }
 

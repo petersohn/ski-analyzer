@@ -7,13 +7,13 @@ use std::mem::take;
 
 use geo::{Distance, Haversine, Intersects, Length, Point};
 use gpx::Waypoint;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 const MIN_DISTANCE: f64 = 10.0;
 
 pub type LiftEnd = Option<usize>;
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct UseLift {
     pub lift_id: String,
     pub begin_station: LiftEnd,

@@ -27,6 +27,7 @@ pub fn run() {
             commands::load_ski_area,
             commands::find_ski_area,
             commands::load_gpx,
+            commands::load_route,
             commands::get_active_ski_area,
             commands::get_active_route,
             commands::get_speed,

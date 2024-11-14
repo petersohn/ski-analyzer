@@ -1,6 +1,7 @@
 use crate::app_state::AppState;
 use geo::{Distance, Haversine, Point};
 use serde::{Deserialize, Deserializer, Serialize};
+use ski_analyzer_lib::gpx_analyzer::AnalyzedRoute;
 use ski_analyzer_lib::osm_query::query_ski_area;
 use ski_analyzer_lib::osm_reader::Document;
 use ski_analyzer_lib::ski_area::SkiArea;
@@ -71,6 +72,26 @@ pub fn load_gpx(
     state: tauri::State<Mutex<AppState>>,
 ) -> Result<String, String> {
     load_gpx_inner(path, state).map_err(|e| e.to_string())
+}
+
+fn load_route_inner(
+    path: String,
+    state: tauri::State<Mutex<AppState>>,
+) -> Result<String, Box<dyn Error>> {
+    let file = OpenOptions::new().read(true).open(path)?;
+    let reader = BufReader::new(file);
+    let route = serde_json::from_reader(reader)?;
+    let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    app_state.set_route(route);
+    Ok(serde_json::to_string(app_state.get_route().unwrap())?)
+}
+
+#[tauri::command(async)]
+pub fn load_route(
+    path: String,
+    state: tauri::State<Mutex<AppState>>,
+) -> Result<String, String> {
+    load_route_inner(path, state).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
