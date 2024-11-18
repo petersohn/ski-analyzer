@@ -2,10 +2,11 @@ use super::{Activity, ActivityType, Segment, Segments};
 use crate::ski_area::{Lift, SkiArea};
 use crate::utils::collection::Avg;
 
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::mem::take;
 
-use geo::{Distance, Haversine, Intersects, Length, Point};
+use geo::{Distance, Haversine, Intersects, Length, Point, Rect};
 use gpx::Waypoint;
 use serde::{Deserialize, Serialize};
 
@@ -116,6 +117,7 @@ impl<'s> LiftCandidate<'s> {
     }
 
     fn find<It>(
+        bouning_rects: &HashMap<String, Rect>,
         it: It,
         coordinate: SegmentCoordinate,
         point: &Waypoint,
@@ -123,15 +125,11 @@ impl<'s> LiftCandidate<'s> {
     where
         It: Iterator<Item = (&'s String, &'s Lift)>,
     {
-        it.filter(|l| {
-            l.1.line
-                .expanded_rect(MIN_DISTANCE)
-                .intersects(&point.point())
-        })
-        .filter_map(|l| {
-            LiftCandidate::create(l.0.clone(), l.1, coordinate, point)
-        })
-        .collect()
+        it.filter(|(id, _)| bouning_rects[*id].intersects(&point.point()))
+            .filter_map(|(id, l)| {
+                LiftCandidate::create(id.clone(), l, coordinate, point)
+            })
+            .collect()
     }
 
     fn leave(&mut self, coordinate: SegmentCoordinate) -> LiftResult {
@@ -313,6 +311,12 @@ pub fn find_lift_usage<'s>(
 ) -> Vec<Activity> {
     let mut result = Vec::new();
 
+    let bounding_rects: HashMap<String, Rect> = ski_area
+        .lifts
+        .iter()
+        .map(|(id, l)| (id.clone(), l.line.expanded_rect(MIN_DISTANCE)))
+        .collect();
+
     type Candidates<'s> = Vec<LiftCandidate<'s>>;
     let mut current_route: Segments = Vec::new();
     let mut candidates: Candidates = Vec::new();
@@ -358,6 +362,7 @@ pub fn find_lift_usage<'s>(
             }
 
             let mut new_candidates = LiftCandidate::find(
+                &bounding_rects,
                 ski_area.lifts.iter().filter(|l| {
                     candidates
                         .iter()
