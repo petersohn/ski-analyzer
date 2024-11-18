@@ -10,7 +10,8 @@ use geo::{Distance, Haversine, Intersects, Length, Point, Rect};
 use gpx::Waypoint;
 use serde::{Deserialize, Serialize};
 
-const MIN_DISTANCE: f64 = 10.0;
+const MIN_DISTANCE: f64 = 15.0;
+const MIN_MOVE_DISTANCE: f64 = 5.0;
 
 pub type LiftEnd = Option<usize>;
 
@@ -158,7 +159,8 @@ impl<'s> LiftCandidate<'s> {
             Some(d) => d,
             None => return self.leave(coordinate),
         };
-        if (distance.from_begin - self.distance_from_begin).abs() > MIN_DISTANCE
+        if (distance.from_begin - self.distance_from_begin).abs()
+            > MIN_MOVE_DISTANCE
         {
             let reverse = distance.from_begin < self.distance_from_begin;
             if !self.direction_known {
