@@ -269,10 +269,7 @@ where
 
     for p in pistes_in {
         let piste = p.borrow();
-        pistes.insert(
-            format!("{}_{}", piste.metadata.ref_, piste.metadata.name),
-            piste.clone(),
-        );
+        pistes.insert(format!("{:?}", piste.metadata), piste.clone());
         bounding_rect =
             union_rects_if(bounding_rect, Some(piste.data.bounding_rect));
     }
