@@ -1,7 +1,6 @@
 use crate::app_state::AppState;
 use geo::{Distance, Haversine, Point};
 use serde::{Deserialize, Deserializer, Serialize};
-use ski_analyzer_lib::gpx_analyzer::AnalyzedRoute;
 use ski_analyzer_lib::osm_query::query_ski_area;
 use ski_analyzer_lib::osm_reader::Document;
 use ski_analyzer_lib::ski_area::SkiArea;

@@ -15,7 +15,8 @@ const MIN_MOVE_DISTANCE: f64 = 5.0;
 
 pub type LiftEnd = Option<usize>;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct UseLift {
     pub lift_id: String,
     pub begin_station: LiftEnd,
