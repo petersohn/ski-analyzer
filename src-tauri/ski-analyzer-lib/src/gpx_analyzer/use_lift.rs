@@ -1,4 +1,4 @@
-use super::{Activity, ActivityType, Segment, Segments};
+use super::{Activity, ActivityType, Segment, SegmentCoordinate, Segments};
 use crate::ski_area::{Lift, SkiArea};
 use crate::utils::collection::Avg;
 
@@ -67,8 +67,6 @@ enum LiftResult {
     Finished,
     Failure,
 }
-
-type SegmentCoordinate = (usize, usize);
 
 #[derive(Debug)]
 struct LiftCandidate<'s> {
@@ -292,22 +290,6 @@ fn commit_lift_candidates<'s>(
     result
 }
 
-fn split_route(route: &mut Segments, coord: SegmentCoordinate) -> Segments {
-    if coord.1 == 0 {
-        route.drain(coord.0..).collect()
-    } else {
-        let first_segment: Segment = route[coord.0].drain(coord.1..).collect();
-        if coord.0 == route.len() - 1 {
-            vec![first_segment]
-        } else {
-            [first_segment]
-                .into_iter()
-                .chain(route.drain(coord.0 + 1..))
-                .collect()
-        }
-    }
-}
-
 pub fn find_lift_usage<'s>(
     ski_area: &'s SkiArea,
     segments: Segments,
@@ -321,14 +303,14 @@ pub fn find_lift_usage<'s>(
         .collect();
 
     type Candidates<'s> = Vec<LiftCandidate<'s>>;
-    let mut current_route: Segments = Vec::new();
+    let mut current_route: Segments = Segments::default();
     let mut candidates: Candidates = Vec::new();
     let mut finished_candidates: Candidates = Vec::new();
 
-    for segment in segments {
+    for segment in segments.0 {
         let mut route_segment: Segment = Vec::new();
         for point in segment {
-            let mut coordinate = (current_route.len(), route_segment.len());
+            let mut coordinate = (current_route.0.len(), route_segment.len());
             let (mut finished, unfinished): (Candidates, Candidates) =
                 candidates
                     .into_iter()
@@ -342,7 +324,7 @@ pub fn find_lift_usage<'s>(
 
             if candidates.is_empty() && !finished_candidates.is_empty() {
                 if !route_segment.is_empty() {
-                    current_route.push(take(&mut route_segment));
+                    current_route.0.push(take(&mut route_segment));
                 }
                 let mut to_add: Vec<Activity> = Vec::new();
                 for (type_, coord) in
@@ -350,10 +332,10 @@ pub fn find_lift_usage<'s>(
                         .into_iter()
                         .rev()
                 {
-                    let route = split_route(&mut current_route, coord);
+                    let route = current_route.split_end(coord);
                     to_add.push(Activity::new(type_, route));
                 }
-                if !current_route.is_empty() {
+                if !current_route.0.is_empty() {
                     to_add.push(Activity::new(
                         ActivityType::default(),
                         take(&mut current_route),
@@ -361,7 +343,7 @@ pub fn find_lift_usage<'s>(
                 }
                 result.reserve(to_add.len());
                 to_add.into_iter().rev().for_each(|r| result.push(r));
-                coordinate = (current_route.len(), route_segment.len());
+                coordinate = (current_route.0.len(), route_segment.len());
             }
 
             let mut new_candidates = LiftCandidate::find(
@@ -382,10 +364,10 @@ pub fn find_lift_usage<'s>(
 
             route_segment.push(point);
         }
-        current_route.push(route_segment);
+        current_route.0.push(route_segment);
     }
 
-    if !current_route.is_empty() {
+    if !current_route.0.is_empty() {
         result.push(Activity::new(ActivityType::default(), current_route));
     }
 

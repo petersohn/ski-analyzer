@@ -9,12 +9,11 @@ use crate::error::Result;
 use crate::ski_area::SkiArea;
 use crate::utils::bounded_geometry::BoundedGeometry;
 use crate::utils::option_time_ser;
-use segments::get_segments;
 use use_lift::find_lift_usage;
 
 mod segments;
-mod segments_ser;
 mod use_lift;
+mod waypoint_ser;
 
 #[cfg(test)]
 mod segments_test;
@@ -23,7 +22,7 @@ mod test_util;
 #[cfg(test)]
 mod use_lift_test;
 
-pub use segments::{Segment, Segments};
+pub use segments::{Segment, SegmentCoordinate, Segments};
 pub use use_lift::{LiftEnd, UseLift};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -46,7 +45,6 @@ impl Default for ActivityType {
 pub struct Activity {
     #[serde(rename = "type")]
     pub type_: ActivityType,
-    #[serde(with = "segments_ser")]
     pub route: Segments,
     #[serde(with = "option_time_ser")]
     pub begin_time: Option<OffsetDateTime>,
@@ -58,18 +56,21 @@ pub struct Activity {
 impl Activity {
     fn new(type_: ActivityType, route: Segments) -> Self {
         let begin_time = route
+            .0
             .first()
             .map(|s| s.first())
             .flatten()
             .map(|wp| wp.time.map(|t| t.into()))
             .flatten();
         let end_time = route
+            .0
             .last()
             .map(|s| s.last())
             .flatten()
             .map(|wp| wp.time.map(|t| t.into()))
             .flatten();
         let length = route
+            .0
             .iter()
             .map(|s| {
                 s.windows(2).map(|wps| {
@@ -104,7 +105,7 @@ fn format_time_option(time: Option<OffsetDateTime>) -> String {
 pub type AnalyzedRoute = BoundedGeometry<Vec<Activity>>;
 
 pub fn analyze_route(ski_area: &SkiArea, gpx: Gpx) -> Result<AnalyzedRoute> {
-    let mut segments = get_segments(gpx)?;
+    let mut segments = Segments::from_gpx(gpx)?;
     // println!("{:#?}", segments);
     let result = find_lift_usage(ski_area, take(&mut segments.item));
     Ok(BoundedGeometry {

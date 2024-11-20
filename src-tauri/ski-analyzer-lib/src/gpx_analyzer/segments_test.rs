@@ -1,4 +1,4 @@
-use super::segments::get_segments;
+use super::segments::Segments;
 use crate::{
     assert_eq_pretty,
     utils::test_util::{init, Init},
@@ -63,7 +63,7 @@ fn multiple_tracks_and_segments(_init: Init) {
         ])]),
     ]);
 
-    let actual = get_segments(gpx.clone()).unwrap().item;
+    let actual = Segments::from_gpx(gpx.clone()).unwrap().item;
     let expected = vec![
         vec![
             get_wp(&gpx, 0, 0, 0),
@@ -77,7 +77,7 @@ fn multiple_tracks_and_segments(_init: Init) {
         ],
         vec![get_wp(&gpx, 1, 0, 0), get_wp(&gpx, 1, 0, 1)],
     ];
-    assert_eq_pretty!(actual, expected);
+    assert_eq_pretty!(actual.0, expected);
 }
 
 #[rstest]
@@ -109,7 +109,7 @@ fn bad_accuracy(_init: Init) {
         ]),
     ])]);
 
-    let actual = get_segments(gpx.clone()).unwrap().item;
+    let actual = Segments::from_gpx(gpx.clone()).unwrap().item;
     let expected = vec![
         vec![
             get_wp(&gpx, 0, 0, 0),
@@ -133,5 +133,5 @@ fn bad_accuracy(_init: Init) {
             get_wp(&gpx, 0, 2, 2),
         ],
     ];
-    assert_eq_pretty!(actual, expected);
+    assert_eq_pretty!(actual.0, expected);
 }
