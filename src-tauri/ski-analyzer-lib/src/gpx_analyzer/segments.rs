@@ -107,17 +107,19 @@ impl Segments {
 
     pub fn iter_between(
         &self,
-        begin: SegmentCoordinate,
-        end: SegmentCoordinate,
+        mut begin: SegmentCoordinate,
+        mut end: SegmentCoordinate,
     ) -> SegmentsIterator<'_> {
+        begin = self.get_closest_valid_coord(begin);
+        end = self.get_closest_valid_coord(end);
         if end < begin {
             panic!("Begin {:?} must not be after end {:?}", begin, end);
         }
 
         SegmentsIterator {
             obj: &self,
-            begin: self.get_closest_valid_coord(begin),
-            end: self.get_closest_valid_coord(end),
+            begin,
+            end,
         }
     }
 
