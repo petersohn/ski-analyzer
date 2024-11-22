@@ -76,35 +76,6 @@ impl Segments {
         (self.0.len(), 0)
     }
 
-    fn next_coordinate(&self, coord: SegmentCoordinate) -> SegmentCoordinate {
-        match self.0.get(coord.0) {
-            None => coord,
-            Some(s) => {
-                if coord.1 < s.len() - 1 {
-                    (coord.0, coord.1 + 1)
-                } else {
-                    (coord.0 + 1, 0)
-                }
-            }
-        }
-    }
-
-    fn prev_coordinate(&self, coord: SegmentCoordinate) -> SegmentCoordinate {
-        if coord.1 == 0 {
-            if coord.0 == 0 {
-                coord
-            } else {
-                let prev = coord.0 - 1;
-                match self.0.get(prev) {
-                    None => coord,
-                    Some(s) => (prev, s.len() - 1),
-                }
-            }
-        } else {
-            (coord.0, coord.1 - 1)
-        }
-    }
-
     pub fn iter_between(
         &self,
         mut begin: SegmentCoordinate,
@@ -123,6 +94,47 @@ impl Segments {
         }
     }
 
+    pub fn iter(&self) -> SegmentsIterator<'_> {
+        self.iter_between(self.begin_coord(), self.end_coord())
+    }
+
+    pub fn iter_from(&self, coord: SegmentCoordinate) -> SegmentsIterator<'_> {
+        self.iter_between(coord, self.end_coord())
+    }
+
+    pub fn iter_until(&self, coord: SegmentCoordinate) -> SegmentsIterator<'_> {
+        self.iter_between(self.begin_coord(), coord)
+    }
+
+    fn next_coord(&self, coord: SegmentCoordinate) -> SegmentCoordinate {
+        match self.0.get(coord.0) {
+            None => coord,
+            Some(s) => {
+                if coord.1 < s.len() - 1 {
+                    (coord.0, coord.1 + 1)
+                } else {
+                    (coord.0 + 1, 0)
+                }
+            }
+        }
+    }
+
+    fn prev_coord(&self, coord: SegmentCoordinate) -> SegmentCoordinate {
+        if coord.1 == 0 {
+            if coord.0 == 0 {
+                coord
+            } else {
+                let prev = coord.0 - 1;
+                match self.0.get(prev) {
+                    None => coord,
+                    Some(s) => (prev, s.len() - 1),
+                }
+            }
+        } else {
+            (coord.0, coord.1 - 1)
+        }
+    }
+
     fn get_closest_valid_coord(
         &self,
         coord: SegmentCoordinate,
@@ -137,18 +149,6 @@ impl Segments {
                 }
             }
         }
-    }
-
-    pub fn iter(&self) -> SegmentsIterator<'_> {
-        self.iter_between(self.begin_coord(), self.end_coord())
-    }
-
-    pub fn iter_from(&self, coord: SegmentCoordinate) -> SegmentsIterator<'_> {
-        self.iter_between(coord, self.end_coord())
-    }
-
-    pub fn iter_until(&self, coord: SegmentCoordinate) -> SegmentsIterator<'_> {
-        self.iter_between(self.begin_coord(), coord)
     }
 }
 
@@ -279,9 +279,8 @@ impl<'a> Iterator for SegmentsIterator<'a> {
             return None;
         }
 
-        eprintln!("{:?}", self.begin);
         let result = (self.begin, self.obj.get(self.begin).unwrap());
-        self.begin = self.obj.next_coordinate(self.begin);
+        self.begin = self.obj.next_coord(self.begin);
         Some(result)
     }
 }
@@ -292,7 +291,7 @@ impl<'a> DoubleEndedIterator for SegmentsIterator<'a> {
             return None;
         }
 
-        self.end = self.obj.prev_coordinate(self.end);
+        self.end = self.obj.prev_coord(self.end);
         Some((self.end, self.obj.get(self.end).unwrap()))
     }
 }

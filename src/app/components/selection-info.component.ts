@@ -46,6 +46,8 @@ const difficultyColors: { [type: string]: string } = {
 const activityTypes: { [type: string]: string } = {
   Unknown: "unknown",
   UseLift: "Lift",
+  EnterLift: "Enter Lift",
+  ExitLift: "Exit Lift",
 };
 
 @Component({
@@ -89,7 +91,11 @@ export class SelectionInfoComponent {
   public pisteName = computed(() => this.getName(this.selectedPiste()));
 
   public lift = computed(
-    () => this.selectedLift() || this.selectedActivity()?.useLift?.lift,
+    () =>
+      this.selectedLift() ||
+      this.selectedActivity()?.useLift?.lift ||
+      this.selectedActivity()?.enterLift ||
+      this.selectedActivity()?.exitLift,
   );
   public liftName = computed(() => this.getName(this.lift()));
   public liftType = computed(() => liftTypes[this.lift()?.type ?? ""]);

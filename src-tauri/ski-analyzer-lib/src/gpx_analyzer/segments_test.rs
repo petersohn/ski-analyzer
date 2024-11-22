@@ -118,6 +118,7 @@ fn segments_iter_from(segmented: Segments, flattened: FlattenedSegments) {
     assert_eq_pretty!(get_actual(2, 3), get_expected(9));
     assert_eq_pretty!(get_actual(2, 4), get_expected(9));
     assert_eq_pretty!(get_actual(3, 0), get_expected(9));
+    assert_eq_pretty!(get_actual(3, 1), get_expected(9));
 }
 
 #[rstest]

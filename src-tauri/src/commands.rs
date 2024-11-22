@@ -1,5 +1,6 @@
 use crate::app_state::AppState;
-use geo::{Distance, Haversine, Point};
+use geo::Point;
+use gpx::Waypoint;
 use serde::{Deserialize, Deserializer, Serialize};
 use ski_analyzer_lib::osm_query::query_ski_area;
 use ski_analyzer_lib::osm_reader::Document;
@@ -121,6 +122,14 @@ pub struct WaypointIn {
     time: Option<OffsetDateTime>,
 }
 
+impl Into<Waypoint> for WaypointIn {
+    fn into(self) -> Waypoint {
+        let mut result = Waypoint::new(self.point);
+        result.time = self.time.map(|t| t.into());
+        result
+    }
+}
+
 fn parse_time<'de, D>(
     deserializer: D,
 ) -> Result<Option<OffsetDateTime>, D::Error>
@@ -140,14 +149,7 @@ where
 
 #[tauri::command]
 pub fn get_speed(wp1: WaypointIn, wp2: WaypointIn) -> Option<f64> {
-    let t1 = wp1.time?;
-    let t2 = wp2.time?;
-    if t1 == t2 {
-        None
-    } else {
-        let t = (t2 - t1).as_seconds_f64();
-        Some(Haversine::distance(wp1.point, wp2.point) / t)
-    }
+    ski_analyzer_lib::gpx_analyzer::get_speed(&wp1.into(), &wp2.into())
 }
 
 #[derive(Serialize)]

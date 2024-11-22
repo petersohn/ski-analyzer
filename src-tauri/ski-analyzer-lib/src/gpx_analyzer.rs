@@ -1,5 +1,5 @@
-use geo::{Haversine, Length, Line};
-use gpx::{Gpx, Time};
+use geo::{Distance, Haversine, Length, Line};
+use gpx::{Gpx, Time, Waypoint};
 use serde::{Deserialize, Serialize};
 use std::mem::take;
 use time::format_description::well_known::Iso8601;
@@ -112,4 +112,15 @@ pub fn analyze_route(ski_area: &SkiArea, gpx: Gpx) -> Result<AnalyzedRoute> {
         item: result,
         bounding_rect: segments.bounding_rect,
     })
+}
+
+pub fn get_speed(wp1: &Waypoint, wp2: &Waypoint) -> Option<f64> {
+    let t1 = OffsetDateTime::from(wp1.time?);
+    let t2 = OffsetDateTime::from(wp2.time?);
+    if t1 == t2 {
+        None
+    } else {
+        let t = (t2 - t1).as_seconds_f64();
+        Some(Haversine::distance(wp1.point(), wp2.point()) / t)
+    }
 }

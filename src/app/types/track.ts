@@ -19,6 +19,8 @@ export type RawUseLift = {
 export type RawActivityType = {
   Unknown?: null;
   UseLift?: RawUseLift;
+  EnterLift?: string;
+  ExitLift?: string;
 };
 
 export type RawActivity = {
@@ -51,11 +53,13 @@ export type UseLift = {
   is_reverse: boolean;
 };
 
-export type ActivityType = "Unknown" | "UseLift";
+export type ActivityType = "Unknown" | "UseLift" | "EnterLift" | "ExitLift";
 
 export type Activity = {
   type: ActivityType;
   useLift?: UseLift;
+  enterLift?: Lift;
+  exitLift?: Lift;
   route: Segments;
   begin_time: Dayjs | null;
   end_time: Dayjs | null;
@@ -76,6 +80,8 @@ export class TrackConverter {
         return {
           type: this.convertActivityType(activity.type),
           useLift: this.convertUseLift(activity.type.UseLift),
+          enterLift: this.getLift(activity.type.EnterLift),
+          exitLift: this.getLift(activity.type.ExitLift),
           route: this.convertRoute(activity.route),
           begin_time: dayjs(activity.begin_time),
           end_time: dayjs(activity.end_time),
@@ -86,12 +92,20 @@ export class TrackConverter {
     };
   }
 
+  private getLift(liftId: string | undefined): Lift | undefined {
+    if (liftId == undefined) {
+      return undefined;
+    }
+
+    return this.skiArea.lifts.get(liftId);
+  }
+
   private convertUseLift(input?: RawUseLift): UseLift | undefined {
     if (!input) {
       return;
     }
 
-    const lift = this.skiArea.lifts.get(input.lift_id);
+    const lift = this.getLift(input.lift_id);
     if (!lift) {
       throw new Error(`Lift not found with id: ${input.lift_id}`);
     }

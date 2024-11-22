@@ -1,4 +1,6 @@
-use super::{Activity, ActivityType, Segment, SegmentCoordinate, Segments};
+use super::{
+    get_speed, Activity, ActivityType, Segment, SegmentCoordinate, Segments,
+};
 use crate::ski_area::{Lift, SkiArea};
 use crate::utils::collection::Avg;
 
@@ -12,6 +14,7 @@ use serde::{Deserialize, Serialize};
 
 const MIN_DISTANCE: f64 = 15.0;
 const MIN_MOVE_DISTANCE: f64 = 5.0;
+const MIN_SPEED: f64 = 1.0;
 
 pub type LiftEnd = Option<usize>;
 
@@ -203,10 +206,40 @@ impl<'s> LiftCandidate<'s> {
     fn commit(
         self,
         route: &Segments,
-        coordinate: SegmentCoordinate,
+        mut begin: SegmentCoordinate,
+        end: SegmentCoordinate,
         result: &mut Vec<(ActivityType, SegmentCoordinate)>,
     ) {
-        result.push((ActivityType::UseLift(self.data), coordinate));
+        let lift_id = self.data.lift_id.clone();
+
+        if let Some((_, (coord, _))) = route
+            .iter_between(begin, end)
+            .zip(route.iter_between(begin, end).skip(1))
+            .take_while(|((_c1, wp1), (_c2, wp2))| match get_speed(wp1, wp2) {
+                None => false,
+                Some(speed) => speed.abs() < MIN_SPEED,
+            })
+            .last()
+        {
+            result.push((ActivityType::EnterLift(lift_id.clone()), begin));
+            begin = coord;
+        }
+
+        result.push((ActivityType::UseLift(self.data), begin));
+
+        if let Some(((coord, _), _)) = route
+            .iter_between(begin, end)
+            .rev()
+            .skip(1)
+            .zip(route.iter_between(begin, end).rev())
+            .take_while(|((_c1, wp1), (_c2, wp2))| match get_speed(wp1, wp2) {
+                None => false,
+                Some(speed) => speed.abs() < MIN_SPEED,
+            })
+            .last()
+        {
+            result.push((ActivityType::ExitLift(lift_id), coord));
+        }
     }
 
     fn found_station_count(&self) -> u32 {
@@ -279,20 +312,23 @@ fn commit_lift_candidates<'s>(
     while let Some(next) = candidates2.pop() {
         let current_end = *current.possible_ends.last().unwrap();
         let next_begin = *next.possible_begins.first().unwrap();
-        current.commit(route, coord, &mut result);
+
         coord = if current_end < next_begin {
+            current.commit(route, coord, current_end, &mut result);
             result.push((ActivityType::default(), current_end));
             next_begin
         } else {
-            *next
+            let next_coord = *next
                 .possible_begins
                 .iter()
                 .rfind(|c| **c <= current_end)
-                .unwrap()
+                .unwrap();
+            current.commit(route, coord, next_coord, &mut result);
+            next_coord
         };
         current = next;
     }
-    current.commit(route, coord, &mut result);
+    current.commit(route, coord, route.end_coord(), &mut result);
     result
 }
 

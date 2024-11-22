@@ -114,23 +114,32 @@ export class MapStyleService {
   public routeStyles = lazy(() => {
     const colors: { [type: string]: string } = {
       Unknown: "#f0f",
-      UseLift: "#a00",
+      UseLift: "#f55",
+      EnterLift: "#f33",
+      ExitLift: "#f77",
+    };
+    const dashes: { [type: string]: number[] } = {
+      EnterLift: [6, 4, 2, 4],
+      ExitLift: [6, 4, 2, 4],
     };
 
     const result: RouteStyles = {};
     for (const type in colors) {
       const color = colors[type];
+      const lineDash = dashes[type];
       result[type] = {
         line: {
           unselected: new Style({
             stroke: new Stroke({
               color,
+              lineDash,
               width: 2,
             }),
           }),
           selected: new Style({
             stroke: new Stroke({
               color,
+              lineDash,
               width: 3,
             }),
           }),
@@ -139,7 +148,7 @@ export class MapStyleService {
           unselected: new Style({}),
           selected: new Style({
             image: new Circle({
-              radius: 4,
+              radius: 6,
               fill: new Fill({
                 color,
               }),
