@@ -118,7 +118,6 @@ fn segments_iter_from(segmented: Segments, flattened: FlattenedSegments) {
     assert_eq_pretty!(get_actual(2, 3), get_expected(9));
     assert_eq_pretty!(get_actual(2, 4), get_expected(9));
     assert_eq_pretty!(get_actual(3, 0), get_expected(9));
-    assert_eq_pretty!(get_actual(3, 1), get_expected(9));
 }
 
 #[rstest]
@@ -149,6 +148,29 @@ fn segments_iter_until(segmented: Segments, flattened: FlattenedSegments) {
     assert_eq_pretty!(get_actual(2, 4), get_expected(9));
     assert_eq_pretty!(get_actual(3, 0), get_expected(9));
     assert_eq_pretty!(get_actual(3, 1), get_expected(9));
+}
+
+#[rstest]
+fn segments_iter_between(segmented: Segments, flattened: FlattenedSegments) {
+    let get_expected = |from, to| {
+        flattened
+            .iter()
+            .skip(from)
+            .take(to - from)
+            .map(|x| x.clone())
+            .collect::<Vec<(SegmentCoordinate, Waypoint)>>()
+    };
+    let get_actual = |from, to| {
+        segmented
+            .iter_between(from, to)
+            .map(|(c, w)| (c, w.clone()))
+            .collect::<Vec<(SegmentCoordinate, Waypoint)>>()
+    };
+
+    assert_eq_pretty!(get_actual((0, 0), (3, 0)), get_expected(0, 9));
+    assert_eq_pretty!(get_actual((0, 0), (1, 1)), get_expected(0, 5));
+    assert_eq_pretty!(get_actual((1, 1), (3, 0)), get_expected(5, 9));
+    assert_eq_pretty!(get_actual((0, 2), (2, 1)), get_expected(2, 7));
 }
 
 #[rstest]

@@ -68,6 +68,14 @@ impl Segments {
         self.0.get(coord.0).and_then(|s| s.get(coord.1))
     }
 
+    pub fn begin_coord(&self) -> SegmentCoordinate {
+        (0, 0)
+    }
+
+    pub fn end_coord(&self) -> SegmentCoordinate {
+        (self.0.len(), 0)
+    }
+
     fn next_coordinate(&self, coord: SegmentCoordinate) -> SegmentCoordinate {
         match self.0.get(coord.0) {
             None => coord,
@@ -97,27 +105,19 @@ impl Segments {
         }
     }
 
-    pub fn iter(&self) -> SegmentsIterator<'_> {
-        SegmentsIterator {
-            obj: &self,
-            begin: (0, 0),
-            end: (self.0.len(), 0),
+    pub fn iter_between(
+        &self,
+        begin: SegmentCoordinate,
+        end: SegmentCoordinate,
+    ) -> SegmentsIterator<'_> {
+        if end < begin {
+            panic!("Begin {:?} must not be after end {:?}", begin, end);
         }
-    }
 
-    pub fn iter_from(&self, coord: SegmentCoordinate) -> SegmentsIterator<'_> {
         SegmentsIterator {
             obj: &self,
-            begin: self.get_closest_valid_coord(coord),
-            end: (self.0.len(), 0),
-        }
-    }
-
-    pub fn iter_until(&self, coord: SegmentCoordinate) -> SegmentsIterator<'_> {
-        SegmentsIterator {
-            obj: &self,
-            begin: (0, 0),
-            end: self.get_closest_valid_coord(coord),
+            begin: self.get_closest_valid_coord(begin),
+            end: self.get_closest_valid_coord(end),
         }
     }
 
@@ -126,7 +126,7 @@ impl Segments {
         coord: SegmentCoordinate,
     ) -> SegmentCoordinate {
         match self.0.get(coord.0) {
-            None => (self.0.len(), 0),
+            None => self.end_coord(),
             Some(s) => {
                 if coord.1 >= s.len() {
                     (coord.0 + 1, 0)
@@ -135,6 +135,18 @@ impl Segments {
                 }
             }
         }
+    }
+
+    pub fn iter(&self) -> SegmentsIterator<'_> {
+        self.iter_between(self.begin_coord(), self.end_coord())
+    }
+
+    pub fn iter_from(&self, coord: SegmentCoordinate) -> SegmentsIterator<'_> {
+        self.iter_between(coord, self.end_coord())
+    }
+
+    pub fn iter_until(&self, coord: SegmentCoordinate) -> SegmentsIterator<'_> {
+        self.iter_between(self.begin_coord(), coord)
     }
 }
 
