@@ -63,6 +63,66 @@ impl Segments {
         result.push(self.0[end.0].get(0..end.1).unwrap().into());
         Self::new(result)
     }
+
+    pub fn get<'a>(&'a self, coord: SegmentCoordinate) -> Option<&'a Waypoint> {
+        self.0.get(coord.0).and_then(|s| s.get(coord.1))
+    }
+
+    fn next_coordinate(&self, coord: SegmentCoordinate) -> SegmentCoordinate {
+        match self.0.get(coord.0) {
+            None => coord,
+            Some(s) => {
+                if coord.1 < s.len() - 1 {
+                    (coord.0, coord.1 + 1)
+                } else {
+                    (coord.0 + 1, 0)
+                }
+            }
+        }
+    }
+
+    fn prev_coordinate(&self, coord: SegmentCoordinate) -> SegmentCoordinate {
+        if coord.1 == 0 {
+            if coord.0 == 0 {
+                coord
+            } else {
+                let prev = coord.0 - 1;
+                match self.0.get(prev) {
+                    None => coord,
+                    Some(s) => (prev, s.len() - 1),
+                }
+            }
+        } else {
+            (coord.0, coord.1 - 1)
+        }
+    }
+
+    pub fn iter(&self) -> SegmentsIterator<'_> {
+        SegmentsIterator {
+            obj: &self,
+            begin: (0, 0),
+            end: (self.0.len(), 0),
+        }
+    }
+
+    pub fn iter_from(&self, coord: SegmentCoordinate) -> SegmentsIterator<'_> {
+        let end = (self.0.len(), 0);
+        let begin = match self.0.get(coord.0) {
+            None => end,
+            Some(s) => {
+                if coord.1 >= s.len() {
+                    (coord.0 + 1, 0)
+                } else {
+                    coord
+                }
+            }
+        };
+        SegmentsIterator {
+            obj: &self,
+            begin,
+            end,
+        }
+    }
 }
 
 impl Serialize for Segments {
@@ -175,5 +235,37 @@ impl Segments {
             bounding_rect: bounding_rect
                 .ok_or(Error::new_s(ErrorType::InputError, "Empty route"))?,
         })
+    }
+}
+
+pub struct SegmentsIterator<'a> {
+    obj: &'a Segments,
+    begin: SegmentCoordinate,
+    end: SegmentCoordinate,
+}
+
+impl<'a> Iterator for SegmentsIterator<'a> {
+    type Item = (SegmentCoordinate, &'a Waypoint);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.begin == self.end {
+            return None;
+        }
+
+        eprintln!("{:?}", self.begin);
+        let result = (self.begin, self.obj.get(self.begin).unwrap());
+        self.begin = self.obj.next_coordinate(self.begin);
+        Some(result)
+    }
+}
+
+impl<'a> DoubleEndedIterator for SegmentsIterator<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.begin == self.end {
+            return None;
+        }
+
+        self.end = self.obj.prev_coordinate(self.end);
+        Some((self.end, self.obj.get(self.end).unwrap()))
     }
 }

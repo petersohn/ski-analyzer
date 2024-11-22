@@ -200,8 +200,13 @@ impl<'s> LiftCandidate<'s> {
         result
     }
 
-    fn commit(self) -> UseLift {
-        self.data
+    fn commit(
+        self,
+        route: &Segments,
+        coordinate: SegmentCoordinate,
+        result: &mut Vec<(ActivityType, SegmentCoordinate)>,
+    ) {
+        result.push((ActivityType::UseLift(self.data), coordinate));
     }
 
     fn found_station_count(&self) -> u32 {
@@ -242,6 +247,7 @@ fn group_lift_candidates<'s>(
 
 fn commit_lift_candidates<'s>(
     candidates: Vec<LiftCandidate<'s>>,
+    route: &Segments,
 ) -> Vec<(ActivityType, SegmentCoordinate)> {
     let mut groups = group_lift_candidates(candidates);
 
@@ -273,7 +279,7 @@ fn commit_lift_candidates<'s>(
     while let Some(next) = candidates2.pop() {
         let current_end = *current.possible_ends.last().unwrap();
         let next_begin = *next.possible_begins.first().unwrap();
-        result.push((ActivityType::UseLift(current.commit()), coord));
+        current.commit(route, coord, &mut result);
         coord = if current_end < next_begin {
             result.push((ActivityType::default(), current_end));
             next_begin
@@ -286,7 +292,7 @@ fn commit_lift_candidates<'s>(
         };
         current = next;
     }
-    result.push((ActivityType::UseLift(current.commit()), coord));
+    current.commit(route, coord, &mut result);
     result
 }
 
@@ -327,10 +333,12 @@ pub fn find_lift_usage<'s>(
                     current_route.0.push(take(&mut route_segment));
                 }
                 let mut to_add: Vec<Activity> = Vec::new();
-                for (type_, coord) in
-                    commit_lift_candidates(take(&mut finished_candidates))
-                        .into_iter()
-                        .rev()
+                for (type_, coord) in commit_lift_candidates(
+                    take(&mut finished_candidates),
+                    &current_route,
+                )
+                .into_iter()
+                .rev()
                 {
                     let route = current_route.split_end(coord);
                     to_add.push(Activity::new(type_, route));
