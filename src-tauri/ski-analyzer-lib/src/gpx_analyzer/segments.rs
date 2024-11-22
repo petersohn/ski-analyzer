@@ -106,9 +106,27 @@ impl Segments {
     }
 
     pub fn iter_from(&self, coord: SegmentCoordinate) -> SegmentsIterator<'_> {
-        let end = (self.0.len(), 0);
-        let begin = match self.0.get(coord.0) {
-            None => end,
+        SegmentsIterator {
+            obj: &self,
+            begin: self.get_closest_valid_coord(coord),
+            end: (self.0.len(), 0),
+        }
+    }
+
+    pub fn iter_until(&self, coord: SegmentCoordinate) -> SegmentsIterator<'_> {
+        SegmentsIterator {
+            obj: &self,
+            begin: (0, 0),
+            end: self.get_closest_valid_coord(coord),
+        }
+    }
+
+    fn get_closest_valid_coord(
+        &self,
+        coord: SegmentCoordinate,
+    ) -> SegmentCoordinate {
+        match self.0.get(coord.0) {
+            None => (self.0.len(), 0),
             Some(s) => {
                 if coord.1 >= s.len() {
                     (coord.0 + 1, 0)
@@ -116,11 +134,6 @@ impl Segments {
                     coord
                 }
             }
-        };
-        SegmentsIterator {
-            obj: &self,
-            begin,
-            end,
         }
     }
 }

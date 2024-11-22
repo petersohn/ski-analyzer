@@ -6,7 +6,7 @@ use crate::{
 
 use geo::point;
 use gpx::{Gpx, Track, TrackSegment, Waypoint};
-use rstest::rstest;
+use rstest::{fixture, rstest};
 
 fn wp(x: f64, y: f64, h: Option<f64>) -> Waypoint {
     let mut result = Waypoint::new(point! { x: x, y: y });
@@ -41,9 +41,9 @@ fn get_wp(
     gpx.tracks[track_id].segments[segment_id].points[id].clone()
 }
 
-#[rstest]
-fn segments_iter(_init: Init) {
-    let segments = Segments::new(vec![
+#[fixture]
+fn segmented() -> Segments {
+    Segments::new(vec![
         vec![
             wp(1.0, 10.0, None),
             wp(2.0, 10.0, None),
@@ -56,9 +56,14 @@ fn segments_iter(_init: Init) {
             wp(2.0, 30.0, None),
             wp(3.0, 30.0, None),
         ],
-    ]);
+    ])
+}
 
-    let mut expected: Vec<(SegmentCoordinate, Waypoint)> = vec![
+type FlattenedSegments = Vec<(SegmentCoordinate, Waypoint)>;
+
+#[fixture]
+fn flattened() -> FlattenedSegments {
+    vec![
         ((0, 0), wp(1.0, 10.0, None)),
         ((0, 1), wp(2.0, 10.0, None)),
         ((0, 2), wp(3.0, 10.0, None)),
@@ -68,56 +73,66 @@ fn segments_iter(_init: Init) {
         ((2, 0), wp(1.0, 30.0, None)),
         ((2, 1), wp(2.0, 30.0, None)),
         ((2, 2), wp(3.0, 30.0, None)),
-    ];
-    let actual_fwd: Vec<(SegmentCoordinate, Waypoint)> =
-        segments.iter().map(|(c, w)| (c, w.clone())).collect();
-    assert_eq_pretty!(actual_fwd, expected);
-
-    expected.reverse();
-    let actual_rev: Vec<(SegmentCoordinate, Waypoint)> =
-        segments.iter().rev().map(|(c, w)| (c, w.clone())).collect();
-    assert_eq_pretty!(actual_rev, expected);
+    ]
 }
 
 #[rstest]
-fn segments_iter_from(_init: Init) {
-    let segments = Segments::new(vec![
-        vec![
-            wp(1.0, 10.0, None),
-            wp(2.0, 10.0, None),
-            wp(3.0, 10.0, None),
-            wp(4.0, 10.0, None),
-        ],
-        vec![wp(1.0, 20.0, None), wp(2.0, 20.0, None)],
-        vec![
-            wp(1.0, 30.0, None),
-            wp(2.0, 30.0, None),
-            wp(3.0, 30.0, None),
-        ],
-    ]);
+fn segments_iter(segmented: Segments, mut flattened: FlattenedSegments) {
+    let actual_fwd: Vec<(SegmentCoordinate, Waypoint)> =
+        segmented.iter().map(|(c, w)| (c, w.clone())).collect();
+    assert_eq_pretty!(actual_fwd, flattened);
 
-    let expected: Vec<(SegmentCoordinate, Waypoint)> = vec![
-        ((0, 0), wp(1.0, 10.0, None)),
-        ((0, 1), wp(2.0, 10.0, None)),
-        ((0, 2), wp(3.0, 10.0, None)),
-        ((0, 3), wp(4.0, 10.0, None)),
-        ((1, 0), wp(1.0, 20.0, None)),
-        ((1, 1), wp(2.0, 20.0, None)),
-        ((2, 0), wp(1.0, 30.0, None)),
-        ((2, 1), wp(2.0, 30.0, None)),
-        ((2, 2), wp(3.0, 30.0, None)),
-    ];
+    flattened.reverse();
+    let actual_rev: Vec<(SegmentCoordinate, Waypoint)> = segmented
+        .iter()
+        .rev()
+        .map(|(c, w)| (c, w.clone()))
+        .collect();
+    assert_eq_pretty!(actual_rev, flattened);
+}
 
+#[rstest]
+fn segments_iter_from(segmented: Segments, flattened: FlattenedSegments) {
     let get_expected = |n| {
-        expected
+        flattened
             .iter()
             .skip(n)
             .map(|x| x.clone())
             .collect::<Vec<(SegmentCoordinate, Waypoint)>>()
     };
     let get_actual = |x, y| {
-        segments
+        segmented
             .iter_from((x, y))
+            .map(|(c, w)| (c, w.clone()))
+            .collect::<Vec<(SegmentCoordinate, Waypoint)>>()
+    };
+
+    assert_eq_pretty!(get_actual(0, 0), get_expected(0));
+    assert_eq_pretty!(get_actual(0, 2), get_expected(2));
+    assert_eq_pretty!(get_actual(0, 3), get_expected(3));
+    assert_eq_pretty!(get_actual(0, 4), get_expected(4));
+    assert_eq_pretty!(get_actual(0, 5), get_expected(4));
+    assert_eq_pretty!(get_actual(1, 0), get_expected(4));
+    assert_eq_pretty!(get_actual(1, 1), get_expected(5));
+    assert_eq_pretty!(get_actual(2, 2), get_expected(8));
+    assert_eq_pretty!(get_actual(2, 3), get_expected(9));
+    assert_eq_pretty!(get_actual(2, 4), get_expected(9));
+    assert_eq_pretty!(get_actual(3, 0), get_expected(9));
+    assert_eq_pretty!(get_actual(3, 1), get_expected(9));
+}
+
+#[rstest]
+fn segments_iter_until(segmented: Segments, flattened: FlattenedSegments) {
+    let get_expected = |n| {
+        flattened
+            .iter()
+            .take(n)
+            .map(|x| x.clone())
+            .collect::<Vec<(SegmentCoordinate, Waypoint)>>()
+    };
+    let get_actual = |x, y| {
+        segmented
+            .iter_until((x, y))
             .map(|(c, w)| (c, w.clone()))
             .collect::<Vec<(SegmentCoordinate, Waypoint)>>()
     };
