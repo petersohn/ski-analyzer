@@ -1,5 +1,6 @@
 use geo::{Distance, Haversine, Length, Line};
 use gpx::{Gpx, Time, Waypoint};
+use gpx_parser::parse_gpx;
 use serde::{Deserialize, Serialize};
 use std::mem::take;
 use time::format_description::well_known::Iso8601;
@@ -11,10 +12,13 @@ use crate::utils::bounded_geometry::BoundedGeometry;
 use crate::utils::option_time_ser;
 use use_lift::find_lift_usage;
 
+mod gpx_parser;
 mod segments;
 mod use_lift;
 mod waypoint_ser;
 
+#[cfg(test)]
+mod gpx_parser_test;
 #[cfg(test)]
 mod segments_test;
 #[cfg(test)]
@@ -105,8 +109,7 @@ fn format_time_option(time: Option<OffsetDateTime>) -> String {
 pub type AnalyzedRoute = BoundedGeometry<Vec<Activity>>;
 
 pub fn analyze_route(ski_area: &SkiArea, gpx: Gpx) -> Result<AnalyzedRoute> {
-    let mut segments = Segments::from_gpx(gpx)?;
-    // println!("{:#?}", segments);
+    let mut segments = parse_gpx(gpx)?;
     let result = find_lift_usage(ski_area, take(&mut segments.item));
     Ok(BoundedGeometry {
         item: result,
