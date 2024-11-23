@@ -24,16 +24,20 @@ impl Segments {
         Self { 0: segments }
     }
 
-    pub fn split_end(&mut self, coord: SegmentCoordinate) -> Self {
+    pub fn split_end(&mut self, mut coord: SegmentCoordinate) -> Self {
+        coord = self.get_closest_valid_coord(coord);
         let result = if coord.1 == 0 {
             self.0.drain(coord.0..).collect()
         } else {
-            let first_segment: Segment =
-                self.0[coord.0].drain(coord.1..).collect();
+            let segment_in = &mut self.0[coord.0];
+            let segment_out: Segment = [segment_in[coord.1].clone()]
+                .into_iter()
+                .chain(segment_in.drain(coord.1 + 1..))
+                .collect();
             if coord.0 == self.0.len() - 1 {
-                vec![first_segment]
+                vec![segment_out]
             } else {
-                [first_segment]
+                [segment_out]
                     .into_iter()
                     .chain(self.0.drain(coord.0 + 1..))
                     .collect()
@@ -45,22 +49,33 @@ impl Segments {
 
     pub fn clone_part(
         &self,
-        begin: SegmentCoordinate,
-        end: SegmentCoordinate,
+        mut begin: SegmentCoordinate,
+        mut end: SegmentCoordinate,
     ) -> Self {
+        begin = self.get_closest_valid_coord(begin);
+        end = self.get_closest_valid_coord(end);
+
         if begin.0 == end.0 {
-            return Self::new(vec![self.0[begin.0]
-                .get(begin.1..end.1)
-                .unwrap()
-                .into()]);
+            return if begin.1 == end.1 {
+                Self::new(vec![])
+            } else {
+                Self::new(vec![self.0[begin.0]
+                    .get(begin.1..end.1)
+                    .unwrap()
+                    .into()])
+            };
         }
+
         let mut result = Vec::new();
         result.reserve(end.0 - begin.0 + 1);
         result.push(self.0[begin.0].get(begin.1..).unwrap().into());
         for i in (begin.0 + 1)..end.0 {
             result.push(self.0[i].clone());
         }
-        result.push(self.0[end.0].get(0..end.1).unwrap().into());
+
+        if end.1 != 0 {
+            result.push(self.0[end.0].get(0..end.1).unwrap().into());
+        }
         Self::new(result)
     }
 

@@ -372,7 +372,7 @@ fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 2)),
+            segments.clone_part((0, 0), (0, 3)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -385,7 +385,7 @@ fn simple(_init: Init, line00: LineString, simple_segment: TrackSegment) {
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 19), (0, 21)),
+            segments.clone_part((0, 18), (0, 21)),
         ),
     ];
 
@@ -433,7 +433,7 @@ fn simple_reverse_good(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 2)),
+            segments.clone_part((0, 0), (0, 3)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -446,7 +446,7 @@ fn simple_reverse_good(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 19), (0, 21)),
+            segments.clone_part((0, 18), (0, 21)),
         ),
     ];
 
@@ -488,7 +488,7 @@ fn get_out_good(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 2)),
+            segments.clone_part((0, 0), (0, 3)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -501,7 +501,7 @@ fn get_out_good(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 28), (0, 30)),
+            segments.clone_part((0, 27), (0, 30)),
         ),
     ];
 
@@ -525,7 +525,7 @@ fn get_out_good_2(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 2)),
+            segments.clone_part((0, 0), (0, 3)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -538,7 +538,7 @@ fn get_out_good_2(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 8), (0, 11)),
+            segments.clone_part((0, 7), (0, 11)),
         ),
     ];
 
@@ -565,7 +565,7 @@ fn get_out_good_multisegment(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 2)),
+            segments.clone_part((0, 0), (0, 3)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -574,7 +574,7 @@ fn get_out_good_multisegment(
                 end_station: None,
                 is_reverse: false,
             }),
-            segments.clone_part((0, 2), (0, 28)),
+            segments.clone_part((0, 2), (1, 0)),
         ),
         Activity::new(
             ActivityType::Unknown(()),
@@ -624,7 +624,7 @@ fn get_in_good_multisegment(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 3)),
+            segments.clone_part((0, 0), (1, 0)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -637,7 +637,7 @@ fn get_in_good_multisegment(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((1, 8), (1, 11)),
+            segments.clone_part((1, 7), (1, 11)),
         ),
     ];
 
@@ -665,7 +665,7 @@ fn multiple_distinct_lifts(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 2)),
+            segments.clone_part((0, 0), (0, 3)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -678,7 +678,7 @@ fn multiple_distinct_lifts(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 12), (0, 15)),
+            segments.clone_part((0, 11), (0, 16)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -691,7 +691,7 @@ fn multiple_distinct_lifts(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 21), (0, 23)),
+            segments.clone_part((0, 20), (0, 23)),
         ),
     ];
 
@@ -720,7 +720,7 @@ fn multiple_lifts_same_start_take_longer(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 2)),
+            segments.clone_part((0, 0), (0, 3)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -733,7 +733,7 @@ fn multiple_lifts_same_start_take_longer(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 19), (0, 21)),
+            segments.clone_part((0, 18), (0, 21)),
         ),
     ];
 
@@ -762,7 +762,7 @@ fn multiple_lifts_same_end_take_longer(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 2)),
+            segments.clone_part((0, 0), (0, 3)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -775,7 +775,7 @@ fn multiple_lifts_same_end_take_longer(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 19), (0, 21)),
+            segments.clone_part((0, 18), (0, 21)),
         ),
     ];
 
@@ -804,7 +804,7 @@ fn multiple_lifts_same_end_take_shorter(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 3)),
+            segments.clone_part((0, 0), (0, 4)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -817,7 +817,7 @@ fn multiple_lifts_same_end_take_shorter(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 11), (0, 14)),
+            segments.clone_part((0, 10), (0, 14)),
         ),
     ];
 
@@ -849,7 +849,7 @@ fn multiple_lifts_same_start_take_shorter(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 3)),
+            segments.clone_part((0, 0), (0, 4)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -862,7 +862,7 @@ fn multiple_lifts_same_start_take_shorter(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 11), (0, 14)),
+            segments.clone_part((0, 10), (0, 14)),
         ),
     ];
 
@@ -886,7 +886,7 @@ fn midstation_get_in(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 3)),
+            segments.clone_part((0, 0), (0, 4)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -899,7 +899,7 @@ fn midstation_get_in(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 11), (0, 14)),
+            segments.clone_part((0, 10), (0, 14)),
         ),
     ];
 
@@ -925,7 +925,7 @@ fn midstation_get_out(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 3)),
+            segments.clone_part((0, 0), (0, 4)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -938,7 +938,7 @@ fn midstation_get_out(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 11), (0, 14)),
+            segments.clone_part((0, 10), (0, 14)),
         ),
     ];
 
@@ -966,7 +966,7 @@ fn parallel_lifts(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 2)),
+            segments.clone_part((0, 0), (0, 3)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -979,7 +979,7 @@ fn parallel_lifts(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 19), (0, 21)),
+            segments.clone_part((0, 18), (0, 21)),
         ),
     ];
 
@@ -999,7 +999,7 @@ fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 2)),
+            segments.clone_part((0, 0), (0, 3)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -1012,7 +1012,7 @@ fn zigzag(_init: Init, line00: LineString, zigzag_segment: TrackSegment) {
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 27), (0, 29)),
+            segments.clone_part((0, 26), (0, 29)),
         ),
     ];
 
@@ -1037,7 +1037,7 @@ fn restart_with_new_segment(
     let expected: Vec<Activity> = vec![
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((0, 0), (0, 2)),
+            segments.clone_part((0, 0), (0, 3)),
         ),
         Activity::new(
             ActivityType::UseLift(UseLift {
@@ -1059,7 +1059,7 @@ fn restart_with_new_segment(
         ),
         Activity::new(
             ActivityType::Unknown(()),
-            segments.clone_part((1, 7), (1, 9)),
+            segments.clone_part((1, 6), (1, 9)),
         ),
     ];
 

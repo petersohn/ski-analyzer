@@ -387,6 +387,20 @@ pub fn find_lift_usage<'s>(
                 }
                 result.reserve(to_add.len());
                 to_add.into_iter().rev().for_each(|r| result.push(r));
+                if coordinate.1 != 0 {
+                    route_segment.push(
+                        result
+                            .last()
+                            .unwrap()
+                            .route
+                            .0
+                            .last()
+                            .unwrap()
+                            .last()
+                            .unwrap()
+                            .clone(),
+                    );
+                }
                 coordinate = (current_route.0.len(), route_segment.len());
             }
 
