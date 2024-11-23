@@ -159,4 +159,14 @@ export class MapStyleService {
     }
     return result;
   });
+
+  public connectorStyle = lazy(() => {
+    return new Style({
+      stroke: new Stroke({
+        color: "#d0d",
+        lineDash: [4, 4],
+        width: 2,
+      }),
+    });
+  });
 }

@@ -35,6 +35,10 @@ import {
 import { RawTrack, Activity, TrackConverter, Waypoint } from "@/types/track";
 import { MapStyleService, SelectableStyle } from "./map-style.service";
 import { invoke } from "@tauri-apps/api/core";
+import dayjs from "dayjs";
+import duration from "dayjs/plugin/duration";
+
+dayjs.extend(duration);
 
 class EventHandler extends Interaction {
   constructor(private mapService: MapService) {
@@ -323,6 +327,8 @@ export class MapService {
     try {
       const features: Feature[] = [];
 
+      let previousNode: ActivityNode | undefined;
+
       for (const activity of track.item) {
         const styles = this.mapStyleService.routeStyles()[activity.type];
 
@@ -336,11 +342,34 @@ export class MapService {
         this.activityLineFeatures.set(activity, lines);
         features.push(lines);
 
-        let previousNode: ActivityNode | undefined;
-
         const nodes: ActivityNode[] = activity.route
           .map((segment) => {
-            previousNode = undefined;
+            if (previousNode !== undefined) {
+              const timeDiff =
+                segment.length > 0 &&
+                !!segment[0].time &&
+                !!previousNode.waypoint.time
+                  ? dayjs.duration(
+                      segment[0].time.diff(previousNode.waypoint.time),
+                    )
+                  : undefined;
+              if (
+                timeDiff !== undefined &&
+                timeDiff > dayjs.duration(0) &&
+                timeDiff < dayjs.duration({ minutes: 1 })
+              ) {
+                const feature = new Feature(
+                  new OlLineString([
+                    this.pointToCoordinate(previousNode.waypoint.point),
+                    this.pointToCoordinate(segment[0].point),
+                  ]),
+                );
+                feature.setStyle(this.mapStyleService.connectorStyle());
+                features.push(feature);
+              } else {
+                previousNode = undefined;
+              }
+            }
             return segment.map((wp) => {
               const coord = this.pointToCoordinate(wp.point);
               const feature = new Feature(new OlPoint(coord));
