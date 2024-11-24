@@ -203,6 +203,18 @@ impl<'s> LiftCandidate<'s> {
         result
     }
 
+    fn is_close_to_station(&self, wp: &Waypoint, station: &LiftEnd) -> bool {
+        match station {
+            None => false,
+            Some(station) => {
+                Haversine::distance(
+                    wp.point(),
+                    self.lift.stations[*station].point,
+                ) < MIN_DISTANCE
+            }
+        }
+    }
+
     fn commit(
         self,
         route: &Segments,
@@ -215,9 +227,9 @@ impl<'s> LiftCandidate<'s> {
         if let Some((_, (coord, _))) = route
             .iter_between(begin, end)
             .zip(route.iter_between(begin, end).skip(1))
-            .take_while(|((_c1, wp1), (_c2, wp2))| match get_speed(wp1, wp2) {
-                None => false,
-                Some(speed) => speed.abs() < MIN_SPEED,
+            .take_while(|((_c1, wp1), (_c2, wp2))| {
+                is_slow(wp1, wp2)
+                    && self.is_close_to_station(wp2, &self.data.begin_station)
             })
             .last()
         {
@@ -225,19 +237,20 @@ impl<'s> LiftCandidate<'s> {
             begin = coord;
         }
 
-        result.push((ActivityType::UseLift(self.data), begin));
-
-        if let Some(((coord, _), _)) = route
+        let exit_coord = route
             .iter_between(begin, end)
             .rev()
             .skip(1)
             .zip(route.iter_between(begin, end).rev())
-            .take_while(|((_c1, wp1), (_c2, wp2))| match get_speed(wp1, wp2) {
-                None => false,
-                Some(speed) => speed.abs() < MIN_SPEED,
+            .take_while(|((_c1, wp1), (_c2, wp2))| {
+                is_slow(wp1, wp2)
+                    && self.is_close_to_station(wp1, &self.data.end_station)
             })
-            .last()
-        {
+            .last();
+
+        result.push((ActivityType::UseLift(self.data), begin));
+
+        if let Some(((coord, _), _)) = exit_coord {
             result.push((ActivityType::ExitLift(lift_id), coord));
         }
     }
@@ -250,6 +263,13 @@ impl<'s> LiftCandidate<'s> {
     fn can_go_after(&self, other: &LiftCandidate) -> bool {
         self.possible_begins.last().unwrap()
             >= other.possible_ends.first().unwrap()
+    }
+}
+
+fn is_slow(wp1: &Waypoint, wp2: &Waypoint) -> bool {
+    match get_speed(wp1, wp2) {
+        None => false,
+        Some(speed) => speed.abs() < MIN_SPEED,
     }
 }
 
