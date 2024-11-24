@@ -365,15 +365,13 @@ fn add_finished_candidates_to_route(
     if !is_new_segment {
         current_route.0.push(take(route_segment));
     }
-    let mut to_add: Vec<Activity> = Vec::new();
-    for (type_, coord) in
+    let mut to_add: Vec<Activity> =
         commit_lift_candidates(finished_candidates, &current_route)
             .into_iter()
             .rev()
-    {
-        let route = current_route.split_end(coord);
-        to_add.push(Activity::new(type_, route));
-    }
+            .map(|(t, c)| Activity::new(t, current_route.split_end(c)))
+            .collect();
+
     if !current_route.0.is_empty() {
         to_add
             .push(Activity::new(ActivityType::default(), take(current_route)));
