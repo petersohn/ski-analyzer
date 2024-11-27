@@ -9,12 +9,12 @@ use crate::utils::rect::union_rects_all;
 use crate::utils::test_util::{init, save_ski_area, Init};
 
 use ::function_name::named;
-use geo::{coord, point, LineString, Rect};
+use geo::{coord, point, Distance, Haversine, LineString, Rect};
 use gpx::{Gpx, Track, TrackSegment, Waypoint};
 use rstest::{fixture, rstest};
 use std::collections::HashMap;
 use std::fs;
-use time::OffsetDateTime;
+use time::{Duration, OffsetDateTime};
 
 fn line(input: &[(f64, f64)]) -> LineString {
     LineString::new(
@@ -329,6 +329,54 @@ fn restart_segment_2() -> TrackSegment {
         (6.6526026, 45.3727424, None),
         (6.6519628, 45.3725725, None),
     ])
+}
+
+#[fixture]
+fn speed_segment() -> TrackSegment {
+    segment(&[
+        (6.6535665, 45.3866982, None),
+        (6.6533672, 45.3866708, None),
+        (6.653225, 45.3866106, None),
+        (6.6532195, 45.3865668, None),
+        (6.6532195, 45.3865115, None),
+        (6.6532143, 45.3864621, None),
+        (6.6532081, 45.3864061, None),
+        (6.6532091, 45.3863586, None),
+        (6.6531953, 45.3860718, None),
+        (6.6531088, 45.3831123, None),
+        (6.6530512, 45.3805724, None),
+        (6.6529744, 45.3771722, None),
+        (6.6529023, 45.3741731, None),
+        (6.6528822, 45.3730672, None),
+        (6.6528771, 45.3730199, None),
+        (6.6528678, 45.3729821, None),
+        (6.652844, 45.372949, None),
+        (6.6528103, 45.3729172, None),
+        (6.6527781, 45.3728786, None),
+        (6.652594, 45.3728038, None),
+        (6.6524039, 45.3728215, None),
+    ])
+}
+
+fn add_speed(segment: &mut TrackSegment, speeds: &[(f64, usize)]) {
+    let mut time = OffsetDateTime::UNIX_EPOCH;
+    segment.points[0].time = Some(time.clone().into());
+    let mut it = speeds.iter();
+    let mut current = it.next().unwrap();
+    let mut count = 0;
+    let ps = &mut segment.points;
+    for i in 1..ps.len() {
+        let distance = Haversine::distance(ps[i - 1].point(), ps[i].point());
+        time += Duration::seconds_f64(distance / current.0);
+        ps[i].time = Some(time.clone().into());
+        if current.1 > 0 {
+            count += 1;
+            if count == current.1 {
+                current = it.next().unwrap();
+                count = 0;
+            }
+        }
+    }
 }
 
 fn run(s: &SkiArea, segments: Segments, expected: Vec<Activity>, name: &str) {
@@ -1060,6 +1108,138 @@ fn restart_with_new_segment(
         Activity::new(
             ActivityType::Unknown(()),
             segments.clone_part((1, 6), (1, 9)),
+        ),
+    ];
+
+    run(&s, segments, expected, function_name!());
+}
+
+#[rstest]
+#[named]
+fn speed_always_fast(
+    _init: Init,
+    line00: LineString,
+    mut speed_segment: TrackSegment,
+) {
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, false)],
+    );
+    add_speed(&mut speed_segment, &[(2.0, 0)]);
+    let g = make_gpx(vec![speed_segment]);
+    let segments = get_segments(g);
+
+    let expected: Vec<Activity> = vec![
+        Activity::new(
+            ActivityType::Unknown(()),
+            segments.clone_part((0, 0), (0, 3)),
+        ),
+        Activity::new(
+            ActivityType::UseLift(UseLift {
+                lift_id: "Lift 1".to_string(),
+                begin_station: Some(0),
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            segments.clone_part((0, 2), (0, 19)),
+        ),
+        Activity::new(
+            ActivityType::Unknown(()),
+            segments.clone_part((0, 18), (1, 0)),
+        ),
+    ];
+
+    run(&s, segments, expected, function_name!());
+}
+
+#[rstest]
+#[named]
+fn speed_always_slow(
+    _init: Init,
+    line00: LineString,
+    mut speed_segment: TrackSegment,
+) {
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, false)],
+    );
+    add_speed(&mut speed_segment, &[(0.5, 0)]);
+    let g = make_gpx(vec![speed_segment]);
+    let segments = get_segments(g);
+
+    let lift_id = "Lift 1".to_string();
+    let expected: Vec<Activity> = vec![
+        Activity::new(
+            ActivityType::Unknown(()),
+            segments.clone_part((0, 0), (0, 3)),
+        ),
+        Activity::new(
+            ActivityType::EnterLift(lift_id.clone()),
+            segments.clone_part((0, 2), (0, 7)),
+        ),
+        Activity::new(
+            ActivityType::UseLift(UseLift {
+                lift_id: lift_id.clone(),
+                begin_station: Some(0),
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            segments.clone_part((0, 6), (0, 14)),
+        ),
+        Activity::new(
+            ActivityType::ExitLift(lift_id.clone()),
+            segments.clone_part((0, 13), (0, 19)),
+        ),
+        Activity::new(
+            ActivityType::Unknown(()),
+            segments.clone_part((0, 18), (1, 0)),
+        ),
+    ];
+
+    run(&s, segments, expected, function_name!());
+}
+
+#[rstest]
+#[named]
+fn speed_slow_then_fast(
+    _init: Init,
+    line00: LineString,
+    mut speed_segment: TrackSegment,
+) {
+    let s = ski_area(
+        function_name!(),
+        vec![lift("Lift 1".to_string(), line00, &[], false, false)],
+    );
+    add_speed(&mut speed_segment, &[(0.5, 4), (2.0, 11), (0.5, 0)]);
+    let g = make_gpx(vec![speed_segment]);
+    let segments = get_segments(g);
+
+    let lift_id = "Lift 1".to_string();
+    let expected: Vec<Activity> = vec![
+        Activity::new(
+            ActivityType::Unknown(()),
+            segments.clone_part((0, 0), (0, 3)),
+        ),
+        Activity::new(
+            ActivityType::EnterLift(lift_id.clone()),
+            segments.clone_part((0, 2), (0, 5)),
+        ),
+        Activity::new(
+            ActivityType::UseLift(UseLift {
+                lift_id: lift_id.clone(),
+                begin_station: Some(0),
+                end_station: Some(1),
+                is_reverse: false,
+            }),
+            segments.clone_part((0, 4), (0, 16)),
+        ),
+        Activity::new(
+            ActivityType::ExitLift(lift_id.clone()),
+            segments.clone_part((0, 15), (0, 19)),
+        ),
+        Activity::new(
+            ActivityType::Unknown(()),
+            segments.clone_part((0, 18), (1, 0)),
         ),
     ];
 
