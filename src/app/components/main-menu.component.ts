@@ -8,6 +8,7 @@ import {
 import { MatDialog } from "@angular/material/dialog";
 import { lastValueFrom } from "rxjs";
 import { ActionsService } from "@/services/actions.service";
+import { MapService } from "@/services/map.service";
 
 @Component({
   selector: "main-menu",
@@ -19,6 +20,7 @@ import { ActionsService } from "@/services/actions.service";
 export class MainMenuComponent {
   constructor(
     private readonly dialog: MatDialog,
+    public readonly mapService: MapService,
     public readonly actionsService: ActionsService,
   ) {}
 

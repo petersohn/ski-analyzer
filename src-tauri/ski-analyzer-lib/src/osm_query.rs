@@ -45,7 +45,7 @@ pub fn query(query: &str) -> Result<Vec<u8>> {
     })?)
 }
 
-pub fn query_ski_area_by_id(id: u64) -> Result<Vec<u8>> {
+pub fn query_ski_area_details_by_id(id: u64) -> Result<Vec<u8>> {
     let query_string = format!(
         r###"[out:json];
 (
@@ -63,22 +63,35 @@ out;"###,
     query(query_string.as_str())
 }
 
-pub fn query_ski_area_metadata_by_name(name: &str) -> Result<Vec<u8>> {
+pub fn query_ski_areas_by_name(name: &str) -> Result<Vec<u8>> {
     let query_string = format!(
         r###"[out:json];
-way[landuse="winter_sports"][name~"{}",i]->.a;
+way[landuse="winter_sports"][name~"{}",i];
 out;"###,
         name
     );
     query(query_string.as_str())
 }
 
-pub fn query_ski_area_metadata_by_coords(rect: Rect) -> Result<Vec<u8>> {
+pub fn query_ski_areas_by_coords(rect: Rect) -> Result<Vec<u8>> {
     let query_string = format!(
         r###"[out:json];
-way()[landuse="winter_sports"]->.a;
+is_in({n}, {w})->.nw;
+is_in({n}, {e})->.ne;
+is_in({s}, {e})->.se;
+is_in({s}, {w})->.sw;
+(
+    way(pivot.nw)[landuse="winter_sports"];
+    way(pivot.ne)[landuse="winter_sports"];
+    way(pivot.se)[landuse="winter_sports"];
+    way(pivot.sw)[landuse="winter_sports"];
+    way(s, w, n, e)[landuse="winter_sports"];
+);
 out;"###,
-        name
+        w = rect.min().x,
+        s = rect.min().y,
+        e = rect.max().x,
+        n = rect.max().y,
     );
     query(query_string.as_str())
 }

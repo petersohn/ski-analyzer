@@ -13,7 +13,7 @@ import {
   Interaction,
   defaults as defaultInteractions,
 } from "ol/interaction.js";
-import { Projection, fromLonLat } from "ol/proj";
+import { Projection, fromLonLat, toLonLat } from "ol/proj";
 import VectorSource from "ol/source/Vector";
 import { Feature } from "ol";
 import {
@@ -585,5 +585,21 @@ export class MapService {
     if (x < minx || x > maxx || y < miny || y > maxy) {
       view.setCenter(coord);
     }
+  }
+
+  public lofasz() {
+    const topLeft = toLonLat(
+      this.map?.getCoordinateFromPixel([0, 0])!,
+      this.projection,
+    );
+    const bottomRight = toLonLat(
+      this.map?.getCoordinateFromPixel([
+        this.targetElement!.clientWidth,
+        this.targetElement!.clientHeight,
+      ])!,
+      this.projection,
+    );
+
+    console.log({ topLeft, bottomRight });
   }
 }

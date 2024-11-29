@@ -46,24 +46,25 @@ pub struct SkiArea {
     pub date: OffsetDateTime,
 }
 
-fn find_name(doc: &Document) -> Result<String> {
-    let mut names: Vec<String> = doc
-        .elements
-        .ways
-        .iter()
-        .filter(|(_id, way)| get_tag(&way.tags, "landuse") == "winter_sports")
-        .map(|(_id, way)| get_tag(&way.tags, "name").to_string())
-        .collect();
+#[derive(Debug, Serialize)]
+pub struct SkiAreaMetadata {
+    pub id: u64,
+    pub name: String,
+}
 
-    if names.len() > 1 {
-        Err(Error::new(
-            ErrorType::InputError,
-            format!("ambiguous ski area: {:?}", names),
-        ))
-    } else {
-        names.pop().ok_or_else(|| {
-            Error::new_s(ErrorType::InputError, "ski area entity not found")
-        })
+impl SkiAreaMetadata {
+    pub fn find(doc: &Document) -> Vec<Self> {
+        doc.elements
+            .ways
+            .iter()
+            .filter(|(_id, way)| {
+                get_tag(&way.tags, "landuse") == "winter_sports"
+            })
+            .map(|(id, way)| Self {
+                id: *id,
+                name: get_tag(&way.tags, "name").to_string(),
+            })
+            .collect()
     }
 }
 
@@ -84,7 +85,15 @@ fn find_lifts(doc: &Document) -> HashMap<String, Lift> {
 
 impl SkiArea {
     pub fn parse(doc: &Document) -> Result<Self> {
-        let name = find_name(doc)?;
+        let metadatas = SkiAreaMetadata::find(doc);
+        let name = metadatas
+            .into_iter()
+            .next()
+            .ok_or_else(|| {
+                Error::new_s(ErrorType::InputError, "ski area entity not found")
+            })?
+            .name;
+
         let config = get_config();
         let lifts = find_lifts(doc);
 
