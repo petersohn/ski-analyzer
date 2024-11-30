@@ -1,31 +1,56 @@
 import { Injectable, signal } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
 import { MapService } from "./map.service";
-import { RawSkiArea } from "@/types/skiArea";
+import { MatDialog } from "@angular/material/dialog";
+import {
+  SkiAreaSelectorDialogData,
+  SkiAreaSelectorDialogComponent,
+} from "@/components/ski-area-selector-dialog.component";
+import { RawSkiArea, SkiAreaMetadata } from "@/types/skiArea";
 import { RawTrack, Waypoint } from "@/types/track";
+import { Rect } from "@/types/geo";
 
 @Injectable({ providedIn: "root" })
 export class ActionsService {
   public loading = signal(false);
 
-  constructor(private readonly mapService: MapService) {}
+  constructor(
+    private readonly mapService: MapService,
+    private readonly dialog: MatDialog,
+  ) {}
 
-  public async loadSkiArea(path: string) {
-    const data = JSON.parse(await invoke("load_ski_area", { path }));
+  public async loadSkiArea(path: string): Promise<void> {
+    const data = JSON.parse(await invoke("load_ski_area_from_file", { path }));
     this.mapService.loadSkiArea(data as RawSkiArea);
   }
 
-  public async findSkiArea(name: string) {
-    const data = await this.doJob(invoke("find_ski_area", { name }));
+  public async loadSkiAreaFromId(id: number): Promise<void> {
+    const data = JSON.parse(
+      await this.doJob(invoke("load_ski_area_from_id", { id })),
+    );
     this.mapService.loadSkiArea(data as RawSkiArea);
   }
 
-  public async loadGpx(path: string) {
-    const data = JSON.parse(await invoke("load_gpx", { path }));
+  public async findSkiAreasByName(name: string): Promise<void> {
+    const ski_areas = await this.doJob<SkiAreaMetadata[]>(
+      invoke("find_ski_areas_by_name", { name }),
+    );
+    this.selectSkiAreas(ski_areas);
+  }
+
+  public async findSkiAreasByCoords(rect: Rect): Promise<void> {
+    const ski_areas = await this.doJob<SkiAreaMetadata[]>(
+      invoke("find_ski_areas_by_coords", { rect }),
+    );
+    this.selectSkiAreas(ski_areas);
+  }
+
+  public async loadGpx(path: string): Promise<void> {
+    const data = JSON.parse(await this.doJob(invoke("load_gpx", { path })));
     this.mapService.loadTrack(data as RawTrack);
   }
 
-  public async loadRoute(path: string) {
+  public async loadRoute(path: string): Promise<void> {
     const data = JSON.parse(await invoke("load_route", { path }));
     this.mapService.loadTrack(data as RawTrack);
   }
@@ -41,5 +66,14 @@ export class ActionsService {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private selectSkiAreas(ski_areas: SkiAreaMetadata[]) {
+    this.dialog.open<SkiAreaSelectorDialogComponent, SkiAreaSelectorDialogData>(
+      SkiAreaSelectorDialogComponent,
+      {
+        data: { ski_areas },
+      },
+    );
   }
 }

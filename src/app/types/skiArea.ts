@@ -7,6 +7,11 @@ import {
   MultiLineString,
 } from "./geo";
 
+export type SkiAreaMetadata = {
+  id: number;
+  name: string;
+};
+
 export type Lift = {
   ref: string;
   name: string;

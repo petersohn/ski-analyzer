@@ -45,8 +45,12 @@ export class MainMenuComponent {
     });
     const result = await lastValueFrom(dialogRef.afterClosed());
     if (result) {
-      this.actionsService.findSkiArea(result);
+      this.actionsService.findSkiAreasByName(result);
     }
+  }
+
+  public async findNearbySkiAreas(): Promise<void> {
+    this.actionsService.findSkiAreasByCoords(this.mapService.getScreenBounds());
   }
 
   public async loadGpx(): Promise<void> {

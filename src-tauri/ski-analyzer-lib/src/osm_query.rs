@@ -85,7 +85,7 @@ is_in({s}, {w})->.sw;
     way(pivot.ne)[landuse="winter_sports"];
     way(pivot.se)[landuse="winter_sports"];
     way(pivot.sw)[landuse="winter_sports"];
-    way(s, w, n, e)[landuse="winter_sports"];
+    way({s}, {w}, {n}, {e})[landuse="winter_sports"];
 );
 out;"###,
         w = rect.min().x,

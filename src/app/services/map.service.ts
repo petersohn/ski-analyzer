@@ -24,7 +24,7 @@ import {
 } from "ol/geom";
 import { boundingExtent } from "ol/extent";
 import { Coordinate } from "ol/coordinate";
-import { MultiPolygon, Point, LineString } from "@/types/geo";
+import { MultiPolygon, Point, LineString, Rect } from "@/types/geo";
 import {
   RawSkiArea,
   SkiArea,
@@ -483,6 +483,19 @@ export class MapService {
     }
   }
 
+  public getScreenBounds(): Rect {
+    const min = toLonLat(
+      this.map?.getCoordinateFromPixel([0, this.targetElement!.clientHeight])!,
+      this.projection,
+    );
+    const max = toLonLat(
+      this.map?.getCoordinateFromPixel([this.targetElement!.clientWidth, 0])!,
+      this.projection,
+    );
+
+    return { min: { x: min[0], y: min[1] }, max: { x: max[0], y: max[1] } };
+  }
+
   private selectActivityAndNode(activity: Activity, node?: ActivityNode) {
     this.unselectFeatures();
 
@@ -585,21 +598,5 @@ export class MapService {
     if (x < minx || x > maxx || y < miny || y > maxy) {
       view.setCenter(coord);
     }
-  }
-
-  public lofasz() {
-    const topLeft = toLonLat(
-      this.map?.getCoordinateFromPixel([0, 0])!,
-      this.projection,
-    );
-    const bottomRight = toLonLat(
-      this.map?.getCoordinateFromPixel([
-        this.targetElement!.clientWidth,
-        this.targetElement!.clientHeight,
-      ])!,
-      this.projection,
-    );
-
-    console.log({ topLeft, bottomRight });
   }
 }

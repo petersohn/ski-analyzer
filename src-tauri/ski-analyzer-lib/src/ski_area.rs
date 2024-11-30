@@ -53,8 +53,9 @@ pub struct SkiAreaMetadata {
 }
 
 impl SkiAreaMetadata {
-    pub fn find(doc: &Document) -> Vec<Self> {
-        doc.elements
+    pub fn find(doc: &Document) -> Vec<SkiAreaMetadata> {
+        let mut result: Vec<SkiAreaMetadata> = doc
+            .elements
             .ways
             .iter()
             .filter(|(_id, way)| {
@@ -64,7 +65,10 @@ impl SkiAreaMetadata {
                 id: *id,
                 name: get_tag(&way.tags, "name").to_string(),
             })
-            .collect()
+            .collect();
+
+        result.sort_by(|lhs, rhs| lhs.name.cmp(&rhs.name));
+        result
     }
 }
 

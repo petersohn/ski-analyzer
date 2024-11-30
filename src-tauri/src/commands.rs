@@ -77,8 +77,10 @@ fn load_ski_area_from_id_inner(
     let doc = Document::parse(&json)?;
     let ski_area = SkiArea::parse(&doc)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
+
+    let result = serde_json::to_string(&ski_area)?;
     app_state.set_ski_area(ski_area);
-    Ok(str::from_utf8(&json)?.to_string())
+    Ok(result)
 }
 
 #[tauri::command(async)]
@@ -117,8 +119,9 @@ fn load_route_inner(
     let reader = BufReader::new(file);
     let route = serde_json::from_reader(reader)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    let result = serde_json::to_string(&route)?;
     app_state.set_route(route);
-    Ok(serde_json::to_string(app_state.get_route().unwrap())?)
+    Ok(result)
 }
 
 #[tauri::command(async)]

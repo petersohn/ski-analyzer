@@ -12,3 +12,11 @@ body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
 }
+
+.dialog-background {
+  padding: 30px;
+}
+
+.name-input {
+  width: 300px;
+}
