@@ -15,7 +15,6 @@ import { MatListModule } from "@angular/material/list";
 import { MatButtonModule } from "@angular/material/button";
 import { SkiAreaMetadata } from "@/types/skiArea";
 import { ActionsService } from "@/services/actions.service";
-import { Polygon } from "@/types/geo";
 import { MapService } from "@/services/map.service";
 
 export type SkiAreaSelectorDialogData = {
@@ -55,11 +54,15 @@ export class SkiAreaSelectorDialogComponent {
   }
 
   public close() {
-    this.mapService.clearOutline();
+    this.unhighlight();
     this.dialogRef.close(null);
   }
 
-  public highlight(outline: Polygon) {
-    this.mapService.addOutline(outline);
+  public highlight(skiArea: SkiAreaMetadata) {
+    this.mapService.addOutline(skiArea.outline);
+  }
+
+  public unhighlight() {
+    this.mapService.clearOutline();
   }
 }

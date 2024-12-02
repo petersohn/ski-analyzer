@@ -5,7 +5,8 @@
         <button
           mat-list-item
           (click)="accept(ski_area.id)"
-          (hover)="highlight(ski_area.outline)"
+          (mouseenter)="highlight(ski_area)"
+          (mouseleave)="unhighlight()"
         >
           {{ ski_area.name }}
         </button>

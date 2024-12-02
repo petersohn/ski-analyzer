@@ -513,6 +513,7 @@ export class MapService {
       l.map((p) => this.pointToCoordinate(p)),
     );
     const feature = new Feature(new OlPolygon([outer, ...inners]));
+    feature.setStyle(this.mapStyleService.outlineStyle());
     this.outlineLayer = new VectorLayer({
       source: new VectorSource({
         features: [feature],
