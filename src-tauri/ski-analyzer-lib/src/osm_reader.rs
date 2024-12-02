@@ -1,4 +1,4 @@
-use geo::{Coord, Point};
+use geo::{Coord, LineString, Point};
 use serde::Deserialize;
 use time::OffsetDateTime;
 
@@ -49,7 +49,15 @@ pub struct Node {
 pub struct Way {
     pub nodes: Vec<u64>,
     #[serde(default)]
+    pub geometry: Vec<Coordinate>,
+    #[serde(default)]
     pub tags: Tags,
+}
+
+impl Way {
+    pub fn geom_to_line_string(&self) -> LineString {
+        LineString::new(self.geometry.iter().map(|c| c.to_coord()).collect())
+    }
 }
 
 #[derive(Deserialize, PartialEq, Debug)]

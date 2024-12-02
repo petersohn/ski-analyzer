@@ -92,6 +92,7 @@ impl DocumentBuilder {
             Way {
                 nodes,
                 tags: to_tags(&tags),
+                geometry: vec![],
             },
         );
         id

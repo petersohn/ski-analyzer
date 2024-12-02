@@ -1,3 +1,5 @@
+use geo::{coord, LineString};
+
 use super::osm_reader as r;
 use std::collections::HashMap;
 
@@ -188,6 +190,7 @@ fn parse_document() {
                         String::from("bar"),
                         String::from("baz"),
                     )]),
+                    geometry: vec![],
                 },
             ),
             (
@@ -195,6 +198,7 @@ fn parse_document() {
                 r::Way {
                     nodes: Vec::from([3, 4, 5]),
                     tags: HashMap::new(),
+                    geometry: vec![],
                 },
             ),
         ]),
@@ -226,4 +230,72 @@ fn parse_document() {
     };
 
     assert_eq!(document.elements, expected_elements);
+}
+
+#[test]
+fn parse_way_with_geometry() {
+    let json = r###"{
+    "osm3s": {
+      "timestamp_osm_base": "2024-10-02T18:07:14Z",
+      "timestamp_areas_base": "2024-09-16T09:46:45Z",
+      "copyright": "Whatever"
+    },
+    "elements": [
+      {
+        "type": "way",
+        "id": 10,
+        "nodes": [1, 2, 5],
+        "geometry": [
+          { "lat": 10.0, "lon": -1.0 },
+          { "lat": 11.0, "lon": -1.2 },
+          { "lat": 12.0, "lon": 1.0 }
+        ],
+        "tags": {
+          "bar": "baz"
+        }
+      }
+    ]
+}"###;
+    let document = r::Document::parse(json.as_bytes()).unwrap();
+    let expected_elements = r::Elements {
+        nodes: HashMap::new(),
+        ways: HashMap::from([(
+            10,
+            r::Way {
+                nodes: Vec::from([1, 2, 5]),
+                tags: HashMap::from([(
+                    String::from("bar"),
+                    String::from("baz"),
+                )]),
+                geometry: vec![
+                    r::Coordinate {
+                        lat: 10.0,
+                        lon: -1.0,
+                    },
+                    r::Coordinate {
+                        lat: 11.0,
+                        lon: -1.2,
+                    },
+                    r::Coordinate {
+                        lat: 12.0,
+                        lon: 1.0,
+                    },
+                ],
+            },
+        )]),
+        relations: HashMap::new(),
+    };
+
+    assert_eq!(document.elements, expected_elements);
+
+    let expected_line = LineString::new(vec![
+        coord! { x: -1.0, y: 10.0 },
+        coord! { x: -1.2, y: 11.0 },
+        coord! { x: 1.0, y: 12.0 },
+    ]);
+
+    assert_eq!(
+        document.elements.ways[&10].geom_to_line_string(),
+        expected_line
+    );
 }

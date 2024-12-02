@@ -19,6 +19,7 @@ pub fn way(ids: &[u64]) -> r::Way {
     r::Way {
         nodes: Vec::from(ids),
         tags: HashMap::new(),
+        geometry: vec![],
     }
 }
 
@@ -41,6 +42,7 @@ pub fn way_tags(ids: &[u64], tags: &[(&str, &str)]) -> r::Way {
     r::Way {
         nodes: Vec::from(ids),
         tags: create_tags(tags),
+        geometry: vec![],
     }
 }
 
