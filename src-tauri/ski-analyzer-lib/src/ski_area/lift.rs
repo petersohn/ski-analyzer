@@ -172,7 +172,7 @@ pub fn parse_lift<'d>(
         fn add(&mut self, num: usize, node: &'a Node) {
             self.0.push(StationInfo {
                 station: PointWithElevation::new(
-                    node.into(),
+                    node.coordinate.to_point(),
                     parse_ele(&node.tags),
                 ),
                 node,

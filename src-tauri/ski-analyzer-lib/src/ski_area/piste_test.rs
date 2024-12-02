@@ -1,7 +1,8 @@
 use super::piste::parse_pistes;
 use super::{Difficulty, Piste, PisteData, PisteMetadata, SkiArea};
 use crate::osm_reader::{
-    Document, Node, Relation, RelationMember, RelationMembers, Tags, Way,
+    Coordinate, Document, Node, Relation, RelationMember, RelationMembers,
+    Tags, Way,
 };
 use crate::utils::rect::union_rects_if;
 use crate::utils::test_util::{assert_eq_pretty, init, save_ski_area, Init};
@@ -71,8 +72,10 @@ impl DocumentBuilder {
         self.document.elements.nodes.insert(
             id,
             Node {
-                lat: i2f(p.1),
-                lon: i2f(p.0),
+                coordinate: Coordinate {
+                    lat: i2f(p.1),
+                    lon: i2f(p.0),
+                },
                 tags: Tags::new(),
             },
         );

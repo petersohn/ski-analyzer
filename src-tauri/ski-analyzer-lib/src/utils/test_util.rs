@@ -10,8 +10,7 @@ use std::fs::OpenOptions;
 
 pub fn node(x: f64, y: f64) -> r::Node {
     r::Node {
-        lat: y,
-        lon: x,
+        coordinate: r::Coordinate { lat: y, lon: x },
         tags: HashMap::new(),
     }
 }
@@ -33,8 +32,7 @@ fn create_tags(tags: &[(&str, &str)]) -> HashMap<String, String> {
 
 pub fn node_tags(x: f64, y: f64, tags: &[(&str, &str)]) -> r::Node {
     r::Node {
-        lat: y,
-        lon: x,
+        coordinate: r::Coordinate { lat: y, lon: x },
         tags: create_tags(tags),
     }
 }

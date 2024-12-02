@@ -18,27 +18,31 @@ pub fn get_tag<'a>(tags: &'a Tags, name: &str) -> &'a str {
     }
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
-pub struct Node {
+#[derive(Copy, Clone, Deserialize, PartialEq, Debug)]
+pub struct Coordinate {
     pub lat: f64,
     pub lon: f64,
-    #[serde(default)]
-    pub tags: Tags,
 }
 
-impl Into<Coord> for &Node {
-    fn into(self) -> Coord {
+impl Coordinate {
+    pub fn to_coord(&self) -> Coord {
         Coord {
             x: self.lon,
             y: self.lat,
         }
     }
-}
 
-impl Into<Point> for &Node {
-    fn into(self) -> Point {
+    pub fn to_point(&self) -> Point {
         Point::new(self.lon, self.lat)
     }
+}
+
+#[derive(Deserialize, PartialEq, Debug)]
+pub struct Node {
+    #[serde(flatten)]
+    pub coordinate: Coordinate,
+    #[serde(default)]
+    pub tags: Tags,
 }
 
 #[derive(Deserialize, PartialEq, Debug)]
@@ -314,7 +318,7 @@ pub fn parse_way(doc: &Document, nodes: &Vec<u64>) -> Result<Vec<Coord>> {
     let mut coords: Vec<Coord> = Vec::new();
     coords.reserve(nodes.len());
     for node in doc.elements.iterate_nodes(nodes.iter()) {
-        coords.push(node?.into());
+        coords.push(node?.coordinate.to_coord());
     }
     Ok(coords)
 }

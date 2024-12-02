@@ -105,8 +105,10 @@ fn parse_document() {
             (
                 1,
                 r::Node {
-                    lat: 10.0,
-                    lon: 20.0,
+                    coordinate: r::Coordinate {
+                        lat: 10.0,
+                        lon: 20.0,
+                    },
                     tags: HashMap::from([(
                         String::from("foo"),
                         String::from("foooo"),
@@ -116,48 +118,60 @@ fn parse_document() {
             (
                 2,
                 r::Node {
-                    lat: 11.0,
-                    lon: 21.0,
+                    coordinate: r::Coordinate {
+                        lat: 11.0,
+                        lon: 21.0,
+                    },
                     tags: HashMap::new(),
                 },
             ),
             (
                 3,
                 r::Node {
-                    lat: 12.0,
-                    lon: 22.0,
+                    coordinate: r::Coordinate {
+                        lat: 12.0,
+                        lon: 22.0,
+                    },
                     tags: HashMap::new(),
                 },
             ),
             (
                 4,
                 r::Node {
-                    lat: 13.0,
-                    lon: 23.0,
+                    coordinate: r::Coordinate {
+                        lat: 13.0,
+                        lon: 23.0,
+                    },
                     tags: HashMap::new(),
                 },
             ),
             (
                 5,
                 r::Node {
-                    lat: 14.0,
-                    lon: 24.0,
+                    coordinate: r::Coordinate {
+                        lat: 14.0,
+                        lon: 24.0,
+                    },
                     tags: HashMap::new(),
                 },
             ),
             (
                 6,
                 r::Node {
-                    lat: 15.0,
-                    lon: 25.0,
+                    coordinate: r::Coordinate {
+                        lat: 15.0,
+                        lon: 25.0,
+                    },
                     tags: HashMap::new(),
                 },
             ),
             (
                 7,
                 r::Node {
-                    lat: 16.0,
-                    lon: 26.0,
+                    coordinate: r::Coordinate {
+                        lat: 16.0,
+                        lon: 26.0,
+                    },
                     tags: HashMap::from([
                         (String::from("foo"), String::from("2")),
                         (String::from("foobar"), String::from("foobarbaz")),
