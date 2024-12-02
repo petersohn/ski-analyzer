@@ -19,12 +19,13 @@ import { Feature } from "ol";
 import {
   Point as OlPoint,
   MultiPolygon as OlMultiPolygon,
+  Polygon as OlPolygon,
   LineString as OlLineString,
   MultiLineString as OlMultiLineString,
 } from "ol/geom";
 import { boundingExtent } from "ol/extent";
 import { Coordinate } from "ol/coordinate";
-import { MultiPolygon, Point, LineString, Rect } from "@/types/geo";
+import { MultiPolygon, Point, LineString, Rect, Polygon } from "@/types/geo";
 import {
   RawSkiArea,
   SkiArea,
@@ -160,6 +161,8 @@ export class MapService {
   private allActivityNodes: ActivityNode[] = [];
   private selectedActivityNode: ActivityNode | undefined;
 
+  private outlineLayer: Layer | undefined;
+
   constructor(private readonly mapStyleService: MapStyleService) {}
 
   public createMap(targetElement: HTMLElement) {
@@ -194,6 +197,7 @@ export class MapService {
     this.projection = undefined;
     this.targetElement!.innerHTML = "";
     this.targetElement = undefined;
+    this.outlineLayer = undefined;
   }
 
   public isInitialized(): boolean {
@@ -494,6 +498,28 @@ export class MapService {
     );
 
     return { min: { x: min[0], y: min[1] }, max: { x: max[0], y: max[1] } };
+  }
+
+  public clearOutline() {
+    if (this.outlineLayer !== undefined) {
+      this.map!.removeLayer(this.outlineLayer);
+    }
+  }
+
+  public addOutline(outline: Polygon) {
+    this.clearOutline();
+    const outer = outline.exterior.map((p) => this.pointToCoordinate(p));
+    const inners = outline.interiors.map((l) =>
+      l.map((p) => this.pointToCoordinate(p)),
+    );
+    const feature = new Feature(new OlPolygon([outer, ...inners]));
+    this.outlineLayer = new VectorLayer({
+      source: new VectorSource({
+        features: [feature],
+      }),
+    });
+
+    this.map!.addLayer(this.outlineLayer);
   }
 
   private selectActivityAndNode(activity: Activity, node?: ActivityNode) {

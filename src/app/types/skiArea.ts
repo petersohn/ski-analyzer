@@ -5,11 +5,13 @@ import {
   PointWithElevation,
   MultiPolygon,
   MultiLineString,
+  Polygon,
 } from "./geo";
 
 export type SkiAreaMetadata = {
   id: number;
   name: string;
+  outline: Polygon;
 };
 
 export type Lift = {

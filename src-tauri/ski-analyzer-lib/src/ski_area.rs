@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use geo::{Intersects, Point, Rect};
+use geo::{Intersects, Point, Polygon, Rect};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
@@ -50,6 +50,7 @@ pub struct SkiArea {
 pub struct SkiAreaMetadata {
     pub id: u64,
     pub name: String,
+    pub outline: Polygon,
 }
 
 impl SkiAreaMetadata {
@@ -64,6 +65,7 @@ impl SkiAreaMetadata {
             .map(|(id, way)| Self {
                 id: *id,
                 name: get_tag(&way.tags, "name").to_string(),
+                outline: Polygon::new(way.geom_to_line_string(), vec![]),
             })
             .collect();
 

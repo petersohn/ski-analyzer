@@ -67,7 +67,7 @@ pub fn query_ski_areas_by_name(name: &str) -> Result<Vec<u8>> {
     let query_string = format!(
         r###"[out:json];
 way[landuse="winter_sports"][name~"{}",i];
-out;"###,
+out geom;"###,
         name
     );
     query(query_string.as_str())
@@ -87,7 +87,7 @@ is_in({s}, {w})->.sw;
     way(pivot.sw)[landuse="winter_sports"];
     way({s}, {w}, {n}, {e})[landuse="winter_sports"];
 );
-out;"###,
+out geom;"###,
         w = rect.min().x,
         s = rect.min().y,
         e = rect.max().x,

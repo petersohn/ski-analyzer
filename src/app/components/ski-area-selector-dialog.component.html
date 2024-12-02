@@ -2,7 +2,11 @@
   <mat-dialog-content>
     <mat-action-list>
       @for (ski_area of data.ski_areas; track ski_area.id) {
-        <button mat-list-item (click)="accept(ski_area.id)">
+        <button
+          mat-list-item
+          (click)="accept(ski_area.id)"
+          (hover)="highlight(ski_area.outline)"
+        >
           {{ ski_area.name }}
         </button>
       }

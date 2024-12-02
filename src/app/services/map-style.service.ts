@@ -169,4 +169,16 @@ export class MapStyleService {
       }),
     });
   });
+
+  public outlineStyle = lazy(() => {
+    return new Style({
+      stroke: new Stroke({
+        color: "#d6a233",
+        width: 3,
+      }),
+      fill: new Fill({
+        color: "#f9c75980",
+      }),
+    });
+  });
 }

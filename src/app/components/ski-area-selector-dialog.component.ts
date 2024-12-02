@@ -15,6 +15,8 @@ import { MatListModule } from "@angular/material/list";
 import { MatButtonModule } from "@angular/material/button";
 import { SkiAreaMetadata } from "@/types/skiArea";
 import { ActionsService } from "@/services/actions.service";
+import { Polygon } from "@/types/geo";
+import { MapService } from "@/services/map.service";
 
 export type SkiAreaSelectorDialogData = {
   ski_areas: SkiAreaMetadata[];
@@ -35,6 +37,7 @@ export class SkiAreaSelectorDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: SkiAreaSelectorDialogData,
     private readonly dialogRef: MatDialogRef<SkiAreaSelectorDialogData>,
     private readonly actionsService: ActionsService,
+    private readonly mapService: MapService,
   ) {}
 
   @HostListener("window:keyup.escape")
@@ -44,10 +47,19 @@ export class SkiAreaSelectorDialogComponent {
 
   public accept(id: number) {
     this.actionsService.loadSkiAreaFromId(id);
-    this.dialogRef.close(null);
+    this.close();
   }
 
   public cancel() {
+    this.close();
+  }
+
+  public close() {
+    this.mapService.clearOutline();
     this.dialogRef.close(null);
+  }
+
+  public highlight(outline: Polygon) {
+    this.mapService.addOutline(outline);
   }
 }
