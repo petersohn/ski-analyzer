@@ -1,0 +1,14 @@
+<div class="dialog-background">
+  <mat-dialog-content>
+    <mat-action-list>
+      @for (ski_area of data.ski_areas; track ski_area.id) {
+        <button mat-list-item (click)="accept(ski_area.id)">
+          {{ ski_area.name }}
+        </button>
+      }
+    </mat-action-list>
+  </mat-dialog-content>
+  <div class="button-row">
+    <button mat-stroked-button (click)="cancel()">Cancel</button>
+  </div>
+</div>

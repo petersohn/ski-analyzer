@@ -13,7 +13,7 @@ import {
   Interaction,
   defaults as defaultInteractions,
 } from "ol/interaction.js";
-import { Projection, fromLonLat } from "ol/proj";
+import { Projection, fromLonLat, toLonLat } from "ol/proj";
 import VectorSource from "ol/source/Vector";
 import { Feature } from "ol";
 import {
@@ -24,7 +24,7 @@ import {
 } from "ol/geom";
 import { boundingExtent } from "ol/extent";
 import { Coordinate } from "ol/coordinate";
-import { MultiPolygon, Point, LineString } from "@/types/geo";
+import { MultiPolygon, Point, LineString, Rect } from "@/types/geo";
 import {
   RawSkiArea,
   SkiArea,
@@ -481,6 +481,19 @@ export class MapService {
       const node = this.allActivityNodes[this.selectedActivityNode.index + 1];
       this.selectActivityAndNode(node.activity, node);
     }
+  }
+
+  public getScreenBounds(): Rect {
+    const min = toLonLat(
+      this.map?.getCoordinateFromPixel([0, this.targetElement!.clientHeight])!,
+      this.projection,
+    );
+    const max = toLonLat(
+      this.map?.getCoordinateFromPixel([this.targetElement!.clientWidth, 0])!,
+      this.projection,
+    );
+
+    return { min: { x: min[0], y: min[1] }, max: { x: max[0], y: max[1] } };
   }
 
   private selectActivityAndNode(activity: Activity, node?: ActivityNode) {

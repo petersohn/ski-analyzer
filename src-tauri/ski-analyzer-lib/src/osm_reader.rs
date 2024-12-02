@@ -274,8 +274,6 @@ impl<'de> Deserialize<'de> for Elements {
 pub struct Osm3s {
     #[serde(with = "time_ser")]
     pub timestamp_osm_base: OffsetDateTime,
-    #[serde(with = "time_ser")]
-    pub timestamp_areas_base: OffsetDateTime,
     pub copyright: String,
 }
 
@@ -284,7 +282,6 @@ impl Default for Osm3s {
     fn default() -> Self {
         Osm3s {
             timestamp_osm_base: OffsetDateTime::UNIX_EPOCH,
-            timestamp_areas_base: OffsetDateTime::UNIX_EPOCH,
             copyright: String::new(),
         }
     }

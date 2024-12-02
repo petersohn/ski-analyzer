@@ -1,10 +1,13 @@
 use crate::app_state::AppState;
-use geo::Point;
+use geo::{Point, Rect};
 use gpx::Waypoint;
 use serde::{Deserialize, Deserializer, Serialize};
-use ski_analyzer_lib::osm_query::query_ski_area;
+use ski_analyzer_lib::osm_query::{
+    query_ski_area_details_by_id, query_ski_areas_by_coords,
+    query_ski_areas_by_name,
+};
 use ski_analyzer_lib::osm_reader::Document;
-use ski_analyzer_lib::ski_area::SkiArea;
+use ski_analyzer_lib::ski_area::{SkiArea, SkiAreaMetadata};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
@@ -15,7 +18,7 @@ use std::io::BufReader;
 use std::io::Read;
 use std::sync::Mutex;
 
-fn load_ski_area_inner(
+fn load_ski_area_from_file_inner(
     path: String,
     state: tauri::State<Mutex<AppState>>,
 ) -> Result<String, Box<dyn Error>> {
@@ -28,30 +31,64 @@ fn load_ski_area_inner(
     Ok(str::from_utf8(&json)?.to_string())
 }
 
-#[tauri::command]
-pub fn load_ski_area(
+#[tauri::command(async)]
+pub fn load_ski_area_from_file(
     path: String,
     state: tauri::State<Mutex<AppState>>,
 ) -> Result<String, String> {
-    load_ski_area_inner(path, state).map_err(|e| e.to_string())
+    load_ski_area_from_file_inner(path, state).map_err(|e| e.to_string())
 }
 
-fn find_ski_area_inner(name: String) -> Result<SkiArea, Box<dyn Error>> {
-    let json = query_ski_area(name.as_str())?;
+fn find_ski_areas_by_name_inner(
+    name: String,
+) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
+    let json = query_ski_areas_by_name(name.as_str())?;
     let doc = Document::parse(&json)?;
-    let ski_area = SkiArea::parse(&doc)?;
-    Ok(ski_area)
+    Ok(SkiAreaMetadata::find(&doc))
 }
 
 #[tauri::command(async)]
-pub fn find_ski_area(
+pub fn find_ski_areas_by_name(
     name: String,
+) -> Result<Vec<SkiAreaMetadata>, String> {
+    find_ski_areas_by_name_inner(name).map_err(|e| e.to_string())
+}
+
+fn find_ski_areas_by_coords_inner(
+    rect: Rect,
+) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
+    let json = query_ski_areas_by_coords(rect)?;
+    let doc = Document::parse(&json)?;
+    Ok(SkiAreaMetadata::find(&doc))
+}
+
+#[tauri::command(async)]
+pub fn find_ski_areas_by_coords(
+    rect: Rect,
+) -> Result<Vec<SkiAreaMetadata>, String> {
+    find_ski_areas_by_coords_inner(rect).map_err(|e| e.to_string())
+}
+
+fn load_ski_area_from_id_inner(
+    id: u64,
     state: tauri::State<Mutex<AppState>>,
-) -> Result<SkiArea, String> {
-    let ski_area = find_ski_area_inner(name).map_err(|e| e.to_string())?;
+) -> Result<String, Box<dyn Error>> {
+    let json = query_ski_area_details_by_id(id)?;
+    let doc = Document::parse(&json)?;
+    let ski_area = SkiArea::parse(&doc)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.set_ski_area(ski_area.clone());
-    Ok(ski_area)
+
+    let result = serde_json::to_string(&ski_area)?;
+    app_state.set_ski_area(ski_area);
+    Ok(result)
+}
+
+#[tauri::command(async)]
+pub fn load_ski_area_from_id(
+    id: u64,
+    state: tauri::State<Mutex<AppState>>,
+) -> Result<String, String> {
+    load_ski_area_from_id_inner(id, state).map_err(|e| e.to_string())
 }
 
 fn load_gpx_inner(
@@ -82,8 +119,9 @@ fn load_route_inner(
     let reader = BufReader::new(file);
     let route = serde_json::from_reader(reader)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    let result = serde_json::to_string(&route)?;
     app_state.set_route(route);
-    Ok(serde_json::to_string(app_state.get_route().unwrap())?)
+    Ok(result)
 }
 
 #[tauri::command(async)]

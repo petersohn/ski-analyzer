@@ -43,3 +43,13 @@ impl fmt::Display for Error {
 impl std::error::Error for Error {}
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+pub fn convert_err<T, Err>(
+    result: std::result::Result<T, Err>,
+    error_type: ErrorType,
+) -> Result<T>
+where
+    Err: std::error::Error,
+{
+    result.map_err(|err| Error::new(error_type, err.to_string()))
+}

@@ -24,8 +24,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::load_ski_area,
-            commands::find_ski_area,
+            commands::load_ski_area_from_file,
+            commands::find_ski_areas_by_name,
+            commands::find_ski_areas_by_coords,
+            commands::load_ski_area_from_id,
             commands::load_gpx,
             commands::load_route,
             commands::get_active_ski_area,

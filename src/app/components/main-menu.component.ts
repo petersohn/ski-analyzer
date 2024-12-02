@@ -8,6 +8,7 @@ import {
 import { MatDialog } from "@angular/material/dialog";
 import { lastValueFrom } from "rxjs";
 import { ActionsService } from "@/services/actions.service";
+import { MapService } from "@/services/map.service";
 
 @Component({
   selector: "main-menu",
@@ -19,6 +20,7 @@ import { ActionsService } from "@/services/actions.service";
 export class MainMenuComponent {
   constructor(
     private readonly dialog: MatDialog,
+    public readonly mapService: MapService,
     public readonly actionsService: ActionsService,
   ) {}
 
@@ -43,8 +45,12 @@ export class MainMenuComponent {
     });
     const result = await lastValueFrom(dialogRef.afterClosed());
     if (result) {
-      this.actionsService.findSkiArea(result);
+      this.actionsService.findSkiAreasByName(result);
     }
+  }
+
+  public async findNearbySkiAreas(): Promise<void> {
+    this.actionsService.findSkiAreasByCoords(this.mapService.getScreenBounds());
   }
 
   public async loadGpx(): Promise<void> {
