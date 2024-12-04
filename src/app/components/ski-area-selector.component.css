@@ -1,0 +1,12 @@
+.dialog-background {
+  background: white;
+  flex-direction: column;
+  display: flex;
+  max-height: calc(100% - 60px);
+  border-radius: 12px;
+}
+
+.ski-area-list {
+  flex: 1;
+  overflow-y: auto;
+}

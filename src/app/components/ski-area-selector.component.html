@@ -1,0 +1,17 @@
+<div class="dialog-background">
+  <mat-action-list class="ski-area-list">
+    @for (skiArea of skiAreas(); track skiArea.id) {
+      <button
+        mat-list-item
+        (click)="accept(skiArea.id)"
+        (mouseenter)="highlight(skiArea)"
+        (mouseleave)="unhighlight()"
+      >
+        {{ skiArea.name }}
+      </button>
+    }
+  </mat-action-list>
+  <div class="button-row">
+    <button mat-stroked-button (click)="cancel()">Cancel</button>
+  </div>
+</div>
