@@ -1,11 +1,6 @@
 import { Injectable, signal } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
 import { MapService } from "./map.service";
-import { MatDialog } from "@angular/material/dialog";
-import {
-  SkiAreaSelectorDialogData,
-  SkiAreaSelectorDialogComponent,
-} from "@/components/ski-area-selector-dialog.component";
 import { RawSkiArea, SkiAreaMetadata } from "@/types/skiArea";
 import { RawTrack, Waypoint } from "@/types/track";
 import { Rect } from "@/types/geo";
@@ -13,11 +8,9 @@ import { Rect } from "@/types/geo";
 @Injectable({ providedIn: "root" })
 export class ActionsService {
   public loading = signal(false);
+  public choosableSkiAreas = signal<SkiAreaMetadata[]>([]);
 
-  constructor(
-    private readonly mapService: MapService,
-    private readonly dialog: MatDialog,
-  ) {}
+  constructor(private readonly mapService: MapService) {}
 
   public async loadSkiArea(path: string): Promise<void> {
     const data = JSON.parse(await invoke("load_ski_area_from_file", { path }));
@@ -32,17 +25,17 @@ export class ActionsService {
   }
 
   public async findSkiAreasByName(name: string): Promise<void> {
-    const ski_areas = await this.doJob<SkiAreaMetadata[]>(
+    const skiAreas = await this.doJob<SkiAreaMetadata[]>(
       invoke("find_ski_areas_by_name", { name }),
     );
-    this.selectSkiAreas(ski_areas);
+    this.selectSkiAreas(skiAreas);
   }
 
   public async findSkiAreasByCoords(rect: Rect): Promise<void> {
-    const ski_areas = await this.doJob<SkiAreaMetadata[]>(
+    const skiAreas = await this.doJob<SkiAreaMetadata[]>(
       invoke("find_ski_areas_by_coords", { rect }),
     );
-    this.selectSkiAreas(ski_areas);
+    this.selectSkiAreas(skiAreas);
   }
 
   public async loadGpx(path: string): Promise<void> {
@@ -68,12 +61,7 @@ export class ActionsService {
     }
   }
 
-  private selectSkiAreas(ski_areas: SkiAreaMetadata[]) {
-    this.dialog.open<SkiAreaSelectorDialogComponent, SkiAreaSelectorDialogData>(
-      SkiAreaSelectorDialogComponent,
-      {
-        data: { ski_areas },
-      },
-    );
+  private selectSkiAreas(skiAreas: SkiAreaMetadata[]) {
+    this.choosableSkiAreas.set(skiAreas);
   }
 }

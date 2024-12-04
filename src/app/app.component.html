@@ -3,7 +3,11 @@
   @if (loading()) {
     <mat-progress-bar mode="indeterminate"></mat-progress-bar>
   } @else {
-    <main-menu></main-menu>
+    <main-menu *ngIf="!hasSelectableSkiArea()"></main-menu>
   }
 </div>
-<selection-info></selection-info>
+<selection-info class="sidebar"></selection-info>
+<ski-area-selector
+  *ngIf="hasSelectableSkiArea()"
+  class="sidebar"
+></ski-area-selector>
