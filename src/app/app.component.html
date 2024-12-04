@@ -6,7 +6,10 @@
     <main-menu *ngIf="!hasSelectableSkiArea()"></main-menu>
   }
 </div>
-<selection-info class="sidebar"></selection-info>
+<selection-info
+  *ngIf="!hasSelectableSkiArea()"
+  class="sidebar"
+></selection-info>
 <ski-area-selector
   *ngIf="hasSelectableSkiArea()"
   class="sidebar"
