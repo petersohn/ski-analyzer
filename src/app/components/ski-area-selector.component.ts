@@ -29,7 +29,7 @@ import { filterString } from "@/utils/string";
   ],
 })
 export class SkiAreaSelectorComponent {
-  private skiAreas: Signal<SkiAreaMetadata[]>;
+  public skiAreas: Signal<SkiAreaMetadata[]>;
   public filter = signal("");
   public displayedSkiAreas = computed(() =>
     this.skiAreas().filter((a) => filterString(a.name, this.filter())),

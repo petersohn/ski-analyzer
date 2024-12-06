@@ -2,7 +2,7 @@
   background: white;
   flex-direction: column;
   display: flex;
-  max-height: calc(100% - 60px);
+  height: calc(100% - 60px);
   border-radius: 12px;
 }
 
@@ -13,4 +13,11 @@
 .ski-area-list {
   flex: 1;
   overflow-y: auto;
+}
+
+.width-bar {
+  height: 0px;
+  overflow-y: hidden;
+  padding-top: 0px;
+  padding-bottom: 0px;
 }
