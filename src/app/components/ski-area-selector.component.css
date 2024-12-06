@@ -6,6 +6,10 @@
   border-radius: 12px;
 }
 
+.full-width {
+  width: 100%;
+}
+
 .ski-area-list {
   flex: 1;
   overflow-y: auto;
