@@ -61,7 +61,16 @@ export class ActionsService {
     }
   }
 
-  private selectSkiAreas(skiAreas: SkiAreaMetadata[]) {
+  private async selectSkiAreas(skiAreas: SkiAreaMetadata[]) {
+    if (skiAreas.length === 0) {
+      return;
+    }
+
+    if (skiAreas.length === 1) {
+      await this.loadSkiAreaFromId(skiAreas[0].id);
+      return;
+    }
+
     this.choosableSkiAreas.set(skiAreas);
   }
 }
