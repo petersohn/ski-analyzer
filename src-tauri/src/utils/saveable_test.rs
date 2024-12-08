@@ -26,25 +26,27 @@ where
 }
 
 #[test]
-fn load_and_save() {
+fn load_and_replace() {
     let value = Rc::new(RefCell::new(Some(2)));
     let mut saveable = Saveable::new(DummySaver {
         value: Rc::clone(&value),
     });
     assert_eq!(*saveable.get(), 2);
-    saveable.modify().set(10);
+    let old = saveable.modify().replace(10);
+    assert_eq!(old, 2);
     assert_eq!(*value.borrow(), Some(10));
     assert_eq!(*saveable.get(), 10);
 }
 
 #[test]
-fn default_and_save() {
-    let value = Rc::new(RefCell::new(None));
+fn default_and_replace() {
+    let value: Rc<RefCell<Option<u32>>> = Rc::new(RefCell::new(None));
     let mut saveable = Saveable::new(DummySaver {
         value: Rc::clone(&value),
     });
     assert_eq!(*saveable.get(), 0);
-    saveable.modify().set(3);
+    let old = saveable.modify().replace(3);
+    assert_eq!(old, 0);
     assert_eq!(*value.borrow(), Some(3));
     assert_eq!(*saveable.get(), 3);
 }
@@ -57,7 +59,7 @@ fn modify() {
     };
     let mut saveable = Saveable::new(saver);
     assert_eq!(*saveable.get(), vec![10, 12]);
-    saveable.modify().get().push(412);
+    saveable.modify().push(412);
     assert_eq!(*value.borrow(), Some(vec![10, 12, 412]));
     assert_eq!(*saveable.get(), vec![10, 12, 412]);
 }
