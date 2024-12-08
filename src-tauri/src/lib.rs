@@ -6,6 +6,7 @@ use std::sync::Mutex;
 
 mod app_state;
 mod commands;
+mod utils;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
