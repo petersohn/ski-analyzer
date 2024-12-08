@@ -1,6 +1,5 @@
 use app_state::AppState;
 use ski_analyzer_lib::config::{set_config, Config};
-use tauri::Manager;
 
 use std::sync::Mutex;
 
@@ -13,8 +12,8 @@ pub fn run() {
     set_config(Config { verbose: 0 }).unwrap();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .manage(Mutex::new(AppState::default()))
         .setup(|app| {
-            app.manage(Mutex::new(AppState::default()));
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
