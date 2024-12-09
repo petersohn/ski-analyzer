@@ -1,7 +1,9 @@
 use app_state::AppState;
 use ski_analyzer_lib::config::{set_config, Config};
+use tauri::Manager;
 
 use std::sync::Mutex;
+use tokio::time::Duration;
 
 mod app_state;
 mod commands;
@@ -22,6 +24,12 @@ pub fn run() {
                 )?;
             }
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            window
+                .app_handle()
+                .state::<AppState>()
+                .handle_window_event(event.clone());
         })
         .invoke_handler(tauri::generate_handler![
             commands::load_ski_area_from_file,

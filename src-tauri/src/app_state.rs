@@ -2,9 +2,12 @@ use gpx::Gpx;
 use ski_analyzer_lib::error::{Error, ErrorType, Result};
 use ski_analyzer_lib::gpx_analyzer::{analyze_route, AnalyzedRoute};
 use ski_analyzer_lib::ski_area::SkiArea;
+use tauri::window;
+use utils::delayed_action::DelayedAction;
 
 #[derive(Default)]
 pub struct AppState {
+    window_saver: DelayedAction,
     ski_area: Option<SkiArea>,
     analyzed_route: Option<AnalyzedRoute>,
 }
@@ -33,5 +36,11 @@ impl AppState {
         })?;
         self.analyzed_route = Some(analyze_route(ski_area, gpx)?);
         Ok(())
+    }
+
+    pub fn handle_window_event(&mut self, event: tauri::WindowEvent) {
+        self.window_saver.call(Box::new(move || {
+            eprintln!("{:?}", event);
+        }));
     }
 }
