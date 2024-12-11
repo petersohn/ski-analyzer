@@ -1,11 +1,12 @@
+use std::time::Duration;
+
+use crate::utils::delayed_action::DelayedAction;
 use gpx::Gpx;
 use ski_analyzer_lib::error::{Error, ErrorType, Result};
 use ski_analyzer_lib::gpx_analyzer::{analyze_route, AnalyzedRoute};
 use ski_analyzer_lib::ski_area::SkiArea;
-use tauri::window;
-use utils::delayed_action::DelayedAction;
+use tauri::{Window, WindowEvent};
 
-#[derive(Default)]
 pub struct AppState {
     window_saver: DelayedAction,
     ski_area: Option<SkiArea>,
@@ -38,9 +39,34 @@ impl AppState {
         Ok(())
     }
 
-    pub fn handle_window_event(&mut self, event: tauri::WindowEvent) {
-        self.window_saver.call(Box::new(move || {
-            eprintln!("{:?}", event);
-        }));
+    pub fn handle_window_event(
+        &mut self,
+        window: &Window,
+        event: &WindowEvent,
+    ) {
+        let res = match event {
+            WindowEvent::Moved(_) => self.save_window_config(window),
+            WindowEvent::Resized(_) => self.save_window_config(window),
+            _ => Ok(()),
+        };
+        if let Err(err) = res {
+            eprintln!("Failed to save window position: {}", err);
+            return;
+        };
+        //self.window_saver.call(Box::new(move || {}));
+    }
+
+    fn save_window_config(&mut self, window: &Window) -> tauri::Result<()> {
+        Ok(())
+    }
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        AppState {
+            window_saver: DelayedAction::new(Duration::from_secs(2)),
+            ski_area: None,
+            analyzed_route: None,
+        }
     }
 }

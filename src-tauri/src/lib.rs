@@ -3,10 +3,10 @@ use ski_analyzer_lib::config::{set_config, Config};
 use tauri::Manager;
 
 use std::sync::Mutex;
-use tokio::time::Duration;
 
 mod app_state;
 mod commands;
+mod config;
 mod utils;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -26,10 +26,20 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
+            //eprintln!(
+            //    "{:?}\n{} {} {:?} {:?} {:?}",
+            //    event,
+            //    window.is_maximized().unwrap_or(false),
+            //    window.is_fullscreen().unwrap_or(false),
+            //    window.current_monitor().unwrap(),
+            //    window.outer_position().unwrap(),
+            //    window.outer_size().unwrap(),
+            //);
             window
-                .app_handle()
-                .state::<AppState>()
-                .handle_window_event(event.clone());
+                .state::<Mutex<AppState>>()
+                .lock()
+                .unwrap()
+                .handle_window_event(window, event);
         })
         .invoke_handler(tauri::generate_handler![
             commands::load_ski_area_from_file,
