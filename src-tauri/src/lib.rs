@@ -2,6 +2,7 @@ use app_state::AppState;
 use ski_analyzer_lib::config::{set_config, Config};
 use tauri::Manager;
 
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 mod app_state;

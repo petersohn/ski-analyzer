@@ -29,7 +29,7 @@ impl DelayedAction {
         };
 
         if let Some(func) = func2 {
-            self.state = Arc::new(Mutex::new(Some(func)));
+            self.reset(Some(func));
         }
 
         let state = Arc::clone(&self.state);
@@ -41,5 +41,21 @@ impl DelayedAction {
                 func();
             }
         });
+    }
+
+    pub fn cancel(&mut self) {
+        {
+            let mut lock = self.state.lock().unwrap();
+            if lock.is_none() {
+                return;
+            }
+            *lock = None;
+        }
+
+        self.reset(None);
+    }
+
+    fn reset(&mut self, func: Option<Func>) {
+        self.state = Arc::new(Mutex::new(func));
     }
 }
