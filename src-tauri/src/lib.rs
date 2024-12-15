@@ -1,9 +1,8 @@
-use app_state::AppState;
+use app_state::{AppState, AppStateType};
 use ski_analyzer_lib::config::{set_config, Config};
 use tauri::Manager;
 
-use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 mod app_state;
 mod commands;
@@ -15,7 +14,7 @@ pub fn run() {
     set_config(Config { verbose: 0 }).unwrap();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .manage(Mutex::new(AppState::default()))
+        .manage(Arc::new(Mutex::new(AppState::default())))
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -24,20 +23,12 @@ pub fn run() {
                         .build(),
                 )?;
             }
+            app.state::<AppStateType>().lock().unwrap().init_config(app);
             Ok(())
         })
         .on_window_event(|window, event| {
-            //eprintln!(
-            //    "{:?}\n{} {} {:?} {:?} {:?}",
-            //    event,
-            //    window.is_maximized().unwrap_or(false),
-            //    window.is_fullscreen().unwrap_or(false),
-            //    window.current_monitor().unwrap(),
-            //    window.outer_position().unwrap(),
-            //    window.outer_size().unwrap(),
-            //);
             window
-                .state::<Mutex<AppState>>()
+                .state::<AppStateType>()
                 .lock()
                 .unwrap()
                 .handle_window_event(window, event);

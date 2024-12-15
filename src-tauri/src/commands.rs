@@ -1,4 +1,4 @@
-use crate::app_state::AppState;
+use crate::app_state::AppStateType;
 use geo::{Point, Rect};
 use gpx::Waypoint;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -16,11 +16,10 @@ use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::BufReader;
 use std::io::Read;
-use std::sync::Mutex;
 
 fn load_ski_area_from_file_inner(
     path: String,
-    state: tauri::State<Mutex<AppState>>,
+    state: tauri::State<AppStateType>,
 ) -> Result<String, Box<dyn Error>> {
     let mut file = OpenOptions::new().read(true).open(path)?;
     let mut json = Vec::new();
@@ -34,7 +33,7 @@ fn load_ski_area_from_file_inner(
 #[tauri::command(async)]
 pub fn load_ski_area_from_file(
     path: String,
-    state: tauri::State<Mutex<AppState>>,
+    state: tauri::State<AppStateType>,
 ) -> Result<String, String> {
     load_ski_area_from_file_inner(path, state).map_err(|e| e.to_string())
 }
@@ -71,7 +70,7 @@ pub fn find_ski_areas_by_coords(
 
 fn load_ski_area_from_id_inner(
     id: u64,
-    state: tauri::State<Mutex<AppState>>,
+    state: tauri::State<AppStateType>,
 ) -> Result<String, Box<dyn Error>> {
     let json = query_ski_area_details_by_id(id)?;
     let doc = Document::parse(&json)?;
@@ -86,14 +85,14 @@ fn load_ski_area_from_id_inner(
 #[tauri::command(async)]
 pub fn load_ski_area_from_id(
     id: u64,
-    state: tauri::State<Mutex<AppState>>,
+    state: tauri::State<AppStateType>,
 ) -> Result<String, String> {
     load_ski_area_from_id_inner(id, state).map_err(|e| e.to_string())
 }
 
 fn load_gpx_inner(
     path: String,
-    state: tauri::State<Mutex<AppState>>,
+    state: tauri::State<AppStateType>,
 ) -> Result<String, Box<dyn Error>> {
     let file = OpenOptions::new().read(true).open(path)?;
     let reader = BufReader::new(file);
@@ -106,14 +105,14 @@ fn load_gpx_inner(
 #[tauri::command(async)]
 pub fn load_gpx(
     path: String,
-    state: tauri::State<Mutex<AppState>>,
+    state: tauri::State<AppStateType>,
 ) -> Result<String, String> {
     load_gpx_inner(path, state).map_err(|e| e.to_string())
 }
 
 fn load_route_inner(
     path: String,
-    state: tauri::State<Mutex<AppState>>,
+    state: tauri::State<AppStateType>,
 ) -> Result<String, Box<dyn Error>> {
     let file = OpenOptions::new().read(true).open(path)?;
     let reader = BufReader::new(file);
@@ -127,14 +126,14 @@ fn load_route_inner(
 #[tauri::command(async)]
 pub fn load_route(
     path: String,
-    state: tauri::State<Mutex<AppState>>,
+    state: tauri::State<AppStateType>,
 ) -> Result<String, String> {
     load_route_inner(path, state).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn get_active_ski_area(
-    state: tauri::State<Mutex<AppState>>,
+    state: tauri::State<AppStateType>,
 ) -> Result<Option<SkiArea>, String> {
     let app_state = state.inner().lock().map_err(|e| e.to_string())?;
     Ok(app_state.get_ski_area().cloned())
@@ -142,7 +141,7 @@ pub fn get_active_ski_area(
 
 #[tauri::command]
 pub fn get_active_route(
-    state: tauri::State<Mutex<AppState>>,
+    state: tauri::State<AppStateType>,
 ) -> Result<Option<String>, String> {
     let app_state = state.inner().lock().map_err(|e| e.to_string())?;
     let route = app_state.get_route();
@@ -198,7 +197,7 @@ pub struct ClosestLift {
 
 #[tauri::command]
 pub fn get_closest_lift(
-    state: tauri::State<Mutex<AppState>>,
+    state: tauri::State<AppStateType>,
     p: Point,
     limit: f64,
 ) -> Result<Option<ClosestLift>, String> {
