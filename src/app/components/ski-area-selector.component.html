@@ -11,7 +11,7 @@
   </mat-form-field>
   <mat-action-list class="width-bar">
     @for (skiArea of skiAreas(); track skiArea.id) {
-      <button mat-list-item>{{ skiArea.name }}</button>
+      <button mat-list-item disabled>{{ skiArea.name }}</button>
     }
   </mat-action-list>
   <mat-action-list class="ski-area-list">
@@ -19,6 +19,8 @@
       <button
         mat-list-item
         (click)="accept(skiArea.id)"
+        (focus)="highlight(skiArea)"
+        (blur)="unhighlight()"
         (mouseenter)="highlight(skiArea)"
         (mouseleave)="unhighlight()"
       >
