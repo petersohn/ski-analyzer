@@ -1,4 +1,6 @@
 use crate::app_state::AppStateType;
+use crate::config::MapConfig;
+
 use geo::{Point, Rect};
 use gpx::Waypoint;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -210,4 +212,23 @@ pub fn get_closest_lift(
             distance,
         })
     })())
+}
+
+#[tauri::command]
+pub fn save_map_config(
+    state: tauri::State<AppStateType>,
+    app_handle: tauri::AppHandle,
+    config: MapConfig,
+) -> Result<(), String> {
+    let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    app_state.save_map_config(&app_handle, config);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_map_config(
+    state: tauri::State<AppStateType>,
+) -> Result<Option<MapConfig>, String> {
+    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    Ok(app_state.get_config().map_config)
 }

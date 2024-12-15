@@ -1,11 +1,18 @@
+use geo::Point;
 use serde::{Deserialize, Serialize};
 use tauri::{PhysicalSize, Window};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct WindowConfig {
     pub size: PhysicalSize<u32>,
     pub maximized: bool,
     pub fullscreen: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+pub struct MapConfig {
+    center: Point,
+    zoom: f64,
 }
 
 impl WindowConfig {
@@ -33,6 +40,7 @@ impl WindowConfig {
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Config {
     pub window_config: Option<WindowConfig>,
+    pub map_config: Option<MapConfig>,
 }
 
 impl Config {

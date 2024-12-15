@@ -12,7 +12,7 @@ use tauri::{
 };
 
 use super::config::Config;
-use crate::config::WindowConfig;
+use crate::config::{MapConfig, WindowConfig};
 use crate::utils::delayed_action::DelayedAction;
 
 pub struct AppState {
@@ -69,7 +69,14 @@ impl AppState {
         }
     }
 
-    fn get_config(&self) -> &Config {
+    fn save_config_delayed<M: Manager<R>, R: Runtime>(&mut self, manager: &M) {
+        let state = Arc::clone(manager.state::<AppStateType>().inner());
+        self.window_saver.call(Box::new(move || {
+            state.lock().unwrap().save_config();
+        }));
+    }
+
+    pub fn get_config(&self) -> &Config {
         self.config.as_ref().unwrap()
     }
 
@@ -102,6 +109,15 @@ impl AppState {
         Ok(())
     }
 
+    pub fn save_map_config<M: Manager<R>, R: Runtime>(
+        &mut self,
+        manager: &M,
+        config: MapConfig,
+    ) {
+        self.get_config_mut().map_config = Some(config);
+        self.save_config_delayed(manager);
+    }
+
     pub fn handle_window_event(
         &mut self,
         window: &Window,
@@ -126,10 +142,7 @@ impl AppState {
         }
 
         self.get_config_mut().save_window_config(window)?;
-        let state = Arc::clone(window.state::<AppStateType>().inner());
-        self.window_saver.call(Box::new(move || {
-            state.lock().unwrap().save_config();
-        }));
+        self.save_config_delayed(window);
         Ok(())
     }
 

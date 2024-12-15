@@ -4,6 +4,7 @@ import { MapService } from "./map.service";
 import { RawSkiArea, SkiAreaMetadata } from "@/types/skiArea";
 import { RawTrack, Waypoint } from "@/types/track";
 import { Rect } from "@/types/geo";
+import { MapConfig } from "@/types/config";
 
 @Injectable({ providedIn: "root" })
 export class ActionsService {
@@ -14,14 +15,14 @@ export class ActionsService {
 
   public async loadSkiArea(path: string): Promise<void> {
     const data = JSON.parse(await invoke("load_ski_area_from_file", { path }));
-    this.mapService.loadSkiArea(data as RawSkiArea);
+    this.mapService.loadSkiArea(data as RawSkiArea, true);
   }
 
   public async loadSkiAreaFromId(id: number): Promise<void> {
     const data = JSON.parse(
       await this.doJob(invoke("load_ski_area_from_id", { id })),
     );
-    this.mapService.loadSkiArea(data as RawSkiArea);
+    this.mapService.loadSkiArea(data as RawSkiArea, true);
   }
 
   public async findSkiAreasByName(name: string): Promise<void> {
@@ -50,6 +51,14 @@ export class ActionsService {
 
   public getSpeed(wp1: Waypoint, wp2: Waypoint): Promise<number | undefined> {
     return invoke("get_speed", { wp1, wp2 });
+  }
+
+  public getMapConfig(): Promise<MapConfig | undefined> {
+    return invoke("get_map_config", {});
+  }
+
+  public saveMapConfig(config: MapConfig): Promise<void> {
+    return invoke("save_map_config", { config });
   }
 
   private async doJob<T>(job: Promise<T>): Promise<T> {

@@ -38,6 +38,7 @@ import { MapStyleService, SelectableStyle } from "./map-style.service";
 import { invoke } from "@tauri-apps/api/core";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
+import { MapConfig } from "@/types/config";
 
 dayjs.extend(duration);
 
@@ -49,6 +50,7 @@ class EventHandler extends Interaction {
   }
 
   private handle(event: MapBrowserEvent<any>): boolean {
+    //console.log(event.type);
     switch (event.type) {
       case "click":
         return this.handleClickEvent(event);
@@ -82,19 +84,16 @@ class EventHandler extends Interaction {
     const found = event.map.forEachFeatureAtPixel(event.pixel, (feature) => {
       const piste = feature.get("ski-analyzer-piste");
       if (piste) {
-        console.log("piste", piste);
         this.mapService.selectPiste(piste as Piste);
         return true;
       }
       const lift = feature.get("ski-analyzer-lift");
       if (lift) {
-        console.log("lift", lift);
         this.mapService.selectLift(lift as Lift);
         return true;
       }
       const activity = feature.get("ski-analyzer-activity");
       if (activity) {
-        console.log("activity", activity);
         this.mapService.selectActivity(
           activity as Activity,
           event.map.getCoordinateFromPixel(event.pixel),
@@ -128,14 +127,16 @@ type ActivityNode = {
 
 @Injectable({ providedIn: "root" })
 export class MapService {
-  public selectedPiste = signal<Piste | undefined>(undefined);
-  public selectedLift = signal<Lift | undefined>(undefined);
-  public selectedActivity = signal<Activity | undefined>(undefined);
-  public selectedWaypoint = signal<Waypoint | undefined>(undefined);
-  public currentWaypointSpeed = signal<number | undefined>(undefined);
-  public currentWaypointClosestLift = signal<
+  public readonly selectedPiste = signal<Piste | undefined>(undefined);
+  public readonly selectedLift = signal<Lift | undefined>(undefined);
+  public readonly selectedActivity = signal<Activity | undefined>(undefined);
+  public readonly selectedWaypoint = signal<Waypoint | undefined>(undefined);
+  public readonly currentWaypointSpeed = signal<number | undefined>(undefined);
+  public readonly currentWaypointClosestLift = signal<
     { lift: Lift; distance: number } | undefined
   >(undefined);
+
+  public readonly mapConfig = signal<MapConfig | undefined>(undefined);
 
   private map: OlMap | undefined;
   private readonly baseLayer = new TileLayer({
@@ -165,7 +166,7 @@ export class MapService {
 
   constructor(private readonly mapStyleService: MapStyleService) {}
 
-  public createMap(targetElement: HTMLElement) {
+  public async createMap(targetElement: HTMLElement) {
     if (this.isInitialized()) {
       return;
     }
@@ -184,6 +185,18 @@ export class MapService {
     });
 
     this.projection = this.map.getView().getProjection();
+
+    const view = this.map.getView();
+    view.on("change", () => {
+      const center = view.getCenter();
+      const zoom = view.getZoom();
+      if (center !== undefined && zoom !== undefined) {
+        this.mapConfig.set({
+          center: this.coordinageToPoint(center),
+          zoom,
+        });
+      }
+    });
   }
 
   public removeMap() {
@@ -236,7 +249,7 @@ export class MapService {
     this.allActivityNodes = [];
   }
 
-  public loadSkiArea(rawSkiArea: RawSkiArea): void {
+  public loadSkiArea(rawSkiArea: RawSkiArea, zoom: boolean): void {
     if (!this.isInitialized()) {
       throw new Error("Not initialized");
     }
@@ -304,7 +317,10 @@ export class MapService {
       });
       this.map!.getLayers().push(this.skiAreaLayer);
       this.skiArea = skiArea;
-      this.zoomToArea(minCoord, maxCoord);
+
+      if (zoom) {
+        this.zoomToArea(minCoord, maxCoord);
+      }
     } catch (e) {
       this.unloadSkiArea();
       throw e;
@@ -488,16 +504,14 @@ export class MapService {
   }
 
   public getScreenBounds(): Rect {
-    const min = toLonLat(
+    const min = this.coordinageToPoint(
       this.map?.getCoordinateFromPixel([0, this.targetElement!.clientHeight])!,
-      this.projection,
     );
-    const max = toLonLat(
+    const max = this.coordinageToPoint(
       this.map?.getCoordinateFromPixel([this.targetElement!.clientWidth, 0])!,
-      this.projection,
     );
 
-    return { min: { x: min[0], y: min[1] }, max: { x: max[0], y: max[1] } };
+    return { min, max };
   }
 
   public clearOutline() {
@@ -521,6 +535,19 @@ export class MapService {
     });
 
     this.map!.addLayer(this.outlineLayer);
+  }
+
+  public setMapConfig(config: MapConfig) {
+    console.log("setMapConfig", config, this.map);
+
+    if (!this.isInitialized()) {
+      return;
+    }
+
+    console.log("zing");
+    const view = this.map!.getView();
+    view.setCenter(this.pointToCoordinate(config.center));
+    view.setZoom(config.zoom);
   }
 
   private selectActivityAndNode(activity: Activity, node?: ActivityNode) {
@@ -576,6 +603,11 @@ export class MapService {
 
   private pointToCoordinate(p: Point): Coordinate {
     return fromLonLat([p.x, p.y], this.projection);
+  }
+
+  private coordinageToPoint(c: Coordinate): Point {
+    const lonlat = toLonLat(c, this.projection);
+    return { x: lonlat[0], y: lonlat[1] };
   }
 
   private createLineString(l: LineString): Coordinate[] {

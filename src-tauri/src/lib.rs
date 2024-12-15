@@ -44,6 +44,8 @@ pub fn run() {
             commands::get_active_route,
             commands::get_speed,
             commands::get_closest_lift,
+            commands::save_map_config,
+            commands::get_map_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

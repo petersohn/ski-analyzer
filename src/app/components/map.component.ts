@@ -4,11 +4,13 @@ import {
   OnDestroy,
   ElementRef,
   ViewChild,
+  effect,
 } from "@angular/core";
 import { MapService } from "@/services/map.service";
 import { invoke } from "@tauri-apps/api/core";
 import { RawSkiArea } from "@/types/skiArea";
 import { RawTrack } from "@/types/track";
+import { ActionsService } from "@/services/actions.service";
 
 @Component({
   selector: "map",
@@ -21,13 +23,29 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   @ViewChild("map")
   public mapElement!: ElementRef<HTMLElement>;
 
-  constructor(private readonly mapService: MapService) {}
+  constructor(
+    private readonly mapService: MapService,
+    private readonly actionsService: ActionsService,
+  ) {
+    effect(() => {
+      const mapConfig = this.mapService.mapConfig();
+      if (!!mapConfig) {
+        this.actionsService.saveMapConfig(mapConfig);
+      }
+    });
+  }
 
   public async ngAfterViewInit() {
-    this.mapService.createMap(this.mapElement.nativeElement);
+    await this.mapService.createMap(this.mapElement.nativeElement);
+
+    const mapConfig = await this.actionsService.getMapConfig();
+    if (!!mapConfig) {
+      this.mapService.setMapConfig(mapConfig);
+    }
+
     const ski_area = await invoke("get_active_ski_area", {});
     if (!!ski_area) {
-      this.mapService.loadSkiArea(ski_area as RawSkiArea);
+      this.mapService.loadSkiArea(ski_area as RawSkiArea, !mapConfig);
     }
 
     const route = await invoke("get_active_route", {});
