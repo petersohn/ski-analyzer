@@ -19,10 +19,10 @@
       <button
         mat-list-item
         (click)="accept(skiArea.id)"
-        (focus)="highlight(skiArea)"
-        (blur)="unhighlight()"
-        (mouseenter)="highlight(skiArea)"
-        (mouseleave)="unhighlight()"
+        (focus)="focusListItem(skiArea)"
+        (blur)="blurListItem()"
+        (mouseenter)="hoverListItem(skiArea)"
+        (mouseleave)="unhoverListItem()"
       >
         {{ skiArea.name }}
       </button>

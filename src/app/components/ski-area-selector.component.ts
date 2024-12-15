@@ -41,6 +41,9 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
   @ViewChild("search")
   private searchInput!: ElementRef<HTMLInputElement>;
 
+  private focusedListItem: SkiAreaMetadata | undefined;
+  private hoveredListItem: SkiAreaMetadata | undefined;
+
   constructor(
     private readonly actionsService: ActionsService,
     private readonly mapService: MapService,
@@ -75,15 +78,35 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
   }
 
   public close() {
-    this.unhighlight();
+    this.mapService.clearOutline();
     this.actionsService.choosableSkiAreas.set([]);
   }
 
-  public highlight(skiArea: SkiAreaMetadata) {
-    this.mapService.addOutline(skiArea.outline);
+  public focusListItem(skiArea: SkiAreaMetadata) {
+    this.focusedListItem = skiArea;
+    this.highlight(skiArea);
   }
 
-  public unhighlight() {
-    this.mapService.clearOutline();
+  public blurListItem() {
+    this.focusedListItem = undefined;
+    this.highlight(this.hoveredListItem);
+  }
+
+  public hoverListItem(skiArea: SkiAreaMetadata) {
+    this.hoveredListItem = skiArea;
+    this.highlight(skiArea);
+  }
+
+  public unhoverListItem() {
+    this.hoveredListItem = undefined;
+    this.highlight(this.focusedListItem);
+  }
+
+  private highlight(skiArea: SkiAreaMetadata | undefined) {
+    if (!!skiArea) {
+      this.mapService.addOutline(skiArea.outline);
+    } else {
+      this.mapService.clearOutline();
+    }
   }
 }
