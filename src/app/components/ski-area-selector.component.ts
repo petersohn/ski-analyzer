@@ -4,6 +4,9 @@ import {
   computed,
   signal,
   HostListener,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
 } from "@angular/core";
 import { MatListModule } from "@angular/material/list";
 import { MatInputModule } from "@angular/material/input";
@@ -28,12 +31,15 @@ import { filterString } from "@/utils/string";
     MatInputModule,
   ],
 })
-export class SkiAreaSelectorComponent {
+export class SkiAreaSelectorComponent implements AfterViewInit {
   public skiAreas: Signal<SkiAreaMetadata[]>;
   public filter = signal("");
   public displayedSkiAreas = computed(() =>
     this.skiAreas().filter((a) => filterString(a.name, this.filter())),
   );
+
+  @ViewChild("search")
+  private searchInput!: ElementRef<HTMLInputElement>;
 
   constructor(
     private readonly actionsService: ActionsService,
@@ -42,9 +48,21 @@ export class SkiAreaSelectorComponent {
     this.skiAreas = this.actionsService.choosableSkiAreas;
   }
 
+  public ngAfterViewInit() {
+    this.searchInput.nativeElement.focus();
+  }
+
   @HostListener("window:keyup.escape")
   public onEscape() {
     this.cancel();
+  }
+
+  @HostListener("window:keyup.enter")
+  public onEnter() {
+    let skiAreas = this.displayedSkiAreas();
+    if (skiAreas.length == 1) {
+      this.accept(skiAreas[0].id);
+    }
   }
 
   public accept(id: number) {
