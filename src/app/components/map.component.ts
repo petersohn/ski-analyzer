@@ -7,9 +7,6 @@ import {
   effect,
 } from "@angular/core";
 import { MapService } from "@/services/map.service";
-import { invoke } from "@tauri-apps/api/core";
-import { RawSkiArea } from "@/types/skiArea";
-import { RawTrack } from "@/types/track";
 import { ActionsService } from "@/services/actions.service";
 
 @Component({
