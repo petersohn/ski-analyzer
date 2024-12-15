@@ -43,14 +43,14 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.mapService.setMapConfig(mapConfig);
     }
 
-    const ski_area = await invoke("get_active_ski_area", {});
+    const ski_area = await this.actionsService.getActiveSkiArea();
     if (!!ski_area) {
-      this.mapService.loadSkiArea(ski_area as RawSkiArea, !mapConfig);
+      this.mapService.loadSkiArea(ski_area, !mapConfig);
     }
 
-    const route = await invoke("get_active_route", {});
+    const route = await this.actionsService.getActiveRoute();
     if (!!route) {
-      this.mapService.loadTrack(JSON.parse(route as string) as RawTrack);
+      this.mapService.loadTrack(route);
     }
   }
 

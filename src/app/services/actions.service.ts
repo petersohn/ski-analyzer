@@ -61,6 +61,15 @@ export class ActionsService {
     return invoke("save_map_config", { config });
   }
 
+  public getActiveSkiArea(): Promise<RawSkiArea | undefined> {
+    return invoke("get_active_ski_area", {});
+  }
+
+  public async getActiveRoute(): Promise<RawTrack | undefined> {
+    const data = await invoke("get_active_route", {});
+    return !!data ? JSON.parse(data as string) : undefined;
+  }
+
   private async doJob<T>(job: Promise<T>): Promise<T> {
     this.loading.set(true);
     try {
