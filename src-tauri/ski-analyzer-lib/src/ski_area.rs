@@ -36,9 +36,9 @@ impl PointWithElevation {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkiArea {
-    pub name: String,
+    pub metadata: SkiAreaMetadata,
     pub lifts: HashMap<String, Lift>,
     pub pistes: HashMap<String, Piste>,
     pub bounding_rect: Rect,
@@ -46,7 +46,7 @@ pub struct SkiArea {
     pub date: OffsetDateTime,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkiAreaMetadata {
     pub id: u64,
     pub name: String,
@@ -92,13 +92,9 @@ fn find_lifts(doc: &Document) -> HashMap<String, Lift> {
 impl SkiArea {
     pub fn parse(doc: &Document) -> Result<Self> {
         let metadatas = SkiAreaMetadata::find(doc);
-        let name = metadatas
-            .into_iter()
-            .next()
-            .ok_or_else(|| {
-                Error::new_s(ErrorType::InputError, "ski area entity not found")
-            })?
-            .name;
+        let metadata = metadatas.into_iter().next().ok_or_else(|| {
+            Error::new_s(ErrorType::InputError, "ski area entity not found")
+        })?;
 
         let config = get_config();
         let lifts = find_lifts(doc);
@@ -113,11 +109,11 @@ impl SkiArea {
             eprintln!("Found {} pistes.", pistes.len());
         }
 
-        SkiArea::new(name, lifts, pistes, doc.osm3s.timestamp_osm_base)
+        SkiArea::new(metadata, lifts, pistes, doc.osm3s.timestamp_osm_base)
     }
 
     pub fn new(
-        name: String,
+        metadata: SkiAreaMetadata,
         lifts: HashMap<String, Lift>,
         pistes: HashMap<String, Piste>,
         date: OffsetDateTime,
@@ -131,7 +127,7 @@ impl SkiArea {
         .ok_or_else(|| Error::new_s(ErrorType::OSMError, "Empty ski area"))?;
 
         Ok(SkiArea {
-            name,
+            metadata,
             lifts,
             pistes,
             bounding_rect,

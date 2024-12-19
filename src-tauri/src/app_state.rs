@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::{create_dir_all, OpenOptions};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -10,14 +11,15 @@ use ski_analyzer_lib::ski_area::SkiArea;
 use tauri::{
     Manager, PhysicalPosition, Position, Runtime, Size, Window, WindowEvent,
 };
+use uuid::Uuid;
 
-use super::config::Config;
-use crate::config::{MapConfig, WindowConfig};
+use crate::config::{CachedSkiArea, Config, MapConfig, WindowConfig};
 use crate::utils::delayed_action::DelayedAction;
 
 pub struct AppState {
     config_path: PathBuf,
     config_file_path: PathBuf,
+    ski_areas_path: PathBuf,
     config: Option<Config>,
     window_initialized: bool,
     window_saver: DelayedAction,
@@ -30,6 +32,7 @@ impl AppState {
         self.config_path = PathBuf::from(manager.path().data_dir().unwrap());
         self.config_path.push("ski-analyzer");
         self.config_file_path = self.config_path.join("config.json");
+        self.ski_areas_path = self.config_path.join("ski_areas");
         let config = match self.load_config() {
             Ok(c) => c,
             Err(err) => {
@@ -89,8 +92,55 @@ impl AppState {
     }
 
     pub fn set_ski_area(&mut self, ski_area: SkiArea) {
+        let uuid = self.get_config_mut().save_ski_area(&ski_area);
         self.ski_area = Some(ski_area);
         self.analyzed_route = None;
+
+        if let Err(err) = self.save_ski_area(&uuid) {
+            eprintln!("Failed to save ski area: {}", err);
+            self.get_config_mut().remove_ski_area(&uuid);
+        }
+    }
+
+    fn save_ski_area(
+        &mut self,
+        uuid: &Uuid,
+    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        self.window_saver.cancel();
+        self.save_config_inner()?;
+        create_dir_all(&self.ski_areas_path)?;
+        let path = self.get_ski_area_path(uuid);
+        let file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&path)?;
+        serde_json::to_writer(file, self.get_config())?;
+
+        Ok(())
+    }
+
+    fn get_ski_area_path(&self, uuid: &Uuid) -> PathBuf {
+        self.ski_areas_path.join(format!("{}.json", uuid))
+    }
+
+    pub fn load_ski_area(
+        &self,
+        uuid: &Uuid,
+    ) -> std::result::Result<SkiArea, Box<dyn std::error::Error>> {
+        let file = OpenOptions::new()
+            .read(true)
+            .open(&self.get_ski_area_path(uuid))?;
+        Ok(serde_json::from_reader(file)?)
+    }
+
+    pub fn get_cached_ski_areas(&self) -> &HashMap<Uuid, CachedSkiArea> {
+        &self.get_config().ski_areas
+    }
+
+    pub fn remove_cached_ski_area(&mut self, uuid: &Uuid) {
+        self.get_config_mut().remove_ski_area(uuid);
+        self.save_config();
     }
 
     pub fn get_route(&self) -> Option<&AnalyzedRoute> {
@@ -178,6 +228,7 @@ impl Default for AppState {
         AppState {
             config_path: PathBuf::new(),
             config_file_path: PathBuf::new(),
+            ski_areas_path: PathBuf::new(),
             config: None,
             window_initialized: false,
             window_saver: DelayedAction::new(Duration::from_secs(2)),

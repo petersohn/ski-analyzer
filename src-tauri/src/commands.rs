@@ -1,5 +1,5 @@
 use crate::app_state::AppStateType;
-use crate::config::MapConfig;
+use crate::config::{CachedSkiArea, MapConfig};
 
 use geo::{Point, Rect};
 use gpx::Waypoint;
@@ -12,8 +12,10 @@ use ski_analyzer_lib::osm_reader::Document;
 use ski_analyzer_lib::ski_area::{SkiArea, SkiAreaMetadata};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
+use uuid::Uuid;
 
 use core::str;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::BufReader;
@@ -231,4 +233,31 @@ pub fn get_map_config(
 ) -> Result<Option<MapConfig>, String> {
     let app_state = state.inner().lock().map_err(|e| e.to_string())?;
     Ok(app_state.get_config().map_config)
+}
+
+#[tauri::command(async)]
+pub fn load_cached_ski_area(
+    uuid: Uuid,
+    state: tauri::State<AppStateType>,
+) -> Result<SkiArea, String> {
+    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    app_state.load_ski_area(&uuid).map_err(|e| e.to_string())
+}
+
+#[tauri::command(async)]
+pub fn get_cached_ski_areas(
+    state: tauri::State<AppStateType>,
+) -> Result<HashMap<Uuid, CachedSkiArea>, String> {
+    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    Ok(app_state.get_cached_ski_areas().clone())
+}
+
+#[tauri::command(async)]
+pub fn remove_cached_ski_area(
+    uuid: Uuid,
+    state: tauri::State<AppStateType>,
+) -> Result<(), String> {
+    let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    app_state.remove_cached_ski_area(&uuid);
+    Ok(())
 }

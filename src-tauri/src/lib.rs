@@ -46,6 +46,9 @@ pub fn run() {
             commands::get_closest_lift,
             commands::save_map_config,
             commands::get_map_config,
+            commands::load_cached_ski_area,
+            commands::get_cached_ski_areas,
+            commands::remove_cached_ski_area,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,8 +1,8 @@
 use crate::config::{set_config, Config};
 use crate::osm_reader as r;
-use crate::ski_area::SkiArea;
+use crate::ski_area::{SkiArea, SkiAreaMetadata};
 
-use geo::{coord, LineString};
+use geo::{coord, LineString, Polygon};
 use rstest::fixture;
 
 use std::collections::HashMap;
@@ -63,6 +63,14 @@ pub fn save_ski_area(piste: &SkiArea, filename: &str) {
         .open(filename)
         .unwrap();
     serde_json::to_writer_pretty(file, &piste).unwrap();
+}
+
+pub fn create_ski_area_metadata(name: String) -> SkiAreaMetadata {
+    SkiAreaMetadata {
+        name,
+        id: 0,
+        outline: Polygon::new(LineString::new(vec![]), vec![]),
+    }
 }
 
 pub struct Init;

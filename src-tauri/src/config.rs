@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+
 use geo::Point;
 use serde::{Deserialize, Serialize};
 use tauri::{PhysicalSize, Window};
 use time::OffsetDateTime;
+use uuid::Uuid;
 
-use ski_analyzer_lib::ski_area::SkiAreaMetadata;
+use ski_analyzer_lib::ski_area::{SkiArea, SkiAreaMetadata};
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct WindowConfig {
@@ -40,18 +43,18 @@ impl WindowConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CachedSkiArea {
-    pub file_name: String,
-    pub date: OffsetDateTime,
-    #[serde(flatten)]
     pub metadata: SkiAreaMetadata,
+    pub date: OffsetDateTime,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Config {
     pub window_config: Option<WindowConfig>,
     pub map_config: Option<MapConfig>,
+    #[serde(default)]
+    pub ski_areas: HashMap<Uuid, CachedSkiArea>,
 }
 
 impl Config {
@@ -61,5 +64,21 @@ impl Config {
             None => self.window_config = Some(WindowConfig::new(window)?),
         }
         Ok(())
+    }
+
+    pub fn save_ski_area(&mut self, ski_area: &SkiArea) -> Uuid {
+        let uuid = Uuid::new_v4();
+        self.ski_areas.insert(
+            uuid,
+            CachedSkiArea {
+                metadata: ski_area.metadata.clone(),
+                date: ski_area.date,
+            },
+        );
+        uuid
+    }
+
+    pub fn remove_ski_area(&mut self, uuid: &Uuid) {
+        self.ski_areas.remove(uuid);
     }
 }

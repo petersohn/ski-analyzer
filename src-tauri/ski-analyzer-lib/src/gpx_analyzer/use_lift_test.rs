@@ -6,7 +6,9 @@ use crate::assert_eq_pretty;
 use crate::ski_area::{Lift, PointWithElevation, SkiArea};
 use crate::utils::bounded_geometry::BoundedGeometry;
 use crate::utils::rect::union_rects_all;
-use crate::utils::test_util::{init, save_ski_area, Init};
+use crate::utils::test_util::{
+    create_ski_area_metadata, init, save_ski_area, Init,
+};
 
 use ::function_name::named;
 use geo::{coord, point, Distance, Haversine, LineString, Rect};
@@ -53,7 +55,7 @@ fn lift(
 
 fn ski_area(name: &str, lifts: Vec<Lift>) -> SkiArea {
     SkiArea::new(
-        name.to_string(),
+        create_ski_area_metadata(name.to_string()),
         lifts.into_iter().map(|l| (l.name.clone(), l)).collect(),
         HashMap::new(),
         OffsetDateTime::UNIX_EPOCH,

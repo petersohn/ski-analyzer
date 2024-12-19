@@ -5,7 +5,9 @@ use crate::osm_reader::{
     Tags, Way,
 };
 use crate::utils::rect::union_rects_if;
-use crate::utils::test_util::{assert_eq_pretty, init, save_ski_area, Init};
+use crate::utils::test_util::{
+    assert_eq_pretty, create_ski_area_metadata, init, save_ski_area, Init,
+};
 
 use ::function_name::named;
 use geo::{
@@ -278,13 +280,13 @@ where
             union_rects_if(bounding_rect, Some(piste.data.bounding_rect));
     }
 
-    SkiArea {
-        name,
-        lifts: HashMap::new(),
+    SkiArea::new(
+        create_ski_area_metadata(name),
+        HashMap::new(),
         pistes,
-        bounding_rect: bounding_rect.unwrap(),
-        date: OffsetDateTime::now_utc(),
-    }
+        OffsetDateTime::now_utc(),
+    )
+    .unwrap()
 }
 
 fn save_output<'a, PisteOuts, Pistes, T>(
