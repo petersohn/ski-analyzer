@@ -1,6 +1,9 @@
 use geo::Point;
 use serde::{Deserialize, Serialize};
 use tauri::{PhysicalSize, Window};
+use time::OffsetDateTime;
+
+use ski_analyzer_lib::ski_area::SkiAreaMetadata;
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct WindowConfig {
@@ -35,6 +38,14 @@ impl WindowConfig {
 
         Ok(())
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CachedSkiArea {
+    pub file_name: String,
+    pub date: OffsetDateTime,
+    #[serde(flatten)]
+    pub metadata: SkiAreaMetadata,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]

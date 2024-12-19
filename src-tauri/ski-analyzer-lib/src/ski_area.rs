@@ -46,7 +46,7 @@ pub struct SkiArea {
     pub date: OffsetDateTime,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SkiAreaMetadata {
     pub id: u64,
     pub name: String,
