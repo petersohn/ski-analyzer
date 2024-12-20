@@ -7,6 +7,7 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use ski_analyzer_lib::ski_area::{SkiArea, SkiAreaMetadata};
+use ski_analyzer_lib::utils::time_ser;
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub struct WindowConfig {
@@ -46,6 +47,7 @@ impl WindowConfig {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CachedSkiArea {
     pub metadata: SkiAreaMetadata,
+    #[serde(with = "time_ser")]
     pub date: OffsetDateTime,
 }
 

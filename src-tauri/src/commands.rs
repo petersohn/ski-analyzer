@@ -1,7 +1,7 @@
 use crate::app_state::AppStateType;
 use crate::config::{CachedSkiArea, MapConfig};
 
-use geo::{Point, Rect};
+use geo::{Intersects, Point, Rect};
 use gpx::Waypoint;
 use serde::{Deserialize, Deserializer, Serialize};
 use ski_analyzer_lib::osm_query::{
@@ -47,7 +47,7 @@ fn find_ski_areas_by_name_inner(
 ) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
     let json = query_ski_areas_by_name(name.as_str())?;
     let doc = Document::parse(&json)?;
-    Ok(SkiAreaMetadata::find(&doc))
+    Ok(SkiAreaMetadata::find(&doc)?)
 }
 
 #[tauri::command(async)]
@@ -62,7 +62,7 @@ fn find_ski_areas_by_coords_inner(
 ) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
     let json = query_ski_areas_by_coords(rect)?;
     let doc = Document::parse(&json)?;
-    Ok(SkiAreaMetadata::find(&doc))
+    Ok(SkiAreaMetadata::find(&doc)?)
 }
 
 #[tauri::command(async)]
@@ -247,9 +247,19 @@ pub fn load_cached_ski_area(
 #[tauri::command(async)]
 pub fn get_cached_ski_areas(
     state: tauri::State<AppStateType>,
+    rect: Option<Rect>,
 ) -> Result<HashMap<Uuid, CachedSkiArea>, String> {
     let app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    Ok(app_state.get_cached_ski_areas().clone())
+    let ski_areas = app_state.get_cached_ski_areas();
+
+    Ok(match rect {
+        None => ski_areas.clone(),
+        Some(r) => ski_areas
+            .iter()
+            .filter(|(_, s)| s.metadata.outline.bounding_rect.intersects(&r))
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect(),
+    })
 }
 
 #[tauri::command(async)]

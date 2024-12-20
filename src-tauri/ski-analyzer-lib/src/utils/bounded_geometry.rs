@@ -23,10 +23,12 @@ where
     where
         T: BoundingRect<C>,
     {
-        let bounding_rect = item.bounding_rect().into().ok_or(Error::new_s(
-            ErrorType::LogicError,
-            "cannot calculate bounding rect",
-        ))?;
+        let bounding_rect = item.bounding_rect().into().ok_or_else(|| {
+            Error::new_s(
+                ErrorType::LogicError,
+                "cannot calculate bounding rect",
+            )
+        })?;
         Ok(BoundedGeometry {
             item,
             bounding_rect,

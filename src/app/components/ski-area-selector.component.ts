@@ -104,7 +104,7 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
 
   private highlight(skiArea: SkiAreaMetadata | undefined) {
     if (!!skiArea) {
-      this.mapService.addOutline(skiArea.outline);
+      this.mapService.addOutline(skiArea.outline.item);
     } else {
       this.mapService.clearOutline();
     }

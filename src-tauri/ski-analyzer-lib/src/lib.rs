@@ -4,9 +4,9 @@ pub mod gpx_analyzer;
 pub mod osm_query;
 pub mod osm_reader;
 pub mod ski_area;
+pub mod utils;
 
 mod multipolygon;
-mod utils;
 
 #[cfg(test)]
 mod multipolygon_test;

@@ -7,11 +7,12 @@ import {
   MultiLineString,
   Polygon,
 } from "./geo";
+import { indexData } from "@/utils/data";
 
 export type SkiAreaMetadata = {
   id: number;
   name: string;
-  outline: Polygon;
+  outline: BoundedGeometry<Polygon>;
 };
 
 export type Lift = {
@@ -57,11 +58,7 @@ export type SkiArea = {
   bounding_rect: Rect;
 };
 
-function indexData<T>(data: { [id: string]: T }): Map<string, T> {
-  return new Map(Object.keys(data).map((id) => [id, data[id]]));
-}
-
-export function index_ski_area(ski_area: RawSkiArea): SkiArea {
+export function indexSkiArea(ski_area: RawSkiArea): SkiArea {
   return {
     name: ski_area.name,
     lifts: indexData<Lift>(ski_area.lifts),

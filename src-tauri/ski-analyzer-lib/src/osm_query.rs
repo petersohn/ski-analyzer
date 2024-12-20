@@ -49,8 +49,8 @@ pub fn query_ski_area_details_by_id(id: u64) -> Result<Vec<u8>> {
     let query_string = format!(
         r###"[out:json];
 (
-    way({})->.a;
     (
+        way({})->.a;
         way(area.a)["aerialway"];
         way(area.a)["piste:type"="downhill"];
         rel(area.a)["piste:type"="downhill"];

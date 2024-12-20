@@ -23,7 +23,6 @@ import {
   LineString as OlLineString,
   MultiLineString as OlMultiLineString,
 } from "ol/geom";
-import { boundingExtent } from "ol/extent";
 import { Coordinate } from "ol/coordinate";
 import { MultiPolygon, Point, LineString, Rect, Polygon } from "@/types/geo";
 import {
@@ -31,7 +30,7 @@ import {
   SkiArea,
   Lift,
   Piste,
-  index_ski_area,
+  indexSkiArea,
 } from "@/types/skiArea";
 import { RawTrack, Activity, TrackConverter, Waypoint } from "@/types/track";
 import { MapStyleService, SelectableStyle } from "./map-style.service";
@@ -256,7 +255,7 @@ export class MapService {
 
     this.unloadSkiArea();
 
-    let skiArea = index_ski_area(rawSkiArea);
+    let skiArea = indexSkiArea(rawSkiArea);
 
     try {
       const features: Feature[] = [];
@@ -313,7 +312,6 @@ export class MapService {
           features,
         }),
         minZoom: 10,
-        extent: boundingExtent([minCoord, maxCoord]),
       });
       this.map!.getLayers().push(this.skiAreaLayer);
       this.skiArea = skiArea;
@@ -417,10 +415,6 @@ export class MapService {
           features,
         }),
         minZoom: 10,
-        extent: boundingExtent([
-          this.pointToCoordinate(track.bounding_rect.min),
-          this.pointToCoordinate(track.bounding_rect.max),
-        ]),
       });
       this.map!.getLayers().push(this.trackLayer);
     } catch (e) {

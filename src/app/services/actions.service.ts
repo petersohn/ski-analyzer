@@ -4,7 +4,12 @@ import { MapService } from "./map.service";
 import { RawSkiArea, SkiAreaMetadata } from "@/types/skiArea";
 import { RawTrack, Waypoint } from "@/types/track";
 import { Rect } from "@/types/geo";
-import { MapConfig } from "@/types/config";
+import {
+  MapConfig,
+  RawCachedSkiAreas,
+  convertCachedSkiAreas,
+  CachedSkiAreas,
+} from "@/types/config";
 
 @Injectable({ providedIn: "root" })
 export class ActionsService {
@@ -90,5 +95,19 @@ export class ActionsService {
     }
 
     this.choosableSkiAreas.set(skiAreas);
+  }
+
+  public async loadCachedSkiArea(uuid: string): Promise<void> {
+    const skiArea = await invoke("load_cached_ski_area", { uuid });
+    this.mapService.loadSkiArea(skiArea as RawSkiArea, true);
+  }
+
+  public async getCachedSkiAreas(): Promise<CachedSkiAreas> {
+    const skiAreas = await invoke("get_cached_ski_areas", {});
+    return convertCachedSkiAreas(skiAreas as RawCachedSkiAreas);
+  }
+
+  public async removeCachedSkiArea(uuid: string): Promise<void> {
+    await invoke("remove_cached_ski_area", { uuid });
   }
 }

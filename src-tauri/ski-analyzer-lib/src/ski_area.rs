@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use geo::{Intersects, Point, Polygon, Rect};
+use geo::{Intersects, LineString, Point, Polygon, Rect};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
@@ -8,8 +8,9 @@ use lift::parse_lift;
 use piste::parse_pistes;
 
 use crate::config::get_config;
-use crate::error::{Error, ErrorType, Result};
-use crate::osm_reader::{get_tag, Document};
+use crate::error::{convert_err, Error, ErrorType, Result};
+use crate::osm_reader::{get_tag, parse_way, Document};
+use crate::utils::bounded_geometry::BoundedGeometry;
 use crate::utils::rect::union_rects_all;
 use crate::utils::time_ser;
 
@@ -50,11 +51,11 @@ pub struct SkiArea {
 pub struct SkiAreaMetadata {
     pub id: u64,
     pub name: String,
-    pub outline: Polygon,
+    pub outline: BoundedGeometry<Polygon>,
 }
 
 impl SkiAreaMetadata {
-    pub fn find(doc: &Document) -> Vec<SkiAreaMetadata> {
+    pub fn find(doc: &Document) -> Result<Vec<SkiAreaMetadata>> {
         let mut result: Vec<SkiAreaMetadata> = doc
             .elements
             .ways
@@ -62,15 +63,35 @@ impl SkiAreaMetadata {
             .filter(|(_id, way)| {
                 get_tag(&way.tags, "landuse") == "winter_sports"
             })
-            .map(|(id, way)| Self {
-                id: *id,
-                name: get_tag(&way.tags, "name").to_string(),
-                outline: Polygon::new(way.geom_to_line_string(), vec![]),
+            .map(|(id, way)| -> Result<Self> {
+                let outline = if !way.geometry.is_empty() {
+                    way.geom_to_line_string()
+                } else {
+                    LineString::new(convert_err(
+                        parse_way(doc, &way.nodes),
+                        ErrorType::OSMError,
+                    )?)
+                };
+                Ok(Self {
+                    id: *id,
+                    name: get_tag(&way.tags, "name").to_string(),
+                    outline: BoundedGeometry::new(Polygon::new(
+                        outline,
+                        vec![],
+                    ))?,
+                })
+            })
+            .filter_map(|res| match res {
+                Ok(value) => Some(value),
+                Err(err) => {
+                    eprintln!("Failed to calculate ski area metadata: {}", err);
+                    None
+                }
             })
             .collect();
 
         result.sort_by(|lhs, rhs| lhs.name.cmp(&rhs.name));
-        result
+        Ok(result)
     }
 }
 
@@ -91,7 +112,7 @@ fn find_lifts(doc: &Document) -> HashMap<String, Lift> {
 
 impl SkiArea {
     pub fn parse(doc: &Document) -> Result<Self> {
-        let metadatas = SkiAreaMetadata::find(doc);
+        let metadatas = SkiAreaMetadata::find(doc)?;
         let metadata = metadatas.into_iter().next().ok_or_else(|| {
             Error::new_s(ErrorType::InputError, "ski area entity not found")
         })?;
