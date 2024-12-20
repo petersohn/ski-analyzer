@@ -15,11 +15,33 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use core::str;
-use std::collections::HashMap;
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::BufReader;
 use std::io::Read;
+
+#[derive(Serialize, Deserialize)]
+struct CachedSkiAreaWithUuid {
+    uuid: Uuid,
+    #[serde(flatten)]
+    data: CachedSkiArea,
+}
+
+impl CachedSkiAreaWithUuid {
+    fn new((uuid, data): (&Uuid, &CachedSkiArea)) -> Self {
+        Self {
+            uuid: uuid.clone(),
+            data: data.clone(),
+        }
+    }
+
+    fn new_list<'a, It>(it: It) -> Vec<CachedSkiAreaWithUuid>
+    where
+        It: Iterator<Item = (&'a Uuid, &'a CachedSkiArea)>,
+    {
+        it.map(Self::new).collect()
+    }
+}
 
 fn load_ski_area_from_file_inner(
     path: String,
@@ -245,21 +267,40 @@ pub fn load_cached_ski_area(
 }
 
 #[tauri::command(async)]
-pub fn get_cached_ski_areas(
+pub fn get_all_cached_ski_areas(
     state: tauri::State<AppStateType>,
-    rect: Option<Rect>,
-) -> Result<HashMap<Uuid, CachedSkiArea>, String> {
+) -> Result<Vec<CachedSkiAreaWithUuid>, String> {
+    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    Ok(CachedSkiAreaWithUuid::new_list(
+        app_state.get_cached_ski_areas().iter(),
+    ))
+}
+
+#[tauri::command(async)]
+pub fn get_cached_ski_areas_for_area(
+    state: tauri::State<AppStateType>,
+    rect: Rect,
+) -> Result<Vec<CachedSkiAreaWithUuid>, String> {
     let app_state = state.inner().lock().map_err(|e| e.to_string())?;
     let ski_areas = app_state.get_cached_ski_areas();
 
-    Ok(match rect {
-        None => ski_areas.clone(),
-        Some(r) => ski_areas
-            .iter()
-            .filter(|(_, s)| s.metadata.outline.bounding_rect.intersects(&r))
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect(),
-    })
+    Ok(CachedSkiAreaWithUuid::new_list(ski_areas.iter().filter(
+        |(_, s)| s.metadata.outline.bounding_rect.intersects(&rect),
+    )))
+}
+
+#[tauri::command(async)]
+pub fn get_cached_ski_areas_by_name(
+    state: tauri::State<AppStateType>,
+    name: String,
+) -> Result<Vec<CachedSkiAreaWithUuid>, String> {
+    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    let ski_areas = app_state.get_cached_ski_areas();
+    let search_string = name.to_lowercase();
+
+    Ok(CachedSkiAreaWithUuid::new_list(ski_areas.iter().filter(
+        |(_, s)| s.metadata.name.to_lowercase().contains(&search_string),
+    )))
 }
 
 #[tauri::command(async)]
