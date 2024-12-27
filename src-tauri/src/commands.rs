@@ -21,7 +21,7 @@ use std::io::BufReader;
 use std::io::Read;
 
 #[derive(Serialize, Deserialize)]
-struct CachedSkiAreaWithUuid {
+pub struct CachedSkiAreaWithUuid {
     uuid: Uuid,
     #[serde(flatten)]
     data: CachedSkiArea,
@@ -114,6 +114,18 @@ pub fn load_ski_area_from_id(
     state: tauri::State<AppStateType>,
 ) -> Result<String, String> {
     load_ski_area_from_id_inner(id, state).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn load_cached_ski_area(
+    uuid: Uuid,
+    state: tauri::State<AppStateType>,
+) -> Result<SkiArea, String> {
+    state
+        .lock()
+        .unwrap()
+        .load_cached_ski_area(&uuid)
+        .map_err(|e| e.to_string())
 }
 
 fn load_gpx_inner(
@@ -255,15 +267,6 @@ pub fn get_map_config(
 ) -> Result<Option<MapConfig>, String> {
     let app_state = state.inner().lock().map_err(|e| e.to_string())?;
     Ok(app_state.get_config().map_config)
-}
-
-#[tauri::command(async)]
-pub fn load_cached_ski_area(
-    uuid: Uuid,
-    state: tauri::State<AppStateType>,
-) -> Result<SkiArea, String> {
-    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.load_ski_area(&uuid).map_err(|e| e.to_string())
 }
 
 #[tauri::command(async)]

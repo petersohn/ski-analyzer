@@ -47,7 +47,9 @@ pub fn run() {
             commands::save_map_config,
             commands::get_map_config,
             commands::load_cached_ski_area,
-            commands::get_cached_ski_areas,
+            commands::get_all_cached_ski_areas,
+            commands::get_cached_ski_areas_for_area,
+            commands::get_cached_ski_areas_by_name,
             commands::remove_cached_ski_area,
         ])
         .run(tauri::generate_context!())

@@ -15,8 +15,10 @@ import { FormsModule } from "@angular/forms";
 import { MatButtonModule } from "@angular/material/button";
 import { SkiAreaMetadata } from "@/types/skiArea";
 import { ActionsService } from "@/services/actions.service";
+import { SkiAreaChooserService } from "@/services/ski-area-chooser.service";
 import { MapService } from "@/services/map.service";
 import { filterString } from "@/utils/string";
+import { CachedSkiArea } from "@/types/config";
 
 @Component({
   selector: "ski-area-selector",
@@ -32,11 +34,21 @@ import { filterString } from "@/utils/string";
   ],
 })
 export class SkiAreaSelectorComponent implements AfterViewInit {
-  public skiAreas: Signal<SkiAreaMetadata[]>;
+  public loadedSkiAreas: Signal<SkiAreaMetadata[] | null | undefined>;
+  public cachedSkiAreas: Signal<CachedSkiArea[]>;
   public filter = signal("");
-  public displayedSkiAreas = computed(() =>
-    this.skiAreas().filter((a) => filterString(a.name, this.filter())),
+  public displayedLoadedSkiAreas = computed(() =>
+    this.loadedSkiAreas()?.filter((a) => filterString(a.name, this.filter())),
   );
+  public displayedCachedSkiAreas = computed(() =>
+    this.cachedSkiAreas().filter((a) =>
+      filterString(a.metadata.name, this.filter()),
+    ),
+  );
+  public canHaveLoadedSkiAreas = computed(
+    () => this.loadedSkiAreas() === undefined,
+  );
+  public isLoading = computed(() => this.loadedSkiAreas() === null);
 
   @ViewChild("search")
   private searchInput!: ElementRef<HTMLInputElement>;
@@ -47,8 +59,10 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
   constructor(
     private readonly actionsService: ActionsService,
     private readonly mapService: MapService,
+    private readonly skiAreaChooserService: SkiAreaChooserService,
   ) {
-    this.skiAreas = this.actionsService.choosableSkiAreas;
+    this.loadedSkiAreas = this.skiAreaChooserService.loadedSkiAreas;
+    this.cachedSkiAreas = this.skiAreaChooserService.cachedSkiAreas;
   }
 
   public ngAfterViewInit() {
@@ -62,14 +76,29 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
 
   @HostListener("window:keyup.enter")
   public onEnter() {
-    let skiAreas = this.displayedSkiAreas();
-    if (skiAreas.length == 1) {
-      this.accept(skiAreas[0].id);
+    const loaded = this.displayedLoadedSkiAreas();
+    const cached = this.displayedCachedSkiAreas();
+    const loadedCount = loaded?.length ?? 0;
+    const cachedCount = cached.length;
+
+    if (
+      cachedCount === 1 &&
+      (loadedCount === 0 ||
+        (loadedCount === 1 && loaded![0].id === cached[0].metadata.id))
+    ) {
+      this.acceptCached(cached[0].uuid);
+    } else if (loadedCount === 1 && cachedCount === 0) {
+      this.acceptLoaded(loaded![0].id);
     }
   }
 
-  public accept(id: number) {
+  public acceptLoaded(id: number) {
     this.actionsService.loadSkiAreaFromId(id);
+    this.close();
+  }
+
+  public acceptCached(uuid: string) {
+    this.actionsService.loadCachedSkiArea(uuid);
     this.close();
   }
 
@@ -79,7 +108,7 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
 
   public close() {
     this.mapService.clearOutline();
-    this.actionsService.choosableSkiAreas.set([]);
+    this.skiAreaChooserService.clearChoosableSkiAreas();
   }
 
   public focusListItem(skiArea: SkiAreaMetadata) {

@@ -124,7 +124,7 @@ impl AppState {
         self.ski_areas_path.join(format!("{}.json", uuid))
     }
 
-    pub fn load_ski_area(
+    pub fn load_cached_ski_area(
         &self,
         uuid: &Uuid,
     ) -> std::result::Result<SkiArea, Box<dyn std::error::Error>> {

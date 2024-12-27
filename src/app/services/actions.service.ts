@@ -1,6 +1,7 @@
-import { Injectable, signal, computed } from "@angular/core";
+import { Injectable, signal } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
 import { MapService } from "./map.service";
+import { SkiAreaChooserService } from "./ski-area-chooser.service";
 import { RawSkiArea, SkiAreaMetadata } from "@/types/skiArea";
 import { RawTrack, Waypoint } from "@/types/track";
 import { Rect } from "@/types/geo";
@@ -15,16 +16,10 @@ import {
 export class ActionsService {
   public loading = signal(false);
 
-  public choosableSkiAreas = signal<SkiAreaMetadata[] | null>([]);
-  public cachedSkiAreas = signal<CachedSkiArea[]>([]);
-  public hasChoosableSkiArea = computed(
-    () =>
-      (this.choosableSkiAreas() !== null &&
-        this.choosableSkiAreas()?.length !== 0) ||
-      this.cachedSkiAreas().length !== 0,
-  );
-
-  constructor(private readonly mapService: MapService) {}
+  constructor(
+    private readonly mapService: MapService,
+    private readonly skiAreaChooserService: SkiAreaChooserService,
+  ) {}
 
   public async loadSkiArea(path: string): Promise<void> {
     const data = JSON.parse(await invoke("load_ski_area_from_file", { path }));
@@ -39,17 +34,25 @@ export class ActionsService {
   }
 
   public async findSkiAreasByName(name: string): Promise<void> {
-    const skiAreas = await this.doJob<SkiAreaMetadata[]>(
+    const cached = this.getCachedSkiAreasByName(name);
+    const loaded = this.doJob<SkiAreaMetadata[]>(
       invoke("find_ski_areas_by_name", { name }),
     );
-    this.selectSkiAreas(skiAreas);
+    await this.skiAreaChooserService.selectSkiAreas(cached, loaded);
   }
 
   public async findSkiAreasByCoords(rect: Rect): Promise<void> {
-    const skiAreas = await this.doJob<SkiAreaMetadata[]>(
+    const cached = this.getCachedSkiAreasForArea(rect);
+    const loaded = this.doJob<SkiAreaMetadata[]>(
       invoke("find_ski_areas_by_coords", { rect }),
     );
-    this.selectSkiAreas(skiAreas);
+    await this.skiAreaChooserService.selectSkiAreas(cached, loaded);
+  }
+
+  public async findCachedSkiAreas(): Promise<void> {
+    const cached = this.getAllCachedSkiAreas();
+    const loaded = Promise.resolve([]);
+    await this.skiAreaChooserService.selectSkiAreas(cached, loaded);
   }
 
   public async loadGpx(path: string): Promise<void> {
@@ -92,11 +95,6 @@ export class ActionsService {
     await invoke("remove_cached_ski_area", { uuid });
   }
 
-  public clearChoosableSkiAreas(): void {
-    this.choosableSkiAreas.set([]);
-    this.cachedSkiAreas.set([]);
-  }
-
   private async getAllCachedSkiAreas(): Promise<CachedSkiArea[]> {
     const skiAreas = await invoke("get_all_cached_ski_areas", {});
     return convertCachedSkiAreas(skiAreas as RawCachedSkiArea[]);
@@ -121,21 +119,5 @@ export class ActionsService {
     } finally {
       this.loading.set(false);
     }
-  }
-
-  private async selectSkiAreas(
-    cachedP: Promise<CachedSkiArea[]>,
-    loadedP: Promise<SkiAreaMetadata[]>,
-  ) {
-    if (skiAreas.length === 0) {
-      return;
-    }
-
-    if (skiAreas.length === 1) {
-      await this.loadSkiAreaFromId(skiAreas[0].id);
-      return;
-    }
-
-    this.choosableSkiAreas.set(skiAreas);
   }
 }
