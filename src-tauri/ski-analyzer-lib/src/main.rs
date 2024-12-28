@@ -91,7 +91,7 @@ fn main() -> Result<()> {
         Command::QueryOsm { name, output, clip } => {
             let json1 = query_ski_areas_by_name(name.as_str())?;
             let doc1 = Document::parse(&json1)?;
-            let metadatas = SkiAreaMetadata::find(&doc1);
+            let metadatas = SkiAreaMetadata::find(&doc1)?;
             let id = match metadatas.len() {
                 1 => metadatas.into_iter().next().unwrap().id,
                 0 => {

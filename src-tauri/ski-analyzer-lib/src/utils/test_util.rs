@@ -1,8 +1,9 @@
 use crate::config::{set_config, Config};
 use crate::osm_reader as r;
 use crate::ski_area::{SkiArea, SkiAreaMetadata};
+use crate::utils::bounded_geometry::BoundedGeometry;
 
-use geo::{coord, LineString, Polygon};
+use geo::{coord, LineString, Polygon, Rect};
 use rstest::fixture;
 
 use std::collections::HashMap;
@@ -69,7 +70,13 @@ pub fn create_ski_area_metadata(name: String) -> SkiAreaMetadata {
     SkiAreaMetadata {
         name,
         id: 0,
-        outline: Polygon::new(LineString::new(vec![]), vec![]),
+        outline: BoundedGeometry {
+            item: Polygon::new(LineString::new(vec![]), vec![]),
+            bounding_rect: Rect::new(
+                coord! { x: 0.0, y: 0.0 },
+                coord! { x: 0.0, y: 0.0 },
+            ),
+        },
     }
 }
 
