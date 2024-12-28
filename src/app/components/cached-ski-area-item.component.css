@@ -11,7 +11,7 @@
 }
 
 .date {
-  font-color: "#aaa";
+  color: #555;
   font-size: 10px;
 }
 
@@ -20,5 +20,5 @@
 }
 
 .delete-icon {
-  color: "#fc8c88";
+  color: #fc8c88;
 }
