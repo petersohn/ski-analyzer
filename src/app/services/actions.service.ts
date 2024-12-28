@@ -51,7 +51,7 @@ export class ActionsService {
 
   public async findCachedSkiAreas(): Promise<void> {
     const cached = this.getAllCachedSkiAreas();
-    const loaded = Promise.resolve([]);
+    const loaded = Promise.resolve(undefined);
     await this.skiAreaChooserService.selectSkiAreas(cached, loaded);
   }
 

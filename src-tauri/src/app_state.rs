@@ -115,7 +115,7 @@ impl AppState {
             .create(true)
             .truncate(true)
             .open(&path)?;
-        serde_json::to_writer(file, self.get_config())?;
+        serde_json::to_writer(file, self.ski_area.as_ref().unwrap())?;
 
         Ok(())
     }
@@ -125,13 +125,18 @@ impl AppState {
     }
 
     pub fn load_cached_ski_area(
-        &self,
+        &mut self,
         uuid: &Uuid,
     ) -> std::result::Result<SkiArea, Box<dyn std::error::Error>> {
         let file = OpenOptions::new()
             .read(true)
-            .open(&self.get_ski_area_path(uuid))?;
-        Ok(serde_json::from_reader(file)?)
+            .open(&self.get_ski_area_path(uuid));
+        if let Err(err) = &file {
+            if err.kind() == std::io::ErrorKind::NotFound {
+                self.remove_cached_ski_area(uuid);
+            }
+        }
+        Ok(serde_json::from_reader(file?)?)
     }
 
     pub fn get_cached_ski_areas(&self) -> &HashMap<Uuid, CachedSkiArea> {

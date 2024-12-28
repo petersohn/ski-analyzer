@@ -98,6 +98,7 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
   }
 
   public acceptCached(uuid: string) {
+    console.log("acceptCached", uuid);
     this.actionsService.loadCachedSkiArea(uuid);
     this.close();
   }

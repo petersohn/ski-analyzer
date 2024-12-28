@@ -21,3 +21,13 @@
   padding-top: 0px;
   padding-bottom: 0px;
 }
+
+.loading {
+  width: 100%;
+  height: 100%;
+  mask-image: url("/assets/piste.svg");
+  background-color: #888;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: 64px;
+}

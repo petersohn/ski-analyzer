@@ -53,6 +53,10 @@ export class MainMenuComponent {
     this.actionsService.findSkiAreasByCoords(this.mapService.getScreenBounds());
   }
 
+  public async loadCachedSkiArea(): Promise<void> {
+    this.actionsService.findCachedSkiAreas();
+  }
+
   public async loadGpx(): Promise<void> {
     const path = await open({
       filters: [{ name: "GPX", extensions: ["gpx"] }],

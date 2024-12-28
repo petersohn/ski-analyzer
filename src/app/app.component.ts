@@ -5,6 +5,7 @@ import { MapComponent } from "@/components/map.component";
 import { SkiAreaSelectorComponent } from "@/components/ski-area-selector.component";
 import { SelectionInfoComponent } from "@/components/selection-info.component";
 import { ActionsService } from "@/services/actions.service";
+import { SkiAreaChooserService } from "@/services/ski-area-chooser.service";
 import { CommonModule } from "@angular/common";
 
 @Component({
@@ -25,10 +26,11 @@ export class AppComponent {
   public loading: Signal<boolean>;
   public hasSelectableSkiArea: Signal<boolean>;
 
-  constructor(private readonly actionsService: ActionsService) {
+  constructor(
+    private readonly actionsService: ActionsService,
+    private readonly skiAreaChooserService: SkiAreaChooserService,
+  ) {
     this.loading = this.actionsService.loading;
-    this.hasSelectableSkiArea = computed(
-      () => this.actionsService.choosableSkiAreas().length != 0,
-    );
+    this.hasSelectableSkiArea = this.skiAreaChooserService.hasChoosableSkiArea;
   }
 }

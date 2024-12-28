@@ -19,7 +19,7 @@ export class SkiAreaChooserService {
 
   public async selectSkiAreas(
     cachedP: Promise<CachedSkiArea[]>,
-    loadedP: Promise<SkiAreaMetadata[]>,
+    loadedP: Promise<SkiAreaMetadata[] | undefined>,
   ) {
     this.loadedSkiAreas.set(null);
     this.cachedSkiAreas.set(await cachedP);
