@@ -11,7 +11,11 @@
   </mat-form-field>
   <mat-action-list class="width-bar">
     @for (skiArea of cachedSkiAreas(); track skiArea.uuid) {
-      <button mat-list-item disabled>{{ skiArea.metadata.name }}</button>
+      <cached-ski-area-item
+        mat-list-item
+        [skiArea]="skiArea"
+        [disabled]="true"
+      ></cached-ski-area-item>
     }
     @for (skiArea of loadedSkiAreas(); track skiArea.id) {
       <button mat-list-item disabled>{{ skiArea.name }}</button>
@@ -20,16 +24,16 @@
   <h1>Cached ski areas</h1>
   <mat-action-list class="ski-area-list">
     @for (skiArea of displayedCachedSkiAreas(); track skiArea.uuid) {
-      <button
+      <cached-ski-area-item
         mat-list-item
-        (click)="acceptCached(skiArea.uuid)"
+        [skiArea]="skiArea"
+        (select)="acceptCached(skiArea.uuid)"
+        (delete)="deleteCached(skiArea.uuid)"
         (focus)="focusListItem(skiArea.metadata)"
         (blur)="blurListItem()"
         (mouseenter)="hoverListItem(skiArea.metadata)"
         (mouseleave)="unhoverListItem()"
-      >
-        {{ skiArea.metadata.name }}
-      </button>
+      ></cached-ski-area-item>
     }
   </mat-action-list>
 

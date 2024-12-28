@@ -8,7 +8,7 @@ use strum_macros::EnumString;
 use std::str::FromStr;
 
 use super::PointWithElevation;
-use crate::config::get_config;
+use crate::config::{self, get_config};
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{
     get_tag, parse_ele, parse_way, parse_yesno, Document, Node, Way,
@@ -89,16 +89,18 @@ fn is_station(node: &Node) -> bool {
     get_tag(&node.tags, "aerialway") == "station"
 }
 
-fn get_access(node: &Node) -> Result<AccessType> {
+fn get_access(node: &Node) -> AccessType {
     if !is_station(&node) {
-        return Ok(AccessType::Unknown);
+        return AccessType::Unknown;
     }
 
     let access = get_tag(&node.tags, "aerialway:access");
-    AccessType::from_str(&access).or(Err(Error::new(
-        ErrorType::OSMError,
-        format!("invalid access type: {}", access),
-    )))
+    AccessType::from_str(&access).unwrap_or_else(|e| {
+        if get_config().is_v() {
+            eprintln!("{}", e);
+        }
+        AccessType::Unknown
+    })
 }
 
 const ALLOWED_TYPES: &[&str] = &[
@@ -154,9 +156,9 @@ pub fn parse_lift<'d>(
     let (begin_id, rest) = way.nodes.split_first().unwrap();
     let (end_id, midpoints) = rest.split_last().unwrap();
     let begin_node = doc.elements.get_node(begin_id)?;
-    let begin_access = get_access(&begin_node)?;
+    let begin_access = get_access(&begin_node);
     let end_node = doc.elements.get_node(end_id)?;
-    let end_access = get_access(&end_node)?;
+    let end_access = get_access(&end_node);
 
     #[derive(Debug)]
     struct StationInfo<'a> {
@@ -262,10 +264,7 @@ pub fn parse_lift<'d>(
         let accesses: Vec<String> = station_infos
             .0
             .iter()
-            .map(|s| match get_access(&s.node) {
-                Ok(a) => a.to_string(),
-                Err(e) => e.to_string(),
-            })
+            .map(|s| get_access(&s.node).to_string())
             .collect();
         eprintln!(
             "{} {}: Unusual station combination: {:?}",

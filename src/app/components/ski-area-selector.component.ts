@@ -19,6 +19,7 @@ import { SkiAreaChooserService } from "@/services/ski-area-chooser.service";
 import { MapService } from "@/services/map.service";
 import { filterString } from "@/utils/string";
 import { CachedSkiArea } from "@/types/config";
+import { CachedSkiAreaItem } from "./cached-ski-area-item.component";
 
 @Component({
   selector: "ski-area-selector",
@@ -31,6 +32,7 @@ import { CachedSkiArea } from "@/types/config";
     FormsModule,
     MatFormFieldModule,
     MatInputModule,
+    CachedSkiAreaItem,
   ],
 })
 export class SkiAreaSelectorComponent implements AfterViewInit {
@@ -98,9 +100,13 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
   }
 
   public acceptCached(uuid: string) {
-    console.log("acceptCached", uuid);
     this.actionsService.loadCachedSkiArea(uuid);
     this.close();
+  }
+
+  public deleteCached(uuid: string) {
+    this.actionsService.removeCachedSkiArea(uuid);
+    this.skiAreaChooserService.removeCachedSkiArea(uuid);
   }
 
   public cancel() {
