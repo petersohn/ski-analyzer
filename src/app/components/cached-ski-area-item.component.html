@@ -1,13 +1,16 @@
 <div class="item">
   <button
-    class="description"
+    mat-button
+    class="item-button"
     [disabled]="disabled()"
     (click)="select.emit()"
     (focus)="focus.emit()"
     (blur)="blur.emit()"
   >
-    <div>{{ skiArea().metadata.name }}</div>
-    <div class="date">{{ date() }}</div>
+    <div class="description">
+      <div>{{ skiArea().metadata.name }}</div>
+      <div class="date">{{ date() }}</div>
+    </div>
   </button>
   <button
     mat-icon-buton

@@ -1,5 +1,6 @@
 import { Component, input, output, computed } from "@angular/core";
 import { MatButtonModule } from "@angular/material/button";
+import { MatListModule } from "@angular/material/list";
 import { MatIconModule } from "@angular/material/icon";
 import { CachedSkiArea } from "@/types/config";
 
@@ -8,7 +9,7 @@ import { CachedSkiArea } from "@/types/config";
   templateUrl: "./cached-ski-area-item.component.html",
   styleUrl: "./cached-ski-area-item.component.css",
   standalone: true,
-  imports: [MatButtonModule, MatIconModule],
+  imports: [MatButtonModule, MatIconModule, MatListModule],
 })
 export class CachedSkiAreaItem {
   public skiArea = input.required<CachedSkiArea>();

@@ -22,7 +22,7 @@
     }
   </mat-action-list>
   <h1>Cached ski areas</h1>
-  <mat-action-list class="ski-area-list">
+  <div class="ski-area-list">
     @for (skiArea of displayedCachedSkiAreas(); track skiArea.uuid) {
       <cached-ski-area-item
         mat-list-item
@@ -35,7 +35,7 @@
         (mouseleave)="unhoverListItem()"
       ></cached-ski-area-item>
     }
-  </mat-action-list>
+  </div>
 
   @if (loadedSkiAreas() !== undefined) {
     <h1>Ski areas</h1>
