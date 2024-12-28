@@ -9,23 +9,25 @@
       placeholder="Type here to filter ski areas"
     />
   </mat-form-field>
-  <mat-action-list class="width-bar">
+  <div class="width-bar">
     @for (skiArea of cachedSkiAreas(); track skiArea.uuid) {
       <cached-ski-area-item
-        mat-list-item
         [skiArea]="skiArea"
         [disabled]="true"
       ></cached-ski-area-item>
     }
     @for (skiArea of loadedSkiAreas(); track skiArea.id) {
-      <button mat-list-item disabled>{{ skiArea.name }}</button>
+      <div>
+        <button mat-button class="loaded-item" disabled>
+          {{ skiArea.name }}
+        </button>
+      </div>
     }
-  </mat-action-list>
-  <h1>Cached ski areas</h1>
+  </div>
+  <h2>Cached ski areas</h2>
   <div class="ski-area-list">
     @for (skiArea of displayedCachedSkiAreas(); track skiArea.uuid) {
       <cached-ski-area-item
-        mat-list-item
         [skiArea]="skiArea"
         (select)="acceptCached(skiArea.uuid)"
         (delete)="deleteCached(skiArea.uuid)"
@@ -38,22 +40,25 @@
   </div>
 
   @if (loadedSkiAreas() !== undefined) {
-    <h1>Ski areas</h1>
+    <h2>Ski areas</h2>
     @if (loadedSkiAreas() !== null) {
-      <mat-action-list class="ski-area-list">
+      <div class="ski-area-list">
         @for (skiArea of displayedLoadedSkiAreas(); track skiArea.id) {
-          <button
-            mat-list-item
-            (click)="acceptLoaded(skiArea.id)"
-            (focus)="focusListItem(skiArea)"
-            (blur)="blurListItem()"
-            (mouseenter)="hoverListItem(skiArea)"
-            (mouseleave)="unhoverListItem()"
-          >
-            {{ skiArea.name }}
-          </button>
+          <div>
+            <button
+              mat-button
+              class="loaded-item"
+              (click)="acceptLoaded(skiArea.id)"
+              (focus)="focusListItem(skiArea)"
+              (blur)="blurListItem()"
+              (mouseenter)="hoverListItem(skiArea)"
+              (mouseleave)="unhoverListItem()"
+            >
+              {{ skiArea.name }}
+            </button>
+          </div>
         }
-      </mat-action-list>
+      </div>
     } @else {
       <div class="ski-area-list loading"></div>
     }

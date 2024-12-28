@@ -6,6 +6,11 @@
   border-radius: 12px;
 }
 
+.loaded-item {
+  justify-content: left;
+  width: 100%;
+}
+
 .full-width {
   width: 100%;
 }
