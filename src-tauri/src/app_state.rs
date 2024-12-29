@@ -175,8 +175,9 @@ impl AppState {
         manager: &M,
         config: MapConfig,
     ) {
-        self.get_config_mut().map_config = Some(config);
-        self.save_config_delayed(manager);
+        if self.get_config_mut().save_map_config(config) {
+            self.save_config_delayed(manager);
+        }
     }
 
     pub fn handle_window_event(
@@ -202,8 +203,9 @@ impl AppState {
             }
         }
 
-        self.get_config_mut().save_window_config(window)?;
-        self.save_config_delayed(window);
+        if self.get_config_mut().save_window_config(window)? {
+            self.save_config_delayed(window);
+        }
         Ok(())
     }
 

@@ -9,17 +9,27 @@ use uuid::Uuid;
 use ski_analyzer_lib::ski_area::{SkiArea, SkiAreaMetadata};
 use ski_analyzer_lib::utils::time_ser;
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq)]
 pub struct WindowConfig {
     pub size: PhysicalSize<u32>,
     pub maximized: bool,
     pub fullscreen: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq)]
 pub struct MapConfig {
     center: Point,
     zoom: f64,
+}
+
+fn update<T>(target: &mut T, source: T, changed: &mut bool)
+where
+    T: PartialEq,
+{
+    if *target != source {
+        *target = source;
+        *changed = true;
+    }
 }
 
 impl WindowConfig {
@@ -31,16 +41,17 @@ impl WindowConfig {
         })
     }
 
-    pub fn update(&mut self, window: &Window) -> tauri::Result<()> {
+    pub fn update(&mut self, window: &Window) -> tauri::Result<bool> {
+        let mut changed = false;
         let new = Self::new(window)?;
         if !new.maximized && !new.fullscreen {
-            *self = new;
+            update(self, new, &mut changed);
         } else {
-            self.maximized = new.maximized;
-            self.fullscreen = new.fullscreen;
+            update(&mut self.maximized, new.maximized, &mut changed);
+            update(&mut self.fullscreen, new.fullscreen, &mut changed);
         }
 
-        Ok(())
+        Ok(changed)
     }
 }
 
@@ -60,12 +71,24 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn save_window_config(&mut self, window: &Window) -> tauri::Result<()> {
-        match self.window_config.as_mut() {
+    pub fn save_window_config(
+        &mut self,
+        window: &Window,
+    ) -> tauri::Result<bool> {
+        let res = match self.window_config.as_mut() {
             Some(c) => c.update(window)?,
-            None => self.window_config = Some(WindowConfig::new(window)?),
-        }
-        Ok(())
+            None => {
+                self.window_config = Some(WindowConfig::new(window)?);
+                true
+            }
+        };
+        Ok(res)
+    }
+
+    pub fn save_map_config(&mut self, map_config: MapConfig) -> bool {
+        let mut changed = false;
+        update(&mut self.map_config, Some(map_config), &mut changed);
+        changed
     }
 
     pub fn save_ski_area(&mut self, ski_area: &SkiArea) -> Uuid {

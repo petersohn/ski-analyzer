@@ -8,7 +8,7 @@ use strum_macros::EnumString;
 use std::str::FromStr;
 
 use super::PointWithElevation;
-use crate::config::{self, get_config};
+use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
 use crate::osm_reader::{
     get_tag, parse_ele, parse_way, parse_yesno, Document, Node, Way,
