@@ -30,7 +30,7 @@
 
 <mat-card class="card" *ngIf="!!selectedPiste()">
   <div class="icon-container">
-    <mat-icon svgIcon="piste" class="piste-icon"></mat-icon>
+    <mat-icon svgIcon="piste" class="icon piste-icon"></mat-icon>
   </div>
   <div class="name">{{ pisteName() }}</div>
   <name-value
@@ -42,7 +42,7 @@
 
 <mat-card class="card" *ngIf="!!lift()">
   <div *ngIf="!!liftIcon()" class="icon-container">
-    <img src="{{ liftIcon() }}" />
+    <mat-icon class="icon" [svgIcon]="liftIcon()"></mat-icon>
   </div>
   <div class="name">{{ liftName() }}</div>
   <name-value name="Type" [value]="liftType()"></name-value>

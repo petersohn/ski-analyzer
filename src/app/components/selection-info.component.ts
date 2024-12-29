@@ -102,11 +102,7 @@ export class SelectionInfoComponent {
   public liftType = computed(() => liftTypes[this.lift()?.type ?? ""]);
   public liftIcon = computed(() => {
     const type = liftIcons[this.lift()?.type ?? ""];
-    if (type === undefined) {
-      return;
-    } else {
-      return `/assets/lift/${type}.svg`;
-    }
+    return type;
   });
   public stationCount = computed(
     () => "" + (this.lift()?.stations.length ?? 0),
