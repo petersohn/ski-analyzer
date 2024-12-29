@@ -23,7 +23,7 @@ pub struct AppState {
     config: Option<Config>,
     window_initialized: bool,
     window_saver: DelayedAction,
-    ski_area: Option<SkiArea>,
+    ski_area: Option<Arc<SkiArea>>,
     analyzed_route: Option<AnalyzedRoute>,
 }
 
@@ -88,24 +88,29 @@ impl AppState {
     }
 
     pub fn get_ski_area(&self) -> Option<&SkiArea> {
-        self.ski_area.as_ref()
+        self.ski_area.as_ref().map(|s| &**s)
     }
 
     pub fn set_ski_area(&mut self, ski_area: SkiArea) {
-        let uuid = self.get_config_mut().save_ski_area(&ski_area);
-        self.ski_area = Some(ski_area);
+        self.ski_area = Some(Arc::new(ski_area));
+    }
+
+    pub fn save_ski_area(&mut self) {
+        let ski_area = Arc::clone(self.ski_area.as_ref().unwrap());
+        let uuid = self.get_config_mut().save_ski_area(&*ski_area);
         self.analyzed_route = None;
 
-        if let Err(err) = self.save_ski_area(&uuid) {
+        if let Err(err) = self.save_ski_area_inner(&uuid, &*ski_area) {
             eprintln!("Failed to save ski area: {}", err);
             self.get_config_mut().remove_ski_area(&uuid);
             return;
         }
     }
 
-    fn save_ski_area(
+    fn save_ski_area_inner(
         &mut self,
         uuid: &Uuid,
+        ski_area: &SkiArea,
     ) -> std::result::Result<(), Box<dyn std::error::Error>> {
         self.window_saver.cancel();
         self.save_config_inner()?;
@@ -116,7 +121,7 @@ impl AppState {
             .create(true)
             .truncate(true)
             .open(&path)?;
-        serde_json::to_writer(file, self.ski_area.as_ref().unwrap())?;
+        serde_json::to_writer(file, ski_area)?;
 
         Ok(())
     }
