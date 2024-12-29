@@ -32,6 +32,15 @@ where
     }
 }
 
+fn update2<T>(target: &mut T, source: T) -> bool
+where
+    T: PartialEq,
+{
+    let mut changed = false;
+    update(target, source, &mut changed);
+    changed
+}
+
 impl WindowConfig {
     pub fn new(window: &Window) -> tauri::Result<Self> {
         Ok(Self {
@@ -64,10 +73,14 @@ pub struct CachedSkiArea {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Config {
+    #[serde(default)]
     pub window_config: Option<WindowConfig>,
+    #[serde(default)]
     pub map_config: Option<MapConfig>,
     #[serde(default)]
     pub ski_areas: HashMap<Uuid, CachedSkiArea>,
+    #[serde(default)]
+    pub current_ski_area: Option<Uuid>,
 }
 
 impl Config {
@@ -86,9 +99,11 @@ impl Config {
     }
 
     pub fn save_map_config(&mut self, map_config: MapConfig) -> bool {
-        let mut changed = false;
-        update(&mut self.map_config, Some(map_config), &mut changed);
-        changed
+        update2(&mut self.map_config, Some(map_config))
+    }
+
+    pub fn save_current_ski_area(&mut self, uuid: Option<Uuid>) -> bool {
+        update2(&mut self.current_ski_area, uuid)
     }
 
     pub fn save_ski_area(&mut self, ski_area: &SkiArea) -> Uuid {

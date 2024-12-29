@@ -40,6 +40,13 @@ impl AppState {
                 Config::default()
             }
         };
+
+        if let Some(uuid) = config.current_ski_area {
+            if let Err(err) = self.load_cached_ski_area_inner(&uuid) {
+                eprintln!("Failed to load ski area: {}", err);
+            }
+        }
+
         self.config = Some(config);
     }
 
@@ -123,6 +130,9 @@ impl AppState {
             .open(&path)?;
         serde_json::to_writer(file, ski_area)?;
 
+        self.get_config_mut().save_current_ski_area(Some(*uuid));
+        self.save_config();
+
         Ok(())
     }
 
@@ -130,7 +140,7 @@ impl AppState {
         self.ski_areas_path.join(format!("{}.json", uuid))
     }
 
-    pub fn load_cached_ski_area(
+    fn load_cached_ski_area_inner(
         &mut self,
         uuid: &Uuid,
     ) -> std::result::Result<SkiArea, Box<dyn std::error::Error>> {
@@ -142,7 +152,22 @@ impl AppState {
                 self.remove_cached_ski_area(uuid);
             }
         }
-        Ok(serde_json::from_reader(file?)?)
+
+        let result: SkiArea = serde_json::from_reader(file?)?;
+        self.set_ski_area(result.clone());
+        Ok(result)
+    }
+
+    pub fn load_cached_ski_area(
+        &mut self,
+        uuid: &Uuid,
+    ) -> std::result::Result<SkiArea, Box<dyn std::error::Error>> {
+        let result = self.load_cached_ski_area_inner(uuid)?;
+        if self.get_config_mut().save_current_ski_area(Some(*uuid)) {
+            self.save_config();
+        }
+
+        Ok(result)
     }
 
     pub fn get_cached_ski_areas(&self) -> &HashMap<Uuid, CachedSkiArea> {

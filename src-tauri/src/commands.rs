@@ -124,7 +124,6 @@ pub fn load_cached_ski_area_inner(
 ) -> Result<SkiArea, Box<dyn Error>> {
     let mut lock = state.inner().lock().unwrap();
     let ski_area = lock.load_cached_ski_area(&uuid)?;
-    lock.set_ski_area(ski_area.clone());
     Ok(ski_area)
 }
 
