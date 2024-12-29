@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fs::{create_dir_all, OpenOptions};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -25,6 +25,12 @@ pub struct AppState {
     window_saver: DelayedAction,
     ski_area: Option<Arc<SkiArea>>,
     analyzed_route: Option<AnalyzedRoute>,
+}
+
+fn remove_file(path: &Path) {
+    if let Err(err) = std::fs::remove_file(path) {
+        eprintln!("Failed to remove {:?}: {}", path, err);
+    }
 }
 
 impl AppState {
@@ -187,6 +193,7 @@ impl AppState {
             self.ski_area = None;
         }
 
+        remove_file(&self.get_ski_area_path(uuid));
         self.save_config();
     }
 
