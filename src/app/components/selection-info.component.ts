@@ -1,6 +1,7 @@
 import { Component, ElementRef, Signal, computed, effect } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
+import { MatIconModule } from "@angular/material/icon";
 import { MapService } from "@/services/map.service";
 import { Lift, Piste } from "@/types/skiArea";
 import { Activity, Waypoint } from "@/types/track";
@@ -53,7 +54,7 @@ const activityTypes: { [type: string]: string } = {
 @Component({
   selector: "selection-info",
   standalone: true,
-  imports: [CommonModule, MatCardModule, NameValueComponent],
+  imports: [CommonModule, MatCardModule, NameValueComponent, MatIconModule],
   templateUrl: "./selection-info.component.html",
   styleUrls: ["./selection-info.component.css"],
 })

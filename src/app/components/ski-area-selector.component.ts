@@ -11,8 +11,9 @@ import {
 import { MatListModule } from "@angular/material/list";
 import { MatInputModule } from "@angular/material/input";
 import { MatFormFieldModule } from "@angular/material/form-field";
-import { FormsModule } from "@angular/forms";
 import { MatButtonModule } from "@angular/material/button";
+import { MatIconModule } from "@angular/material/icon";
+import { FormsModule } from "@angular/forms";
 import { SkiAreaMetadata } from "@/types/skiArea";
 import { ActionsService } from "@/services/actions.service";
 import { SkiAreaChooserService } from "@/services/ski-area-chooser.service";
@@ -33,6 +34,7 @@ import { CachedSkiAreaItem } from "./cached-ski-area-item.component";
     MatFormFieldModule,
     MatInputModule,
     CachedSkiAreaItem,
+    MatIconModule,
   ],
 })
 export class SkiAreaSelectorComponent implements AfterViewInit {

@@ -20,18 +20,13 @@
   width: 100%;
 }
 
-.icon-container img {
-  width: 100px;
-}
-
 .piste-icon {
   width: 100px;
   height: 100px;
-  mask-image: url("/assets/piste.svg");
-  background-color: var(--difficulty-color);
-  mask-position: center;
-  mask-repeat: no-repeat;
-  mask-size: contain;
+}
+
+::ng-deep .piste-icon svg {
+  fill: var(--difficulty-color);
 }
 
 .sub-info {

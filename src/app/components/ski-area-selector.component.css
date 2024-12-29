@@ -27,12 +27,20 @@
   padding-bottom: 0px;
 }
 
-.loading {
+.loading-bg {
   width: 100%;
   height: 100%;
-  mask-image: url("/assets/piste.svg");
-  background-color: #888;
-  mask-position: center;
-  mask-repeat: no-repeat;
-  mask-size: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.loading-icon {
+  width: 64px;
+  height: 64px;
+}
+
+::ng-deep .loading-icon svg {
+  fill: #888;
 }
