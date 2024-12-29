@@ -32,7 +32,7 @@ export class SkiAreaChooserService {
     const cached = await cachedP;
     this.cachedSkiAreaMap = new Map(cached.map((c) => [c.uuid, c]));
     this.updateCachedSkiAreas();
-    //this.loadedSkiAreas.set(await loadedP);
+    this.loadedSkiAreas.set(await loadedP);
   }
 
   private updateCachedSkiAreas() {

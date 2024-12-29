@@ -99,6 +99,7 @@ impl AppState {
         if let Err(err) = self.save_ski_area(&uuid) {
             eprintln!("Failed to save ski area: {}", err);
             self.get_config_mut().remove_ski_area(&uuid);
+            return;
         }
     }
 

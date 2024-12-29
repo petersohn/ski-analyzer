@@ -116,16 +116,22 @@ pub fn load_ski_area_from_id(
     load_ski_area_from_id_inner(id, state).map_err(|e| e.to_string())
 }
 
+pub fn load_cached_ski_area_inner(
+    uuid: Uuid,
+    state: tauri::State<AppStateType>,
+) -> Result<SkiArea, Box<dyn Error>> {
+    let mut lock = state.inner().lock().unwrap();
+    let ski_area = lock.load_cached_ski_area(&uuid)?;
+    lock.set_ski_area(ski_area.clone());
+    Ok(ski_area)
+}
+
 #[tauri::command]
 pub fn load_cached_ski_area(
     uuid: Uuid,
     state: tauri::State<AppStateType>,
 ) -> Result<SkiArea, String> {
-    state
-        .lock()
-        .unwrap()
-        .load_cached_ski_area(&uuid)
-        .map_err(|e| e.to_string())
+    load_cached_ski_area_inner(uuid, state).map_err(|e| e.to_string())
 }
 
 fn load_gpx_inner(

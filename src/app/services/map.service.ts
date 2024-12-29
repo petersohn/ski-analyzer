@@ -185,17 +185,21 @@ export class MapService {
 
     this.projection = this.map.getView().getProjection();
 
-    const view = this.map.getView();
-    view.on("change", () => {
-      const center = view.getCenter();
-      const zoom = view.getZoom();
-      if (center !== undefined && zoom !== undefined) {
-        this.mapConfig.set({
-          center: this.coordinageToPoint(center),
-          zoom,
-        });
-      }
+    this.map.getView().on("change", () => {
+      this.saveMapConfig();
     });
+  }
+
+  private saveMapConfig() {
+    const view = this.map!.getView();
+    const center = view.getCenter();
+    const zoom = view.getZoom();
+    if (center !== undefined && zoom !== undefined) {
+      this.mapConfig.set({
+        center: this.coordinageToPoint(center),
+        zoom,
+      });
+    }
   }
 
   public removeMap() {
@@ -626,6 +630,7 @@ export class MapService {
     const view = this.map!.getView();
     view.setResolution(resolution);
     view.setCenter(center);
+    this.saveMapConfig();
   }
 
   private ensureWithinView(coord: Coordinate) {
