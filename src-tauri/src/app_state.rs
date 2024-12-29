@@ -176,6 +176,17 @@ impl AppState {
 
     pub fn remove_cached_ski_area(&mut self, uuid: &Uuid) {
         self.get_config_mut().remove_ski_area(uuid);
+        let config = self.get_config_mut();
+        let should_clear = match &config.current_ski_area {
+            None => false,
+            Some(saved) => saved == uuid,
+        };
+
+        if should_clear {
+            config.current_ski_area = None;
+            self.ski_area = None;
+        }
+
         self.save_config();
     }
 
