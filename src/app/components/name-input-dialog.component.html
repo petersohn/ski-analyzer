@@ -1,10 +1,12 @@
 <div class="dialog-background">
   <mat-form-field class="name-input">
     <mat-label>{{ data.label }}</mat-label>
-    <input matInput #name placeholder="{{ data.placeholder }}" />
+    <input matInput [(ngModel)]="value" placeholder="{{ data.placeholder }}" />
   </mat-form-field>
-  <div class="button-row">
-    <button mat-flat-button (click)="accept()">OK</button>
-    <button mat-stroked-button (click)="cancel()">Cancel</button>
-  </div>
+  <mat-dialog-actions>
+    <button mat-flat-button [disabled]="isInvalid()" (click)="accept()">
+      OK
+    </button>
+    <button mat-stroked-button mat-dialog-close>Cancel</button>
+  </mat-dialog-actions>
 </div>
