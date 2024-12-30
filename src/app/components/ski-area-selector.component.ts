@@ -13,6 +13,7 @@ import { MatInputModule } from "@angular/material/input";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatButtonModule } from "@angular/material/button";
 import { MatIconModule } from "@angular/material/icon";
+import { MatDialog } from "@angular/material/dialog";
 import { FormsModule } from "@angular/forms";
 import { SkiAreaMetadata } from "@/types/skiArea";
 import { ActionsService } from "@/services/actions.service";
@@ -21,6 +22,13 @@ import { MapService } from "@/services/map.service";
 import { filterString } from "@/utils/string";
 import { CachedSkiArea } from "@/types/config";
 import { CachedSkiAreaItem } from "./cached-ski-area-item.component";
+import {
+  ConfirmationDialogData,
+  ConfirmationDialogComponent,
+  ConfirmationDialogOption,
+} from "./confirmation-dialog.component";
+import dayjs from "dayjs";
+import { lastValueFrom } from "rxjs";
 
 @Component({
   selector: "ski-area-selector",
@@ -35,6 +43,7 @@ import { CachedSkiAreaItem } from "./cached-ski-area-item.component";
     MatInputModule,
     CachedSkiAreaItem,
     MatIconModule,
+    ConfirmationDialogComponent,
   ],
 })
 export class SkiAreaSelectorComponent implements AfterViewInit {
@@ -61,6 +70,7 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
   private hoveredListItem: SkiAreaMetadata | undefined;
 
   constructor(
+    private readonly dialog: MatDialog,
     private readonly actionsService: ActionsService,
     private readonly mapService: MapService,
     private readonly skiAreaChooserService: SkiAreaChooserService,
@@ -92,12 +102,82 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
     ) {
       this.acceptCached(cached[0].uuid);
     } else if (loadedCount === 1 && cachedCount === 0) {
-      this.acceptLoaded(loaded![0].id);
+      this.acceptLoaded(loaded![0]);
     }
   }
 
-  public acceptLoaded(id: number) {
-    this.actionsService.loadSkiAreaFromId(id);
+  public async acceptLoaded(skiArea: SkiAreaMetadata) {
+    const cached = this.cachedSkiAreas().filter(
+      (s) => s.metadata.id === skiArea.id,
+    );
+    if (cached.length !== 0) {
+      const isMultipleCached = cached.length > 1;
+      let replaceOptions: ConfirmationDialogOption[];
+
+      if (isMultipleCached) {
+        cached.sort((a, b) => b.date.diff(a.date));
+        replaceOptions = [
+          {
+            text: "Relpace all cached",
+            value: "replace_all",
+          },
+          {
+            text: "Relpace latest cached",
+            value: "replace_latest",
+          },
+        ];
+      } else {
+        replaceOptions = [
+          {
+            text: "Relpace cached",
+            value: "replace_latest",
+          },
+        ];
+      }
+
+      const dialogRef = this.dialog.open<
+        ConfirmationDialogComponent,
+        ConfirmationDialogData
+      >(ConfirmationDialogComponent, {
+        data: {
+          text: `The ski area ${skiArea.name} was already cached at ${cached[0].date.format("YYYY-MM-DD")}. Loading it again will create a new cache and keep the old one.`,
+          options: [
+            {
+              text: isMultipleCached ? "Load latest cached" : "Load cached",
+              value: "cached",
+              default: true,
+            },
+            {
+              text: "Load new",
+              value: "load",
+            },
+            ...replaceOptions,
+            {
+              text: "Cancel",
+            },
+          ],
+        },
+      });
+      const result = await lastValueFrom(dialogRef.afterClosed());
+      switch (result) {
+        case "cached":
+          this.acceptCached(cached[0].uuid);
+          return;
+        case "load":
+          break;
+        case "replace_all":
+          for (const skiArea of cached) {
+            this.deleteCached(skiArea);
+          }
+          break;
+        case "replace_latest":
+          this.deleteCached(cached[0]);
+          break;
+        default:
+          return;
+      }
+    }
+    this.actionsService.loadSkiAreaFromId(skiArea.id);
     this.close();
   }
 

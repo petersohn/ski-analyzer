@@ -1,0 +1,24 @@
+<div class="dialog-background">
+  <mat-dialog-content>
+    {{ data.text }}
+  </mat-dialog-content>
+  <mat-dialog-actions align="center">
+    @for (option of data.options; track option.value) {
+      <div class="button">
+        @if (option.default) {
+          <button mat-flat-button [mat-dialog-close]="option.value">
+            {{ option.text }}
+          </button>
+        } @else if (!option.value) {
+          <button mat-button [mat-dialog-close]="option.value">
+            {{ option.text }}
+          </button>
+        } @else {
+          <button mat-stroked-button [mat-dialog-close]="option.value">
+            {{ option.text }}
+          </button>
+        }
+      </div>
+    }
+  </mat-dialog-actions>
+</div>
