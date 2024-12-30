@@ -106,9 +106,15 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
     this.close();
   }
 
-  public deleteCached(uuid: string) {
-    this.actionsService.removeCachedSkiArea(uuid);
-    this.skiAreaChooserService.removeCachedSkiArea(uuid);
+  public deleteCached(skiArea: CachedSkiArea) {
+    this.actionsService.removeCachedSkiArea(skiArea.uuid);
+    this.skiAreaChooserService.removeCachedSkiArea(skiArea.uuid);
+    if (this.hoveredListItem?.id === skiArea.metadata.id) {
+      this.unhoverListItem();
+    }
+    if (this.focusedListItem?.id === skiArea.metadata.id) {
+      this.blurListItem();
+    }
   }
 
   public cancel() {

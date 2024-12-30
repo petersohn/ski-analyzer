@@ -41,6 +41,7 @@ pub fn run() {
             commands::load_gpx,
             commands::load_route,
             commands::get_active_ski_area,
+            commands::has_active_ski_area,
             commands::get_active_route,
             commands::get_speed,
             commands::get_closest_lift,

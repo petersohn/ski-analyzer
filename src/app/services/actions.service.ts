@@ -77,8 +77,12 @@ export class ActionsService {
     return invoke("save_map_config", { config });
   }
 
-  public getActiveSkiArea(): Promise<RawSkiArea | undefined> {
+  public getActiveSkiArea(): Promise<RawSkiArea | null> {
     return invoke("get_active_ski_area", {});
+  }
+
+  public hasActiveSkiArea(): Promise<boolean> {
+    return invoke("has_active_ski_area", {});
   }
 
   public async getActiveRoute(): Promise<RawTrack | undefined> {
@@ -93,6 +97,9 @@ export class ActionsService {
 
   public async removeCachedSkiArea(uuid: string): Promise<void> {
     await invoke("remove_cached_ski_area", { uuid });
+    if (!(await this.hasActiveSkiArea())) {
+      this.mapService.unloadSkiArea();
+    }
   }
 
   private async getAllCachedSkiAreas(): Promise<CachedSkiArea[]> {

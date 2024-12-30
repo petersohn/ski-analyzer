@@ -185,6 +185,14 @@ pub fn get_active_ski_area(
 }
 
 #[tauri::command]
+pub fn has_active_ski_area(
+    state: tauri::State<AppStateType>,
+) -> Result<bool, String> {
+    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    Ok(app_state.get_ski_area().is_some())
+}
+
+#[tauri::command]
 pub fn get_active_route(
     state: tauri::State<AppStateType>,
 ) -> Result<Option<String>, String> {
