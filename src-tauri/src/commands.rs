@@ -65,6 +65,39 @@ pub fn load_ski_area_from_file(
     load_ski_area_from_file_inner(path, state).map_err(|e| e.to_string())
 }
 
+fn save_current_ski_area_to_file_inner(
+    path: String,
+    state: tauri::State<AppStateType>,
+) -> Result<(), Box<dyn Error>> {
+    let ski_area = {
+        let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+        match app_state.get_ski_area() {
+            None => {
+                return Err(Box::new(ski_analyzer_lib::error::Error::new_s(
+                    ski_analyzer_lib::error::ErrorType::InputError,
+                    "No active ski area",
+                )))
+            }
+            Some(s) => s.clone(),
+        }
+    };
+    let file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&path)?;
+    serde_json::to_writer(file, &ski_area)?;
+    Ok(())
+}
+
+#[tauri::command(async)]
+pub fn save_current_ski_area_to_file(
+    path: String,
+    state: tauri::State<AppStateType>,
+) -> Result<(), String> {
+    save_current_ski_area_to_file_inner(path, state).map_err(|e| e.to_string())
+}
+
 fn find_ski_areas_by_name_inner(
     name: String,
 ) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
@@ -174,6 +207,39 @@ pub fn load_route(
     state: tauri::State<AppStateType>,
 ) -> Result<String, String> {
     load_route_inner(path, state).map_err(|e| e.to_string())
+}
+
+fn save_current_route_to_file_inner(
+    path: String,
+    state: tauri::State<AppStateType>,
+) -> Result<(), Box<dyn Error>> {
+    let route = {
+        let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+        match app_state.get_route() {
+            None => {
+                return Err(Box::new(ski_analyzer_lib::error::Error::new_s(
+                    ski_analyzer_lib::error::ErrorType::InputError,
+                    "No active route",
+                )))
+            }
+            Some(r) => (*r).clone(),
+        }
+    };
+    let file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&path)?;
+    serde_json::to_writer(file, &route)?;
+    Ok(())
+}
+
+#[tauri::command(async)]
+pub fn save_current_route_to_file(
+    path: String,
+    state: tauri::State<AppStateType>,
+) -> Result<(), String> {
+    save_current_route_to_file_inner(path, state).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

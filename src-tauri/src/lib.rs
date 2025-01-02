@@ -35,11 +35,13 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::load_ski_area_from_file,
+            commands::save_current_ski_area_to_file,
             commands::find_ski_areas_by_name,
             commands::find_ski_areas_by_coords,
             commands::load_ski_area_from_id,
             commands::load_gpx,
             commands::load_route,
+            commands::save_current_route_to_file,
             commands::get_active_ski_area,
             commands::has_active_ski_area,
             commands::get_active_route,

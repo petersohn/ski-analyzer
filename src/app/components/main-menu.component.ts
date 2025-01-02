@@ -1,11 +1,14 @@
 import { Component } from "@angular/core";
-import { MatButton } from "@angular/material/button";
-import { open } from "@tauri-apps/plugin-dialog";
+import { MatButtonModule } from "@angular/material/button";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import {
   NameInputDialogComponent,
   NameInputDialogData,
 } from "./name-input-dialog.component";
 import { MatDialog } from "@angular/material/dialog";
+import { MatMenuModule } from "@angular/material/menu";
+import { MatDividerModule } from "@angular/material/divider";
+import { MatIconModule } from "@angular/material/icon";
 import { lastValueFrom } from "rxjs";
 import { ActionsService } from "@/services/actions.service";
 import { MapService } from "@/services/map.service";
@@ -13,7 +16,13 @@ import { MapService } from "@/services/map.service";
 @Component({
   selector: "main-menu",
   standalone: true,
-  imports: [MatButton, NameInputDialogComponent],
+  imports: [
+    MatButtonModule,
+    MatDividerModule,
+    MatIconModule,
+    MatMenuModule,
+    NameInputDialogComponent,
+  ],
   templateUrl: "./main-menu.component.html",
   styleUrls: ["./main-menu.component.css"],
 })
@@ -30,6 +39,15 @@ export class MainMenuComponent {
     });
     if (!!path) {
       this.actionsService.loadSkiArea(path);
+    }
+  }
+
+  public async saveSkiArea(): Promise<void> {
+    const path = await save({
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (!!path) {
+      await this.actionsService.saveSkiArea(path);
     }
   }
 
@@ -72,6 +90,15 @@ export class MainMenuComponent {
     });
     if (!!path) {
       this.actionsService.loadRoute(path);
+    }
+  }
+
+  public async saveRoute(): Promise<void> {
+    const path = await save({
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (!!path) {
+      await this.actionsService.saveRoute(path);
     }
   }
 }

@@ -29,7 +29,7 @@ mod use_lift_test;
 pub use segments::{Segment, SegmentCoordinate, Segments};
 pub use use_lift::{LiftEnd, UseLift};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum ActivityType {
     Unknown(()),
@@ -44,7 +44,7 @@ impl Default for ActivityType {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Activity {
     #[serde(rename = "type")]

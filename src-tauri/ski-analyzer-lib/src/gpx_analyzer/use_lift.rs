@@ -18,7 +18,7 @@ const MIN_SPEED: f64 = 1.0;
 
 pub type LiftEnd = Option<usize>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct UseLift {
     pub lift_id: String,

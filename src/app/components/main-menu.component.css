@@ -3,6 +3,6 @@
   flex-direction: row-reverse;
 }
 
-button {
+.menu-button {
   margin: 15px 20px;
 }

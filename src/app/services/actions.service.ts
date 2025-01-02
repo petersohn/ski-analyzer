@@ -26,6 +26,10 @@ export class ActionsService {
     this.mapService.loadSkiArea(data as RawSkiArea, true);
   }
 
+  public async saveSkiArea(path: string): Promise<void> {
+    await invoke("save_current_ski_area_to_file", { path });
+  }
+
   public async loadSkiAreaFromId(id: number): Promise<void> {
     const data = JSON.parse(
       await this.doJob(invoke("load_ski_area_from_id", { id })),
@@ -63,6 +67,10 @@ export class ActionsService {
   public async loadRoute(path: string): Promise<void> {
     const data = JSON.parse(await invoke("load_route", { path }));
     this.mapService.loadTrack(data as RawTrack);
+  }
+
+  public async saveRoute(path: string): Promise<void> {
+    await invoke("save_current_route_to_file", { path });
   }
 
   public getSpeed(wp1: Waypoint, wp2: Waypoint): Promise<number | undefined> {

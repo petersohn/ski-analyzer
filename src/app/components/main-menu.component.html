@@ -1,8 +1,20 @@
 <div class="menu">
-  <button mat-button (click)="loadSkiArea()">Load ski area</button>
-  <button mat-button (click)="loadCachedSkiArea()">Ski areas</button>
-  <button mat-button (click)="findSkiArea()">Find ski area</button>
-  <button mat-button (click)="findNearbySkiAreas()">Nearby ski areas</button>
-  <button mat-button (click)="loadGpx()">Load GPX</button>
-  <button mat-button (click)="loadRoute()">Load analyzed route</button>
+  <mat-menu #mainMenu="matMenu">
+    <button mat-menu-item (click)="loadCachedSkiArea()">Ski areas</button>
+    <button mat-menu-item (click)="findSkiArea()">Find ski area by name</button>
+    <button mat-menu-item (click)="findNearbySkiAreas()">
+      Find nearby ski areas
+    </button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="loadSkiArea()">Import ski area</button>
+    <button mat-menu-item (click)="saveSkiArea()">Export ski area</button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="loadGpx()">Analyze GPX</button>
+    <button mat-menu-item (click)="loadRoute()">Import analyzed route</button>
+    <button mat-menu-item (click)="saveRoute()">Export analyzed route</button>
+  </mat-menu>
+
+  <button class="menu-button" [matMenuTriggerFor]="mainMenu" mat-icon-button>
+    <mat-icon fontIcon="menu"></mat-icon>
+  </button>
 </div>
