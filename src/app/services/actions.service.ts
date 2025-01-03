@@ -1,6 +1,5 @@
 import { Injectable, signal } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
-import { MapService } from "./map.service";
 import { SkiAreaChooserService } from "./ski-area-chooser.service";
 import { RawSkiArea, SkiAreaMetadata } from "@/types/skiArea";
 import { RawTrack, Waypoint } from "@/types/track";
@@ -16,14 +15,10 @@ import {
 export class ActionsService {
   public loading = signal(false);
 
-  constructor(
-    private readonly mapService: MapService,
-    private readonly skiAreaChooserService: SkiAreaChooserService,
-  ) {}
+  constructor(private readonly skiAreaChooserService: SkiAreaChooserService) {}
 
   public async loadSkiArea(path: string): Promise<void> {
-    const data = JSON.parse(await invoke("load_ski_area_from_file", { path }));
-    this.mapService.loadSkiArea(data as RawSkiArea, true);
+    await invoke("load_ski_area_from_file", { path });
   }
 
   public async saveSkiArea(path: string): Promise<void> {
@@ -31,10 +26,7 @@ export class ActionsService {
   }
 
   public async loadSkiAreaFromId(id: number): Promise<void> {
-    const data = JSON.parse(
-      await this.doJob(invoke("load_ski_area_from_id", { id })),
-    );
-    this.mapService.loadSkiArea(data as RawSkiArea, true);
+    await this.doJob(invoke("load_ski_area_from_id", { id }));
   }
 
   public async findSkiAreasByName(name: string): Promise<void> {
@@ -60,13 +52,11 @@ export class ActionsService {
   }
 
   public async loadGpx(path: string): Promise<void> {
-    const data = JSON.parse(await this.doJob(invoke("load_gpx", { path })));
-    this.mapService.loadTrack(data as RawTrack);
+    await this.doJob(invoke("load_gpx", { path }));
   }
 
   public async loadRoute(path: string): Promise<void> {
-    const data = JSON.parse(await invoke("load_route", { path }));
-    this.mapService.loadTrack(data as RawTrack);
+    await invoke("load_route", { path });
   }
 
   public async saveRoute(path: string): Promise<void> {
@@ -89,25 +79,17 @@ export class ActionsService {
     return invoke("get_active_ski_area", {});
   }
 
-  public hasActiveSkiArea(): Promise<boolean> {
-    return invoke("has_active_ski_area", {});
-  }
-
   public async getActiveRoute(): Promise<RawTrack | undefined> {
     const data = await invoke("get_active_route", {});
     return !!data ? JSON.parse(data as string) : undefined;
   }
 
   public async loadCachedSkiArea(uuid: string): Promise<void> {
-    const skiArea = await invoke("load_cached_ski_area", { uuid });
-    this.mapService.loadSkiArea(skiArea as RawSkiArea, true);
+    await invoke("load_cached_ski_area", { uuid });
   }
 
   public async removeCachedSkiArea(uuid: string): Promise<void> {
     await invoke("remove_cached_ski_area", { uuid });
-    if (!(await this.hasActiveSkiArea())) {
-      this.mapService.unloadSkiArea();
-    }
   }
 
   private async getAllCachedSkiAreas(): Promise<CachedSkiArea[]> {

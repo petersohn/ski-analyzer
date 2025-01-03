@@ -25,14 +25,8 @@ import {
 } from "ol/geom";
 import { Coordinate } from "ol/coordinate";
 import { MultiPolygon, Point, LineString, Rect, Polygon } from "@/types/geo";
-import {
-  RawSkiArea,
-  SkiArea,
-  Lift,
-  Piste,
-  indexSkiArea,
-} from "@/types/skiArea";
-import { RawTrack, Activity, TrackConverter, Waypoint } from "@/types/track";
+import { SkiArea, Lift, Piste } from "@/types/skiArea";
+import { Activity, Track, Waypoint } from "@/types/track";
 import { MapStyleService, SelectableStyle } from "./map-style.service";
 import { invoke } from "@tauri-apps/api/core";
 import dayjs from "dayjs";
@@ -252,14 +246,12 @@ export class MapService {
     this.allActivityNodes = [];
   }
 
-  public loadSkiArea(rawSkiArea: RawSkiArea, zoom: boolean): void {
+  public loadSkiArea(skiArea: SkiArea, zoom: boolean): void {
     if (!this.isInitialized()) {
       throw new Error("Not initialized");
     }
 
     this.unloadSkiArea();
-
-    let skiArea = indexSkiArea(rawSkiArea);
 
     try {
       const features: Feature[] = [];
@@ -329,7 +321,7 @@ export class MapService {
     }
   }
 
-  public loadTrack(trackRaw: RawTrack): void {
+  public loadTrack(track: Track): void {
     if (!this.isInitialized()) {
       throw new Error("Not initialized");
     }
@@ -339,12 +331,6 @@ export class MapService {
     }
 
     this.unloadTrack();
-
-    console.log(trackRaw);
-
-    const track = new TrackConverter(this.skiArea).convertTrack(trackRaw);
-
-    console.log(track);
 
     try {
       const features: Feature[] = [];
@@ -536,13 +522,10 @@ export class MapService {
   }
 
   public setMapConfig(config: MapConfig) {
-    console.log("setMapConfig", config, this.map);
-
     if (!this.isInitialized()) {
       return;
     }
 
-    console.log("zing");
     const view = this.map!.getView();
     view.setCenter(this.pointToCoordinate(config.center));
     view.setZoom(config.zoom);
@@ -560,7 +543,6 @@ export class MapService {
       return;
     }
 
-    console.log(node.waypoint);
     this.selectedActivityNode = node;
     this.selectFeature(node.feature, styles.node);
     this.selectedWaypoint.set(node.waypoint);

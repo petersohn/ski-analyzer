@@ -18,7 +18,6 @@ use core::str;
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::BufReader;
-use std::io::Read;
 
 #[derive(Serialize, Deserialize)]
 pub struct CachedSkiAreaWithUuid {
@@ -46,23 +45,24 @@ impl CachedSkiAreaWithUuid {
 fn load_ski_area_from_file_inner(
     path: String,
     state: tauri::State<AppStateType>,
-) -> Result<String, Box<dyn Error>> {
-    let mut file = OpenOptions::new().read(true).open(path)?;
-    let mut json = Vec::new();
-    file.read_to_end(&mut json)?;
-    let ski_area = serde_json::from_slice(&json)?;
+    app_handle: tauri::AppHandle,
+) -> Result<(), Box<dyn Error>> {
+    let file = OpenOptions::new().read(true).open(path)?;
+    let ski_area = serde_json::from_reader(&file)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.set_ski_area(ski_area);
-    app_state.save_ski_area();
-    Ok(str::from_utf8(&json)?.to_string())
+    app_state.set_ski_area(&app_handle, ski_area);
+    app_state.save_ski_area(&app_handle);
+    Ok(())
 }
 
 #[tauri::command(async)]
 pub fn load_ski_area_from_file(
     path: String,
     state: tauri::State<AppStateType>,
-) -> Result<String, String> {
-    load_ski_area_from_file_inner(path, state).map_err(|e| e.to_string())
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    load_ski_area_from_file_inner(path, state, app_handle)
+        .map_err(|e| e.to_string())
 }
 
 fn save_current_ski_area_to_file_inner(
@@ -131,82 +131,90 @@ pub fn find_ski_areas_by_coords(
 fn load_ski_area_from_id_inner(
     id: u64,
     state: tauri::State<AppStateType>,
-) -> Result<String, Box<dyn Error>> {
+    app_handle: tauri::AppHandle,
+) -> Result<(), Box<dyn Error>> {
     let json = query_ski_area_details_by_id(id)?;
     let doc = Document::parse(&json)?;
     let ski_area = SkiArea::parse(&doc)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
 
-    let result = serde_json::to_string(&ski_area)?;
-    app_state.set_ski_area(ski_area);
-    app_state.save_ski_area();
-    Ok(result)
+    app_state.set_ski_area(&app_handle, ski_area);
+    app_state.save_ski_area(&app_handle);
+    Ok(())
 }
 
 #[tauri::command(async)]
 pub fn load_ski_area_from_id(
     id: u64,
     state: tauri::State<AppStateType>,
-) -> Result<String, String> {
-    load_ski_area_from_id_inner(id, state).map_err(|e| e.to_string())
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    load_ski_area_from_id_inner(id, state, app_handle)
+        .map_err(|e| e.to_string())
 }
 
 pub fn load_cached_ski_area_inner(
     uuid: Uuid,
     state: tauri::State<AppStateType>,
-) -> Result<SkiArea, Box<dyn Error>> {
+    app_handle: tauri::AppHandle,
+) -> Result<(), Box<dyn Error>> {
     let mut lock = state.inner().lock().unwrap();
-    let ski_area = lock.load_cached_ski_area(&uuid)?;
-    Ok(ski_area)
+    lock.load_cached_ski_area(&app_handle, &uuid)?;
+    Ok(())
 }
 
 #[tauri::command]
 pub fn load_cached_ski_area(
     uuid: Uuid,
     state: tauri::State<AppStateType>,
-) -> Result<SkiArea, String> {
-    load_cached_ski_area_inner(uuid, state).map_err(|e| e.to_string())
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    load_cached_ski_area_inner(uuid, state, app_handle)
+        .map_err(|e| e.to_string())
 }
 
 fn load_gpx_inner(
     path: String,
     state: tauri::State<AppStateType>,
-) -> Result<String, Box<dyn Error>> {
+    app_handle: tauri::AppHandle,
+) -> Result<(), Box<dyn Error>> {
     let file = OpenOptions::new().read(true).open(path)?;
     let reader = BufReader::new(file);
     let gpx = gpx::read(reader)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.set_gpx(gpx)?;
-    Ok(serde_json::to_string(app_state.get_route().unwrap())?)
+    app_state.set_gpx(&app_handle, gpx)?;
+    Ok(())
 }
 
 #[tauri::command(async)]
 pub fn load_gpx(
     path: String,
     state: tauri::State<AppStateType>,
-) -> Result<String, String> {
-    load_gpx_inner(path, state).map_err(|e| e.to_string())
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    load_gpx_inner(path, state, app_handle).map_err(|e| e.to_string())
 }
 
 fn load_route_inner(
     path: String,
     state: tauri::State<AppStateType>,
-) -> Result<String, Box<dyn Error>> {
+    app_handle: tauri::AppHandle,
+) -> Result<(), Box<dyn Error>> {
     let file = OpenOptions::new().read(true).open(path)?;
     let reader = BufReader::new(file);
     let route = serde_json::from_reader(reader)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    let result = serde_json::to_string(&route)?;
-    app_state.set_route(route);
-    Ok(result)
+    app_state.set_route(&app_handle, route);
+    Ok(())
 }
 
 #[tauri::command(async)]
 pub fn load_route(
     path: String,
     state: tauri::State<AppStateType>,
-) -> Result<String, String> {
-    load_route_inner(path, state).map_err(|e| e.to_string())
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    load_route_inner(path, state, app_handle).map_err(|e| e.to_string())
 }
 
 fn save_current_route_to_file_inner(
@@ -391,8 +399,9 @@ pub fn get_cached_ski_areas_by_name(
 pub fn remove_cached_ski_area(
     uuid: Uuid,
     state: tauri::State<AppStateType>,
+    app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.remove_cached_ski_area(&uuid);
+    app_state.remove_cached_ski_area(&app_handle, &uuid);
     Ok(())
 }
