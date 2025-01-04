@@ -18,6 +18,7 @@ export class EventsService {
     }
     return new TrackConverter(skiArea).convertTrack(track);
   });
+  public isInitialized = signal(false);
 
   private activeRawTrack = signal<RawTrack | null>(null);
   private unlistens: UnlistenFn[] = [];
@@ -41,6 +42,8 @@ export class EventsService {
 
     const route = await this.actionsService.getActiveRoute();
     this.activeRawTrack.set(route ?? null);
+
+    this.isInitialized.set(true);
   }
 
   public deinitEvents() {

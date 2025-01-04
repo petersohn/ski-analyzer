@@ -10,8 +10,7 @@ import {
 import { MapService } from "@/services/map.service";
 import { ActionsService } from "@/services/actions.service";
 import { EventsService } from "@/services/events.service";
-import { indexSkiArea } from "@/types/skiArea";
-import { TrackConverter } from "@/types/track";
+import { SkiArea } from "@/types/skiArea";
 
 @Component({
   selector: "map",
@@ -25,6 +24,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   public mapElement!: ElementRef<HTMLElement>;
 
   private effects: EffectRef[] = [];
+  private currentSkiArea: SkiArea | null | undefined;
 
   constructor(
     private readonly mapService: MapService,
@@ -42,22 +42,42 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     this.effects.push(
       effect(() => {
         const skiArea = this.eventsService.activeSkiArea();
-        if (!skiArea) {
-          this.mapService.unloadSkiArea();
-        } else {
-          this.mapService.loadSkiArea(skiArea, true);
+        const isInitialized = this.eventsService.isInitialized();
+
+        if (
+          !this.mapService.isInitialized() ||
+          skiArea === this.currentSkiArea
+        ) {
+          return;
         }
+
+        this.currentSkiArea = skiArea;
+
+        setTimeout(() => {
+          if (!skiArea) {
+            this.mapService.unloadSkiArea();
+          } else {
+            this.mapService.loadSkiArea(skiArea, isInitialized);
+          }
+        }, 0);
       }),
     );
 
     this.effects.push(
       effect(() => {
         const track = this.eventsService.activeTrack();
-        if (!track) {
-          this.mapService.unloadTrack();
-        } else {
-          this.mapService.loadTrack(track);
+
+        if (!this.mapService.isInitialized()) {
+          return;
         }
+
+        setTimeout(() => {
+          if (!track) {
+            this.mapService.unloadTrack();
+          } else {
+            this.mapService.loadTrack(track);
+          }
+        });
       }),
     );
   }
@@ -68,18 +88,6 @@ export class MapComponent implements AfterViewInit, OnDestroy {
     const mapConfig = await this.actionsService.getMapConfig();
     if (!!mapConfig) {
       this.mapService.setMapConfig(mapConfig);
-    }
-
-    const rawSkiArea = await this.actionsService.getActiveSkiArea();
-    if (!!rawSkiArea) {
-      const skiArea = indexSkiArea(rawSkiArea);
-      this.mapService.loadSkiArea(skiArea, !mapConfig);
-      const rawRoute = await this.actionsService.getActiveRoute();
-      if (!!rawRoute) {
-        this.mapService.loadTrack(
-          new TrackConverter(skiArea).convertTrack(rawRoute),
-        );
-      }
     }
   }
 

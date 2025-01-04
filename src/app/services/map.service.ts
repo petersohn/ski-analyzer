@@ -128,6 +128,7 @@ export class MapService {
   public readonly currentWaypointClosestLift = signal<
     { lift: Lift; distance: number } | undefined
   >(undefined);
+  public readonly isInitialized = signal(false);
 
   public readonly mapConfig = signal<MapConfig | undefined>(undefined);
 
@@ -179,6 +180,8 @@ export class MapService {
 
     this.projection = this.map.getView().getProjection();
 
+    this.isInitialized.set(true);
+
     this.map.getView().on("change", () => {
       this.saveMapConfig();
     });
@@ -203,15 +206,12 @@ export class MapService {
 
     this.unloadSkiArea();
 
+    this.isInitialized.set(false);
     this.map = undefined;
     this.projection = undefined;
     this.targetElement!.innerHTML = "";
     this.targetElement = undefined;
     this.outlineLayer = undefined;
-  }
-
-  public isInitialized(): boolean {
-    return !!this.map && !!this.targetElement && !!this.projection;
   }
 
   public unloadSkiArea(): void {
