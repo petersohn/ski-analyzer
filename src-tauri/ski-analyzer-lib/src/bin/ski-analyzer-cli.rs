@@ -82,14 +82,13 @@ enum Command {
     },
 }
 
-//fn query_osm
-
-fn main() -> Result<()> {
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<()> {
     let args = ArgParser::parse();
     set_config(args.config.clone())?;
     match args.command {
         Command::QueryOsm { name, output, clip } => {
-            let json1 = query_ski_areas_by_name(name.as_str())?;
+            let json1 = query_ski_areas_by_name(name.as_str()).await?;
             let doc1 = Document::parse(&json1)?;
             let metadatas = SkiAreaMetadata::find(&doc1)?;
             let id = match metadatas.len() {
@@ -108,7 +107,7 @@ fn main() -> Result<()> {
                 }
             };
 
-            let json2 = query_ski_area_details_by_id(id)?;
+            let json2 = query_ski_area_details_by_id(id).await?;
             let doc2 = Document::parse(&json2)?;
 
             let mut ski_area = SkiArea::parse(&doc2)?;

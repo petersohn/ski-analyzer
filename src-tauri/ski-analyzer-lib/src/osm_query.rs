@@ -1,42 +1,30 @@
 use crate::config::get_config;
 use crate::error::{Error, ErrorType, Result};
-use curl::easy::Easy;
 use geo::Rect;
-use std::io::Read;
-use std::result::Result as StdResult;
 use url::form_urlencoded;
 
-fn query_inner(query: &str) -> StdResult<Vec<u8>, curl::Error> {
+async fn query_inner(query: &str) -> reqwest::Result<Vec<u8>> {
     let mut input: String =
         form_urlencoded::byte_serialize(&query.as_bytes()).collect();
     input.insert_str(0, "data=");
 
-    if get_config().is_v() {
+    if get_config().is_vv() {
         eprintln!("{}", input);
     }
 
-    let mut input_bytes = input.as_bytes();
-
-    let mut easy = Easy::new();
-    easy.url("https://overpass-api.de/api/interpreter")?;
-    easy.post(true)?;
-    easy.post_field_size(input_bytes.len() as u64)?;
-
-    let mut json: Vec<u8> = Vec::new();
-    {
-        let mut transfer = easy.transfer();
-        transfer.read_function(|buf| Ok(input_bytes.read(buf).unwrap_or(0)))?;
-        transfer.write_function(|data| {
-            json.extend_from_slice(data);
-            Ok(data.len())
-        })?;
-        transfer.perform()?;
-    }
-    Ok(json)
+    let client = reqwest::Client::new();
+    Ok(client
+        .post("https://overpass-api.de/api/interpreter")
+        .body(input)
+        .send()
+        .await?
+        .bytes()
+        .await?
+        .into())
 }
 
-pub fn query(query: &str) -> Result<Vec<u8>> {
-    Ok(query_inner(&query).or_else(|err| {
+pub async fn query(query: &str) -> Result<Vec<u8>> {
+    Ok(query_inner(&query).await.or_else(|err| {
         Err(Error::convert(
             ErrorType::ExternalError,
             "query error",
@@ -45,7 +33,7 @@ pub fn query(query: &str) -> Result<Vec<u8>> {
     })?)
 }
 
-pub fn query_ski_area_details_by_id(id: u64) -> Result<Vec<u8>> {
+pub async fn query_ski_area_details_by_id(id: u64) -> Result<Vec<u8>> {
     let query_string = format!(
         r###"[out:json];
 (
@@ -60,20 +48,20 @@ pub fn query_ski_area_details_by_id(id: u64) -> Result<Vec<u8>> {
 out;"###,
         id
     );
-    query(query_string.as_str())
+    query(query_string.as_str()).await
 }
 
-pub fn query_ski_areas_by_name(name: &str) -> Result<Vec<u8>> {
+pub async fn query_ski_areas_by_name(name: &str) -> Result<Vec<u8>> {
     let query_string = format!(
         r###"[out:json];
 way[landuse="winter_sports"][name~"{}",i];
 out geom;"###,
         name
     );
-    query(query_string.as_str())
+    query(query_string.as_str()).await
 }
 
-pub fn query_ski_areas_by_coords(rect: Rect) -> Result<Vec<u8>> {
+pub async fn query_ski_areas_by_coords(rect: Rect) -> Result<Vec<u8>> {
     let query_string = format!(
         r###"[out:json];
 is_in({n}, {w})->.nw;
@@ -93,5 +81,5 @@ out geom;"###,
         e = rect.max().x,
         n = rect.max().y,
     );
-    query(query_string.as_str())
+    query(query_string.as_str()).await
 }

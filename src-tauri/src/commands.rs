@@ -98,42 +98,46 @@ pub fn save_current_ski_area_to_file(
     save_current_ski_area_to_file_inner(path, state).map_err(|e| e.to_string())
 }
 
-fn find_ski_areas_by_name_inner(
+async fn find_ski_areas_by_name_inner(
     name: String,
 ) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
-    let json = query_ski_areas_by_name(name.as_str())?;
+    let json = query_ski_areas_by_name(name.as_str()).await?;
     let doc = Document::parse(&json)?;
     Ok(SkiAreaMetadata::find(&doc)?)
 }
 
-#[tauri::command(async)]
-pub fn find_ski_areas_by_name(
+#[tauri::command]
+pub async fn find_ski_areas_by_name(
     name: String,
 ) -> Result<Vec<SkiAreaMetadata>, String> {
-    find_ski_areas_by_name_inner(name).map_err(|e| e.to_string())
+    find_ski_areas_by_name_inner(name)
+        .await
+        .map_err(|e| e.to_string())
 }
 
-fn find_ski_areas_by_coords_inner(
+async fn find_ski_areas_by_coords_inner(
     rect: Rect,
 ) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
-    let json = query_ski_areas_by_coords(rect)?;
+    let json = query_ski_areas_by_coords(rect).await?;
     let doc = Document::parse(&json)?;
     Ok(SkiAreaMetadata::find(&doc)?)
 }
 
-#[tauri::command(async)]
-pub fn find_ski_areas_by_coords(
+#[tauri::command]
+pub async fn find_ski_areas_by_coords(
     rect: Rect,
 ) -> Result<Vec<SkiAreaMetadata>, String> {
-    find_ski_areas_by_coords_inner(rect).map_err(|e| e.to_string())
+    find_ski_areas_by_coords_inner(rect)
+        .await
+        .map_err(|e| e.to_string())
 }
 
-fn load_ski_area_from_id_inner(
+async fn load_ski_area_from_id_inner<'a>(
     id: u64,
-    state: tauri::State<AppStateType>,
+    state: tauri::State<'a, AppStateType>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn Error>> {
-    let json = query_ski_area_details_by_id(id)?;
+    let json = query_ski_area_details_by_id(id).await?;
     let doc = Document::parse(&json)?;
     let ski_area = SkiArea::parse(&doc)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
@@ -143,13 +147,14 @@ fn load_ski_area_from_id_inner(
     Ok(())
 }
 
-#[tauri::command(async)]
-pub fn load_ski_area_from_id(
+#[tauri::command]
+pub async fn load_ski_area_from_id<'a>(
     id: u64,
-    state: tauri::State<AppStateType>,
+    state: tauri::State<'a, AppStateType>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     load_ski_area_from_id_inner(id, state, app_handle)
+        .await
         .map_err(|e| e.to_string())
 }
 
