@@ -1,23 +1,39 @@
-.main-menu-container {
-  position: absolute;
-  left: 0px;
-  bottom: 0px;
-  opacity: 0.8;
+.view {
   width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+.view-inner {
+  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column-reverse;
 }
 
 .sidebar {
   height: 100%;
-  position: absolute;
-  right: 0px;
-  top: 0px;
-  bottom: 0px;
-  opacity: 0.8;
+}
+
+.main-menu-container {
+  width: 100%;
 }
 
 selection-info {
   position: absolute;
   right: 0px;
   top: 0px;
+}
+
+#map {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100vw;
+  height: 100vh;
+}
+
+.overlay {
   opacity: 0.8;
 }
