@@ -1,11 +1,12 @@
 use std::fmt;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ErrorType {
     InputError,
     OSMError,
     LogicError,
     ExternalError,
+    Cancelled,
 }
 
 #[derive(Debug, Clone)]
@@ -31,6 +32,10 @@ impl Error {
         T: fmt::Display,
     {
         Error::new(type_, format!("{}: {}", msg, err))
+    }
+
+    pub fn get_type(&self) -> ErrorType {
+        self.type_
     }
 }
 
