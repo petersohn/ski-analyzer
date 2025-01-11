@@ -1,9 +1,7 @@
 use crate::error::{Error, ErrorType, Result};
 use futures::future::FutureExt;
-use std::{
-    future::Future,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use std::future::Future;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::task::AbortHandle;
 
 pub trait Cancellable {

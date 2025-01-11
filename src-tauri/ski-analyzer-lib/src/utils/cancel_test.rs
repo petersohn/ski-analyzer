@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use super::cancel::{Cancellable, CancellableTask, CancellationToken};
@@ -18,18 +20,25 @@ fn cancellation_token() {
 
 #[tokio::test]
 async fn cancellable_task_ok() {
-    let (fut, _cancel) = CancellableTask::spawn(async {
+    let finished = Arc::new(AtomicBool::new(false));
+    let finished2 = Arc::clone(&finished);
+    let (fut, _cancel) = CancellableTask::spawn(async move {
         tokio::time::sleep(Duration::from_secs(1)).await;
+        finished2.store(true, Ordering::SeqCst);
         Ok(())
     });
     tokio::time::pause();
     assert!(fut.await.is_ok());
+    assert!(finished.load(Ordering::SeqCst));
 }
 
 #[tokio::test]
 async fn cancellable_task_cancel() {
-    let (fut, cancel) = CancellableTask::spawn(async {
+    let finished = Arc::new(AtomicBool::new(false));
+    let finished2 = Arc::clone(&finished);
+    let (fut, cancel) = CancellableTask::spawn(async move {
         tokio::time::sleep(Duration::from_secs(1)).await;
+        finished2.store(true, Ordering::SeqCst);
         Ok(())
     });
     cancel.cancel();
@@ -38,4 +47,5 @@ async fn cancellable_task_cancel() {
         Ok(_) => panic!("Should be cancelled"),
         Err(err) => assert_eq!(err.get_type(), ErrorType::Cancelled),
     };
+    assert!(!finished.load(Ordering::SeqCst));
 }
