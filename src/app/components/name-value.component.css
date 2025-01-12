@@ -1,3 +1,7 @@
 .label {
   font-weight: 500;
 }
+
+.values-list {
+  padding-left: 15px;
+}
