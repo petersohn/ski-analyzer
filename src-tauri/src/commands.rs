@@ -1,9 +1,10 @@
-use crate::app_state::AppStateType;
+use crate::app_state::{AppState, AppStateType};
 use crate::config::{CachedSkiArea, MapConfig};
 
 use geo::{Intersects, Point, Rect};
 use gpx::Waypoint;
 use serde::{Deserialize, Deserializer, Serialize};
+use ski_analyzer_lib::gpx_analyzer::analyze_route;
 use ski_analyzer_lib::osm_query::{
     query_ski_area_details_by_id, query_ski_areas_by_coords,
     query_ski_areas_by_name,
@@ -51,7 +52,6 @@ fn load_ski_area_from_file_inner(
     let ski_area = serde_json::from_reader(&file)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
     app_state.set_ski_area(&app_handle, ski_area);
-    app_state.save_ski_area(&app_handle);
     Ok(())
 }
 
@@ -78,7 +78,7 @@ fn save_current_ski_area_to_file_inner(
                     "No active ski area",
                 )))
             }
-            Some(s) => s.clone(),
+            Some((_, s)) => s.clone(),
         }
     };
     let file = OpenOptions::new()
@@ -100,8 +100,12 @@ pub fn save_current_ski_area_to_file(
 
 async fn find_ski_areas_by_name_inner(
     name: String,
+    app_handle: tauri::AppHandle,
 ) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
-    let json = query_ski_areas_by_name(name.as_str()).await?;
+    let json = AppState::add_async_task(&app_handle, async move {
+        query_ski_areas_by_name(name.as_str()).await
+    })
+    .await?;
     let doc = Document::parse(&json)?;
     Ok(SkiAreaMetadata::find(&doc)?)
 }
@@ -109,16 +113,20 @@ async fn find_ski_areas_by_name_inner(
 #[tauri::command]
 pub async fn find_ski_areas_by_name(
     name: String,
+    app_handle: tauri::AppHandle,
 ) -> Result<Vec<SkiAreaMetadata>, String> {
-    find_ski_areas_by_name_inner(name)
+    find_ski_areas_by_name_inner(name, app_handle)
         .await
         .map_err(|e| e.to_string())
 }
 
 async fn find_ski_areas_by_coords_inner(
     rect: Rect,
+    app_handle: tauri::AppHandle,
 ) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
-    let json = query_ski_areas_by_coords(rect).await?;
+    let json =
+        AppState::add_async_task(&app_handle, query_ski_areas_by_coords(rect))
+            .await?;
     let doc = Document::parse(&json)?;
     Ok(SkiAreaMetadata::find(&doc)?)
 }
@@ -126,8 +134,9 @@ async fn find_ski_areas_by_coords_inner(
 #[tauri::command]
 pub async fn find_ski_areas_by_coords(
     rect: Rect,
+    app_handle: tauri::AppHandle,
 ) -> Result<Vec<SkiAreaMetadata>, String> {
-    find_ski_areas_by_coords_inner(rect)
+    find_ski_areas_by_coords_inner(rect, app_handle)
         .await
         .map_err(|e| e.to_string())
 }
@@ -137,13 +146,16 @@ async fn load_ski_area_from_id_inner<'a>(
     state: tauri::State<'a, AppStateType>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn Error>> {
-    let json = query_ski_area_details_by_id(id).await?;
+    let json =
+        AppState::add_async_task(&app_handle, query_ski_area_details_by_id(id))
+            .await?;
     let doc = Document::parse(&json)?;
-    let ski_area = SkiArea::parse(&doc)?;
+    let ski_area = AppState::add_sync_task(&app_handle, |cancel| {
+        SkiArea::parse(cancel, &doc)
+    })?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
 
     app_state.set_ski_area(&app_handle, ski_area);
-    app_state.save_ski_area(&app_handle);
     Ok(())
 }
 
@@ -186,8 +198,36 @@ fn load_gpx_inner(
     let file = OpenOptions::new().read(true).open(path)?;
     let reader = BufReader::new(file);
     let gpx = gpx::read(reader)?;
-    let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.set_gpx(&app_handle, gpx)?;
+
+    let (uuid, ski_area) = state
+        .inner()
+        .lock()
+        .map_err(|e| e.to_string())?
+        .get_ski_area()
+        .ok_or_else(|| {
+            ski_analyzer_lib::error::Error::new_s(
+                ski_analyzer_lib::error::ErrorType::LogicError,
+                "No ski area loaded",
+            )
+        })?
+        .clone();
+
+    let route = AppState::add_sync_task(&app_handle, |cancel| {
+        analyze_route(cancel, &ski_area, gpx)
+    })?;
+
+    let mut lock = state.inner().lock().map_err(|e| e.to_string())?;
+    if !match lock.get_ski_area() {
+        Some((uuid2, _)) => *uuid2 == uuid,
+        _ => false,
+    } {
+        return Err(Box::new(ski_analyzer_lib::error::Error::new_s(
+            ski_analyzer_lib::error::ErrorType::Cancelled,
+            "Ski area changed",
+        )));
+    }
+    lock.set_route(&app_handle, route);
+
     Ok(())
 }
 
@@ -260,7 +300,7 @@ pub fn get_active_ski_area(
     state: tauri::State<AppStateType>,
 ) -> Result<Option<SkiArea>, String> {
     let app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    Ok(app_state.get_ski_area().cloned())
+    Ok(app_state.get_ski_area().map(|(_, s)| s.clone()))
 }
 
 #[tauri::command]
@@ -336,7 +376,7 @@ pub fn get_closest_lift(
     let app_state = state.inner().lock().map_err(|e| e.to_string())?;
     Ok((|| {
         let (lift_id, distance) =
-            app_state.get_ski_area()?.get_closest_lift(p, limit)?;
+            app_state.get_ski_area()?.1.get_closest_lift(p, limit)?;
         Some(ClosestLift {
             lift_id: lift_id.to_string(),
             distance,
@@ -408,5 +448,14 @@ pub fn remove_cached_ski_area(
 ) -> Result<(), String> {
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
     app_state.remove_cached_ski_area(&app_handle, &uuid);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn cancel_all_tasks(
+    state: tauri::State<AppStateType>,
+) -> Result<(), String> {
+    let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    app_state.cancel_all_tasks();
     Ok(())
 }

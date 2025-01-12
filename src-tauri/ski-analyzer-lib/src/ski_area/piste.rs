@@ -14,6 +14,7 @@ use crate::error::Result;
 use crate::multipolygon::parse_multipolygon;
 use crate::osm_reader::{get_tag, parse_way, Document, Tags, Way};
 use crate::utils::bounded_geometry::BoundedGeometry;
+use crate::utils::cancel::CancellationToken;
 use crate::utils::collection::max_if;
 use crate::utils::rect::union_rects;
 use crate::utils::with_id::WithId;
@@ -495,12 +496,14 @@ fn merge_intersecting_pistes(pistes: &mut Vec<WithId<PisteData>>) {
 }
 
 fn merge_partial_pistes(
+    cancel: &CancellationToken,
     partial_pistes: HashMap<PisteMetadata, PartialPistes>,
     mut refless: Option<&mut HashMap<PisteMetadata, Vec<WithId<PisteData>>>>,
-) -> HashMap<PisteMetadata, Vec<WithId<PisteData>>> {
+) -> Result<HashMap<PisteMetadata, Vec<WithId<PisteData>>>> {
     let mut result = HashMap::new();
     let config = get_config();
     for (metadata, partial_piste) in partial_pistes {
+        cancel.check()?;
         if partial_piste.line_entities.len() == 0
             && partial_piste.area_entities.len() == 0
         {
@@ -554,7 +557,7 @@ fn merge_partial_pistes(
 
         result.insert(metadata, datas);
     }
-    result
+    Ok(result)
 }
 
 fn make_piste(
@@ -601,8 +604,9 @@ fn make_pistes(
 }
 
 fn create_pistes(
+    cancel: &CancellationToken,
     partial_pistes: HashMap<PisteMetadata, PartialPistes>,
-) -> Vec<WithId<Piste>> {
+) -> Result<Vec<WithId<Piste>>> {
     let mut refless: HashMap<PisteMetadata, PartialPistes> = HashMap::new();
     let mut reffed: HashMap<PisteMetadata, PartialPistes> = HashMap::new();
     for (metadata, piste) in partial_pistes {
@@ -613,8 +617,9 @@ fn create_pistes(
         }
     }
 
-    let mut refless_datas = merge_partial_pistes(refless, None);
-    let reffed_datas = merge_partial_pistes(reffed, Some(&mut refless_datas));
+    let mut refless_datas = merge_partial_pistes(cancel, refless, None)?;
+    let reffed_datas =
+        merge_partial_pistes(cancel, reffed, Some(&mut refless_datas))?;
 
     let mut result = Vec::new();
     result.reserve(reffed_datas.len() + refless_datas.len());
@@ -623,13 +628,14 @@ fn create_pistes(
         make_pistes(metadata, datas, &mut result);
     }
 
-    result
+    Ok(result)
 }
 
 fn merge_unnamed_pistes(
+    cancel: &CancellationToken,
     unnamed_lines: Vec<UnnamedPiste<LineString>>,
     unnamed_areas: Vec<UnnamedPiste<MultiPolygon>>,
-) -> Vec<WithId<Piste>> {
+) -> Result<Vec<WithId<Piste>>> {
     let mut pistes: HashMap<Difficulty, Vec<WithId<PisteData>>> =
         HashMap::new();
     for line in unnamed_lines {
@@ -646,6 +652,7 @@ fn merge_unnamed_pistes(
     }
 
     for mut datas in pistes.values_mut() {
+        cancel.check()?;
         merge_intersecting_pistes(&mut datas);
     }
 
@@ -664,7 +671,7 @@ fn merge_unnamed_pistes(
             )
         })
     });
-    it.flatten().collect()
+    Ok(it.flatten().collect())
 }
 
 fn merge_unnamed_entities<G1, G2, GetEntity, GetOtherEntity, GetLength>(
@@ -707,11 +714,13 @@ where
 }
 
 fn handle_unnamed_entities(
+    cancel: &CancellationToken,
     mut unnamed_lines: Vec<UnnamedPiste<LineString>>,
     mut unnamed_areas: Vec<UnnamedPiste<MultiPolygon>>,
     partial_pistes: &mut HashMap<PisteMetadata, PartialPistes>,
-) -> Vec<WithId<Piste>> {
+) -> Result<Vec<WithId<Piste>>> {
     loop {
+        cancel.check()?;
         let (unnamed_areas2, changed1) = merge_unnamed_entities(
             unnamed_areas,
             partial_pistes,
@@ -743,16 +752,19 @@ fn handle_unnamed_entities(
         );
     }
 
-    let result = merge_unnamed_pistes(unnamed_lines, unnamed_areas);
+    let result = merge_unnamed_pistes(cancel, unnamed_lines, unnamed_areas)?;
 
     if config.is_v() {
         eprintln!("Calculated {} distinct unnamed pistes", result.len());
     }
 
-    result
+    Ok(result)
 }
 
-pub fn parse_pistes(doc: &Document) -> HashMap<String, Piste> {
+pub fn parse_pistes(
+    cancel: &CancellationToken,
+    doc: &Document,
+) -> Result<HashMap<String, Piste>> {
     let (mut partial_pistes, unnamed_lines, unnamed_areas) =
         parse_partial_pistes(&doc);
 
@@ -768,14 +780,16 @@ pub fn parse_pistes(doc: &Document) -> HashMap<String, Piste> {
     }
 
     let mut unnamed_pistes = handle_unnamed_entities(
+        cancel,
         unnamed_lines,
         unnamed_areas,
         &mut partial_pistes,
-    );
-    let mut pistes = create_pistes(partial_pistes);
+    )?;
+    let mut pistes = create_pistes(cancel, partial_pistes)?;
+    cancel.check()?;
     if config.is_vv() {
         find_anomalies(&pistes);
     }
     pistes.append(&mut unnamed_pistes);
-    pistes.into_iter().map(|p| (p.id, p.obj)).collect()
+    Ok(pistes.into_iter().map(|p| (p.id, p.obj)).collect())
 }

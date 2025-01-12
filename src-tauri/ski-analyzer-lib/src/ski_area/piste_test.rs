@@ -4,6 +4,7 @@ use crate::osm_reader::{
     Coordinate, Document, Node, Relation, RelationMember, RelationMembers,
     Tags, Way,
 };
+use crate::utils::cancel::CancellationToken;
 use crate::utils::rect::union_rects_if;
 use crate::utils::test_util::{
     assert_eq_pretty, create_ski_area_metadata, init, save_ski_area, Init,
@@ -523,7 +524,7 @@ fn metadta_basic(_init: Init, line0: Line) {
         ],
     }]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
 
     assert_eq!(pistes.len(), 1);
     let piste = pistes.iter().next().unwrap().1;
@@ -543,7 +544,7 @@ fn metadata_no_difficulty(_init: Init, line0: Line) {
         ],
     }]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
 
     assert_eq!(pistes.len(), 1);
     let piste = pistes.iter().next().unwrap().1;
@@ -563,7 +564,7 @@ fn metadata_no_name(_init: Init, line0: Line) {
         ],
     }]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
 
     assert_eq!(pistes.len(), 1);
     let piste = pistes.iter().next().unwrap().1;
@@ -583,7 +584,7 @@ fn metadata_no_ref(_init: Init, line0: Line) {
         ],
     }]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
 
     assert_eq!(pistes.len(), 1);
     let piste = pistes.iter().next().unwrap().1;
@@ -599,7 +600,7 @@ fn metadata_no_name_or_ref(_init: Init, line0: Line) {
         tags: vec![("piste:type", "downhill"), ("piste:difficulty", "novice")],
     }]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
 
     assert_eq!(pistes.len(), 1);
     let piste = pistes.iter().next().unwrap().1;
@@ -620,7 +621,7 @@ fn metadata_bad_type(_init: Init, line0: Line) {
         ],
     }]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
 
     assert_eq!(pistes.len(), 0);
 }
@@ -639,7 +640,7 @@ fn metadata_alternate_naming(_init: Init, line0: Line) {
         ],
     }]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
 
     assert_eq!(pistes.len(), 1);
     let piste = pistes.iter().next().unwrap().1;
@@ -680,7 +681,7 @@ fn find_areas_to_line(_init: Init, line0: Line, area00: Line, area01: Line) {
         },
     ]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = vec![PisteOut {
         metadata: PisteMetadata {
             ref_: "1".to_owned(),
@@ -728,7 +729,7 @@ fn find_lines_to_area(_init: Init, line0: Line, area00: Line) {
         },
     ]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = vec![PisteOut {
         metadata: PisteMetadata {
             ref_: "1".to_owned(),
@@ -782,7 +783,7 @@ fn merge_unnamed_pistes(_init: Init, line0: Line, area00: Line, area01: Line) {
         },
     ]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = vec![PisteOut {
         metadata: PisteMetadata {
             ref_: String::new(),
@@ -821,7 +822,7 @@ fn orphaned_unnamed_area(_init: Init, line0: Line, area01: Line) {
         },
     ]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
@@ -871,7 +872,7 @@ fn orphaned_unnamed_line(_init: Init, line0: Line, area01: Line) {
         },
     ]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
@@ -941,7 +942,7 @@ fn merge_unnamed_line_and_area(
         },
     ]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
@@ -990,7 +991,7 @@ fn different_difficulty(_init: Init, line0: Line, area00: Line) {
         },
     ]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
@@ -1039,7 +1040,7 @@ fn different_name(_init: Init, line0: Line, area00: Line) {
         },
     ]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
@@ -1089,7 +1090,7 @@ fn not_intersecting_line_and_area(_init: Init, line0: Line, area00: Line) {
         },
     ]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
@@ -1156,7 +1157,7 @@ fn use_larger_overlap(_init: Init, line0: Line, area00: Line, area01: Line) {
         },
     ]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
@@ -1208,7 +1209,7 @@ fn multipolygon_piste(_init: Init, line1: Line, area10: Line, area11: Line) {
     );
     let document = builder.document;
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = to_set(vec![PisteOut {
         metadata: PisteMetadata {
             ref_: String::new(),
@@ -1247,7 +1248,7 @@ fn multiple_polygons_in_multipolygon(
     );
     let document = builder.document;
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
@@ -1301,7 +1302,7 @@ fn metadata_from_route(_init: Init, line0: Line, line1: Line) {
     );
     let document = builder.document;
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = to_set(vec![
         PisteOut {
             metadata: PisteMetadata {
@@ -1340,7 +1341,7 @@ fn closed_line_is_area(_init: Init, area00: Line) {
         ],
     }]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = vec![PisteOut {
         metadata: PisteMetadata {
             ref_: "1".to_owned(),
@@ -1372,7 +1373,7 @@ fn explicit_area(_init: Init, line0: Line) {
     let mut expected_area = line0.clone();
     expected_area.push(expected_area[0]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = vec![PisteOut {
         metadata: PisteMetadata {
             ref_: "1".to_owned(),
@@ -1440,7 +1441,7 @@ fn find_refs_complex(_init: Init, line0: Line, area00: Line, area01: Line) {
         },
     ]);
 
-    let pistes = parse_pistes(&document);
+    let pistes = parse_pistes(&CancellationToken::new(), &document).unwrap();
     let expected = vec![PisteOut {
         metadata: PisteMetadata {
             ref_: "1".to_owned(),

@@ -6,6 +6,7 @@ use ski_analyzer_lib::osm_query::{
 };
 use ski_analyzer_lib::osm_reader::Document;
 use ski_analyzer_lib::ski_area::{SkiArea, SkiAreaMetadata};
+use ski_analyzer_lib::utils::cancel::CancellationToken;
 
 use clap::{Args, Parser, Subcommand};
 use gpx;
@@ -110,7 +111,8 @@ async fn main() -> Result<()> {
             let json2 = query_ski_area_details_by_id(id).await?;
             let doc2 = Document::parse(&json2)?;
 
-            let mut ski_area = SkiArea::parse(&doc2)?;
+            let mut ski_area =
+                SkiArea::parse(&CancellationToken::new(), &doc2)?;
             if clip {
                 ski_area.clip_piste_lines();
             }
@@ -148,7 +150,8 @@ async fn main() -> Result<()> {
                 )?
             };
 
-            let result = analyze_route(&ski_area, gpx)?;
+            let result =
+                analyze_route(&CancellationToken::new(), &ski_area, gpx)?;
             output.write_to_file(&result)?;
         }
     };

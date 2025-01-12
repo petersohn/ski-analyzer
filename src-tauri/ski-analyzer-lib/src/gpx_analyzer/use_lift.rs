@@ -1,7 +1,9 @@
 use super::{
     get_speed, Activity, ActivityType, Segment, SegmentCoordinate, Segments,
 };
+use crate::error::Result;
 use crate::ski_area::{Lift, SkiArea};
+use crate::utils::cancel::CancellationToken;
 use crate::utils::collection::Avg;
 
 use std::collections::HashMap;
@@ -395,9 +397,10 @@ fn add_finished_candidates_to_route(
 }
 
 pub fn find_lift_usage<'s>(
+    cancel: &CancellationToken,
     ski_area: &'s SkiArea,
     segments: Segments,
-) -> Vec<Activity> {
+) -> Result<Vec<Activity>> {
     let mut result = Vec::new();
 
     let bounding_rects: HashMap<String, Rect> = ski_area
@@ -413,6 +416,7 @@ pub fn find_lift_usage<'s>(
     for segment in segments.0 {
         let mut route_segment: Segment = Vec::new();
         for point in segment {
+            cancel.check()?;
             let mut coordinate = (current_route.0.len(), route_segment.len());
             let (mut finished, unfinished): (Candidates, Candidates) =
                 candidates
@@ -460,5 +464,5 @@ pub fn find_lift_usage<'s>(
         result.push(Activity::new(ActivityType::default(), current_route));
     }
 
-    result
+    Ok(result)
 }

@@ -11,6 +11,7 @@ use crate::config::get_config;
 use crate::error::{convert_err, Error, ErrorType, Result};
 use crate::osm_reader::{get_tag, parse_way, Document};
 use crate::utils::bounded_geometry::BoundedGeometry;
+use crate::utils::cancel::CancellationToken;
 use crate::utils::rect::union_rects_all;
 use crate::utils::time_ser;
 
@@ -95,36 +96,46 @@ impl SkiAreaMetadata {
     }
 }
 
-fn find_lifts(doc: &Document) -> HashMap<String, Lift> {
-    doc.elements
-        .ways
-        .iter()
-        .filter_map(|(id, way)| {
-            parse_lift(&doc, &id, &way)
-                .unwrap_or_else(|e| {
-                    eprintln!("Error parsing way {}: {}", id, e);
-                    None
-                })
-                .map(|l| (id.to_string(), l))
-        })
-        .collect()
+fn find_lifts(
+    cancel: &CancellationToken,
+    doc: &Document,
+) -> Result<HashMap<String, Lift>> {
+    let mut result = HashMap::new();
+
+    for (id, way) in &doc.elements.ways {
+        cancel.check()?;
+        match parse_lift(&doc, id, way) {
+            Ok(Some(lift)) => {
+                result.insert(id.to_string(), lift);
+            }
+            Ok(None) => (),
+            Err(err) => {
+                if err.get_type() == ErrorType::Cancelled {
+                    return Err(err);
+                }
+                eprintln!("Error parsing way {}: {}", id, err);
+            }
+        };
+    }
+
+    Ok(result)
 }
 
 impl SkiArea {
-    pub fn parse(doc: &Document) -> Result<Self> {
+    pub fn parse(cancel: &CancellationToken, doc: &Document) -> Result<Self> {
         let metadatas = SkiAreaMetadata::find(doc)?;
         let metadata = metadatas.into_iter().next().ok_or_else(|| {
             Error::new_s(ErrorType::InputError, "ski area entity not found")
         })?;
 
         let config = get_config();
-        let lifts = find_lifts(doc);
+        let lifts = find_lifts(cancel, doc)?;
 
         if config.is_v() {
             eprintln!("Found {} lifts.", lifts.len());
         }
 
-        let pistes = parse_pistes(doc);
+        let pistes = parse_pistes(cancel, doc)?;
 
         if config.is_v() {
             eprintln!("Found {} pistes.", pistes.len());

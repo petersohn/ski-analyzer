@@ -14,7 +14,13 @@
     <button mat-menu-item (click)="saveRoute()">Export analyzed route</button>
   </mat-menu>
 
-  <button class="menu-button" [matMenuTriggerFor]="mainMenu" mat-icon-button>
-    <mat-icon fontIcon="menu"></mat-icon>
-  </button>
+  @if (loading()) {
+    <button class="menu-button" mat-icon-button (click)="cancelAllTasks()">
+      <mat-icon class="menu-icon cancel-icon" fontIcon="cancel"></mat-icon>
+    </button>
+  } @else if (!hasSelectableSkiArea()) {
+    <button class="menu-button" [matMenuTriggerFor]="mainMenu" mat-icon-button>
+      <mat-icon class="menu-icon" fontIcon="menu"></mat-icon>
+    </button>
+  }
 </div>

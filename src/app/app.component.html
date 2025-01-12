@@ -5,12 +5,9 @@
     class="sidebar overlay"
   ></ski-area-selector>
   <div class="view-inner">
+    <mat-progress-bar *ngIf="loading()" mode="indeterminate"></mat-progress-bar>
     <div class="main-menu-container">
-      @if (loading()) {
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      } @else {
-        <main-menu *ngIf="!hasSelectableSkiArea()"></main-menu>
-      }
+      <main-menu></main-menu>
     </div>
   </div>
 </div>

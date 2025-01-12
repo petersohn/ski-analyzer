@@ -1,14 +1,17 @@
 use std::collections::HashMap;
 use std::fs::{create_dir_all, OpenOptions};
+use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use gpx::Gpx;
 use serde::Serialize;
-use ski_analyzer_lib::error::{Error, ErrorType, Result};
-use ski_analyzer_lib::gpx_analyzer::{analyze_route, AnalyzedRoute};
+use ski_analyzer_lib::error::Result;
+use ski_analyzer_lib::gpx_analyzer::AnalyzedRoute;
 use ski_analyzer_lib::ski_area::SkiArea;
+use ski_analyzer_lib::utils::cancel::{
+    Cancellable, CancellableTask, CancellationToken,
+};
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, Position, Runtime, Size,
     Window, WindowEvent,
@@ -25,8 +28,10 @@ pub struct AppState {
     config: Option<Config>,
     window_initialized: bool,
     window_saver: DelayedAction,
-    ski_area: Option<Arc<SkiArea>>,
+    ski_area: Option<Arc<(Uuid, SkiArea)>>,
     analyzed_route: Option<AnalyzedRoute>,
+    task_id: u64,
+    active_tasks: HashMap<u64, Arc<dyn Cancellable + Send + Sync>>,
 }
 
 fn remove_file(path: &Path) {
@@ -114,8 +119,22 @@ impl AppState {
         self.config.as_mut().unwrap()
     }
 
-    pub fn get_ski_area(&self) -> Option<&SkiArea> {
+    pub fn get_ski_area(&self) -> Option<&(Uuid, SkiArea)> {
         self.ski_area.as_ref().map(|s| &**s)
+    }
+
+    fn set_ski_area_inner<R: Runtime>(
+        &mut self,
+        app_handle: &AppHandle<R>,
+        ski_area: SkiArea,
+        uuid: Uuid,
+    ) {
+        self.ski_area = Some(Arc::new((uuid, ski_area)));
+        emit_event(
+            app_handle,
+            "active_ski_area_changed",
+            &self.ski_area.as_ref().unwrap().1,
+        );
     }
 
     pub fn set_ski_area<R: Runtime>(
@@ -123,23 +142,19 @@ impl AppState {
         app_handle: &AppHandle<R>,
         ski_area: SkiArea,
     ) {
-        self.ski_area = Some(Arc::new(ski_area));
-        emit_event(app_handle, "active_ski_area_changed", &self.ski_area);
-    }
+        let uuid = self.get_config_mut().save_ski_area(&ski_area);
 
-    pub fn save_ski_area<R: Runtime>(&mut self, app_handle: &AppHandle<R>) {
-        let ski_area = Arc::clone(self.ski_area.as_ref().unwrap());
-        let uuid = self.get_config_mut().save_ski_area(&*ski_area);
-        self.clear_route(app_handle);
-
-        if let Err(err) = self.save_ski_area_inner(&uuid, &*ski_area) {
+        if let Err(err) = self.save_ski_area(&uuid, &ski_area) {
             eprintln!("Failed to save ski area: {}", err);
             self.get_config_mut().remove_ski_area(&uuid);
             return;
         }
+
+        self.clear_route(app_handle);
+        self.set_ski_area_inner(app_handle, ski_area, uuid);
     }
 
-    fn save_ski_area_inner(
+    fn save_ski_area(
         &mut self,
         uuid: &Uuid,
         ski_area: &SkiArea,
@@ -180,7 +195,7 @@ impl AppState {
         }
 
         let result: SkiArea = serde_json::from_reader(file?)?;
-        self.set_ski_area(app_handle, result.clone());
+        self.set_ski_area_inner(app_handle, result.clone(), *uuid);
         Ok(())
     }
 
@@ -239,18 +254,6 @@ impl AppState {
     pub fn clear_route<R: Runtime>(&mut self, app_handle: &AppHandle<R>) {
         self.analyzed_route = None;
         emit_event(app_handle, "active_route_changed", &self.analyzed_route);
-    }
-
-    pub fn set_gpx<R: Runtime>(
-        &mut self,
-        app_handle: &AppHandle<R>,
-        gpx: Gpx,
-    ) -> Result<()> {
-        let ski_area = self.ski_area.as_ref().ok_or_else(|| {
-            Error::new_s(ErrorType::LogicError, "No ski area loaded")
-        })?;
-        self.set_route(app_handle, analyze_route(ski_area, gpx)?);
-        Ok(())
     }
 
     pub fn save_map_config<M: Manager<R>, R: Runtime>(
@@ -317,6 +320,55 @@ impl AppState {
 
         Ok(())
     }
+
+    fn add_task(&mut self, cancel: Arc<dyn Cancellable + Send + Sync>) -> u64 {
+        self.task_id += 1;
+        self.active_tasks.insert(self.task_id, cancel);
+        self.task_id
+    }
+
+    fn remove_task(&mut self, id: u64) {
+        self.active_tasks.remove(&id);
+    }
+
+    pub fn add_sync_task<M, R, F, Ret>(manager: &M, func: F) -> Result<Ret>
+    where
+        M: Manager<R>,
+        R: Runtime,
+        F: FnOnce(&CancellationToken) -> Result<Ret>,
+    {
+        let state = manager.state::<AppStateType>();
+        let cancel = Arc::new(CancellationToken::new());
+        let task_id = state.lock().unwrap().add_task(cancel.clone());
+        let ret = func(&*cancel);
+        state.lock().unwrap().remove_task(task_id);
+        ret
+    }
+
+    pub async fn add_async_task<M, R, F, Ret>(
+        manager: &M,
+        future: F,
+    ) -> Result<Ret>
+    where
+        M: Manager<R>,
+        R: Runtime,
+        F: Future<Output = Result<Ret>> + Send + 'static,
+        Ret: Send + 'static,
+    {
+        let state = manager.state::<AppStateType>();
+        let (fut, cancel) = CancellableTask::spawn(future);
+        let task_id = state.lock().unwrap().add_task(Arc::new(cancel));
+        let ret = fut.await;
+        state.lock().unwrap().remove_task(task_id);
+        ret
+    }
+
+    pub fn cancel_all_tasks(&mut self) {
+        for (_, task) in &self.active_tasks {
+            task.cancel();
+        }
+        self.active_tasks.clear();
+    }
 }
 
 impl Default for AppState {
@@ -330,6 +382,8 @@ impl Default for AppState {
             window_saver: DelayedAction::new(Duration::from_secs(2)),
             ski_area: None,
             analyzed_route: None,
+            task_id: 0,
+            active_tasks: HashMap::new(),
         }
     }
 }

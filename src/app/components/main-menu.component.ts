@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, Signal } from "@angular/core";
 import { MatButtonModule } from "@angular/material/button";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
@@ -12,6 +12,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { lastValueFrom } from "rxjs";
 import { ActionsService } from "@/services/actions.service";
 import { MapService } from "@/services/map.service";
+import { SkiAreaChooserService } from "@/services/ski-area-chooser.service";
 
 @Component({
   selector: "main-menu",
@@ -27,11 +28,18 @@ import { MapService } from "@/services/map.service";
   styleUrls: ["./main-menu.component.css"],
 })
 export class MainMenuComponent {
+  public loading: Signal<boolean>;
+  public hasSelectableSkiArea: Signal<boolean>;
+
   constructor(
     private readonly dialog: MatDialog,
     public readonly mapService: MapService,
     public readonly actionsService: ActionsService,
-  ) {}
+    private readonly skiAreaChooserService: SkiAreaChooserService,
+  ) {
+    this.loading = this.actionsService.loading;
+    this.hasSelectableSkiArea = this.skiAreaChooserService.hasChoosableSkiArea;
+  }
 
   public async loadSkiArea(): Promise<void> {
     const path = await open({
@@ -100,5 +108,9 @@ export class MainMenuComponent {
     if (!!path) {
       await this.actionsService.saveRoute(path);
     }
+  }
+
+  public async cancelAllTasks(): Promise<void> {
+    await this.actionsService.cancelAllTasks();
   }
 }

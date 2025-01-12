@@ -9,6 +9,7 @@ use time::OffsetDateTime;
 use crate::error::Result;
 use crate::ski_area::SkiArea;
 use crate::utils::bounded_geometry::BoundedGeometry;
+use crate::utils::cancel::CancellationToken;
 use crate::utils::option_time_ser;
 use use_lift::find_lift_usage;
 
@@ -108,9 +109,13 @@ fn format_time_option(time: Option<OffsetDateTime>) -> String {
 
 pub type AnalyzedRoute = BoundedGeometry<Vec<Activity>>;
 
-pub fn analyze_route(ski_area: &SkiArea, gpx: Gpx) -> Result<AnalyzedRoute> {
+pub fn analyze_route(
+    cancel: &CancellationToken,
+    ski_area: &SkiArea,
+    gpx: Gpx,
+) -> Result<AnalyzedRoute> {
     let mut segments = parse_gpx(gpx)?;
-    let result = find_lift_usage(ski_area, take(&mut segments.item));
+    let result = find_lift_usage(cancel, ski_area, take(&mut segments.item))?;
     Ok(BoundedGeometry {
         item: result,
         bounding_rect: segments.bounding_rect,

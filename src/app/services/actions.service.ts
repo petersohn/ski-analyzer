@@ -92,6 +92,10 @@ export class ActionsService {
     await invoke("remove_cached_ski_area", { uuid });
   }
 
+  public async cancelAllTasks(): Promise<void> {
+    await invoke("cancel_all_tasks", {});
+  }
+
   private async getAllCachedSkiAreas(): Promise<CachedSkiArea[]> {
     const skiAreas = await invoke("get_all_cached_ski_areas", {});
     return convertCachedSkiAreas(skiAreas as RawCachedSkiArea[]);

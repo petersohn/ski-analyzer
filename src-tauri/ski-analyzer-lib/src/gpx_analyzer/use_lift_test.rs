@@ -5,6 +5,7 @@ use super::{Activity, ActivityType, LiftEnd, UseLift};
 use crate::assert_eq_pretty;
 use crate::ski_area::{Lift, PointWithElevation, SkiArea};
 use crate::utils::bounded_geometry::BoundedGeometry;
+use crate::utils::cancel::CancellationToken;
 use crate::utils::rect::union_rects_all;
 use crate::utils::test_util::{
     create_ski_area_metadata, init, save_ski_area, Init,
@@ -400,7 +401,8 @@ fn run(s: &SkiArea, segments: Segments, expected: Vec<Activity>, name: &str) {
     };
     save_analyzed_route(&expected_route, &format!("{}/expected.json", dir));
 
-    let actual = find_lift_usage(s, segments);
+    let actual =
+        find_lift_usage(&CancellationToken::new(), s, segments).unwrap();
     let actual_route = BoundedGeometry {
         item: actual,
         bounding_rect,

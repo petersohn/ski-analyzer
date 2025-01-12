@@ -27,14 +27,15 @@ export class EventsService {
 
   public async initEvents() {
     this.unlistens.push(
-      await listen("active_ski_area_changed", (event: Event<RawSkiArea>) =>
-        this.activeSkiArea.set(indexSkiArea(event.payload)),
-      ),
+      await listen("active_ski_area_changed", (event: Event<RawSkiArea>) => {
+        this.activeSkiArea.set(indexSkiArea(event.payload));
+      }),
     );
     this.unlistens.push(
-      await listen("active_route_changed", (event: Event<RawTrack>) =>
-        this.activeRawTrack.set(event.payload),
-      ),
+      await listen("active_route_changed", (event: Event<RawTrack>) => {
+        console.log("active_route_changed", event.payload);
+        this.activeRawTrack.set(event.payload);
+      }),
     );
 
     const skiArea = await this.actionsService.getActiveSkiArea();
