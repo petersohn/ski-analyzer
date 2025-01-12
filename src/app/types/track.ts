@@ -2,11 +2,15 @@ import dayjs from "dayjs";
 import { Dayjs } from "dayjs";
 import { Point, Rect } from "./geo";
 import { Lift, SkiArea } from "./skiArea";
+import { elementAt } from "rxjs";
 
 export type RawWaypoint = {
   point: Point;
   time?: string;
+  elevation?: number;
   hdop?: number;
+  vdop?: number;
+  speed?: number;
 };
 
 export type RawUseLift = {
@@ -39,7 +43,9 @@ export type RawTrack = {
 export type Waypoint = {
   point: Point;
   time?: Dayjs;
+  elevation?: number;
   hdop?: number;
+  vdop?: number;
   speed?: number;
 };
 
@@ -124,7 +130,10 @@ export class TrackConverter {
         return {
           point: wp.point,
           time: wp.time !== undefined ? dayjs(wp.time) : undefined,
+          elevation: wp.elevation,
           hdop: wp.hdop,
+          vdop: wp.vdop,
+          speed: wp.speed,
         };
       }),
     );

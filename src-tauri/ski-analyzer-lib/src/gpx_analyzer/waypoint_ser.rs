@@ -12,7 +12,9 @@ pub struct WaypointDef {
     speed: Option<f64>,
     #[serde(with = "option_time_ser")]
     time: Option<OffsetDateTime>,
+    elevation: Option<f64>,
     hdop: Option<f64>,
+    vdop: Option<f64>,
 }
 
 impl From<Waypoint> for WaypointDef {
@@ -21,7 +23,9 @@ impl From<Waypoint> for WaypointDef {
             point: wp.point(),
             speed: wp.speed,
             time: to_odt(wp.time),
+            elevation: wp.elevation,
             hdop: wp.hdop,
+            vdop: wp.vdop,
         }
     }
 }
@@ -31,7 +35,9 @@ impl Into<Waypoint> for WaypointDef {
         let mut result = Waypoint::new(self.point);
         result.speed = self.speed;
         result.time = self.time.map(|t| t.into());
+        result.elevation = self.elevation;
         result.hdop = self.hdop;
+        result.vdop = self.vdop;
         result
     }
 }

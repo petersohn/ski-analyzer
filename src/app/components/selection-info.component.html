@@ -22,6 +22,16 @@
   ></name-value>
   <name-value *ngIf="!!speed()" name="Speed" [value]="speed()"></name-value>
   <name-value
+    *ngIf="!!elevation()"
+    name="Elevation"
+    [value]="elevation()"
+  ></name-value>
+  <name-value
+    *ngIf="!!elevationAccuracy()"
+    name="Elevation accuracy"
+    [value]="elevationAccuracy()"
+  ></name-value>
+  <name-value
     *ngIf="!!closestLift()"
     name="Closest lift"
     [value]="closestLift()"
@@ -46,7 +56,11 @@
   </div>
   <div class="name">{{ liftName() }}</div>
   <name-value name="Type" [value]="liftType()"></name-value>
-  <name-value name="Stations" [value]="stationCount()"></name-value>
+  <name-value
+    *ngIf="stations().length !== 0"
+    name="Stations"
+    [values]="stations()"
+  ></name-value>
   <name-value name="Length" [value]="liftLength()"></name-value>
   @for (len of liftLengths(); track len) {
     <div class="sub-info">{{ len }}</div>

@@ -104,9 +104,12 @@ export class SelectionInfoComponent {
     const type = liftIcons[this.lift()?.type ?? ""];
     return type;
   });
-  public stationCount = computed(
-    () => "" + (this.lift()?.stations.length ?? 0),
-  );
+  public stations = computed(() => {
+    const stations = this.lift()?.stations ?? [];
+    return stations.map((s) =>
+      s.elevation === 0 ? "?" : this.meters(s.elevation),
+    );
+  });
   public liftLength = computed(() =>
     this.lift()?.lengths.length === 1
       ? this.meters(this.lift()?.lengths[0] ?? 0)
@@ -151,6 +154,16 @@ export class SelectionInfoComponent {
   public speed = computed(() => {
     const speed = this.currentWaypointSpeed();
     return !!speed ? this.metersPerSecond(speed) : "";
+  });
+
+  public elevation = computed(() => {
+    const elevation = this.selectedWaypoint()?.elevation;
+    return !!elevation ? this.meters(elevation) : "";
+  });
+
+  public elevationAccuracy = computed(() => {
+    const vdop = this.selectedWaypoint()?.vdop;
+    return !!vdop ? this.meters(vdop) : "";
   });
 
   public closestLift = computed(() => {
