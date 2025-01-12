@@ -1,6 +1,7 @@
 use super::{
     get_speed, Activity, ActivityType, Segment, SegmentCoordinate, Segments,
 };
+use crate::config::get_config;
 use crate::error::Result;
 use crate::ski_area::{Lift, SkiArea};
 use crate::utils::cancel::CancellationToken;
@@ -224,6 +225,22 @@ impl<'s> LiftCandidate<'s> {
         end: SegmentCoordinate,
         result: &mut Vec<(ActivityType, SegmentCoordinate)>,
     ) {
+        if get_config().is_v() {
+            let get_time = |coord| match route.get(coord) {
+                Some(wp) => match wp.time {
+                    None => "?".to_string(),
+                    Some(t) => t.format().unwrap_or_else(|_| "???".to_string()),
+                },
+                None => "????".to_string(),
+            };
+            let begin_time = get_time(begin);
+            let end_time = get_time(route.prev_coord(end));
+
+            eprintln!(
+                "Use lift {}-{}: {} {}",
+                begin_time, end_time, self.lift.ref_, self.lift.name
+            );
+        }
         let lift_id = self.data.lift_id.clone();
 
         if let Some((_, (coord, _))) = route
@@ -257,9 +274,9 @@ impl<'s> LiftCandidate<'s> {
         }
     }
 
-    fn found_station_count(&self) -> u32 {
-        self.data.begin_station.is_some() as u32
-            + self.data.end_station.is_some() as u32
+    fn found_station_count(&self) -> i32 {
+        self.data.begin_station.is_some() as i32
+            + self.data.end_station.is_some() as i32
     }
 
     fn can_go_after(&self, other: &LiftCandidate) -> bool {
@@ -304,11 +321,30 @@ fn commit_lift_candidates<'s>(
     candidates: Vec<LiftCandidate<'s>>,
     route: &Segments,
 ) -> Vec<(ActivityType, SegmentCoordinate)> {
+    let config = get_config();
+    if config.is_vv() {
+        let get_station = |s: &Option<usize>| match s {
+            None => "-".to_string(),
+            Some(x) => x.to_string(),
+        };
+
+        eprintln!();
+        for candidate in &candidates {
+            eprintln!(
+                "Candidate: {} {} bs={} es={}",
+                candidate.lift.ref_,
+                candidate.lift.name,
+                get_station(&candidate.data.begin_station),
+                get_station(&candidate.data.end_station),
+            );
+        }
+    }
+
     let mut groups = group_lift_candidates(candidates);
 
     groups.sort_by(|lhs, rhs| {
-        (lhs[0].found_station_count(), -lhs[0].lift_length)
-            .partial_cmp(&(rhs[0].found_station_count(), -rhs[0].lift_length))
+        (-lhs[0].found_station_count(), -lhs[0].lift_length)
+            .partial_cmp(&(-rhs[0].found_station_count(), -rhs[0].lift_length))
             .unwrap()
     });
 

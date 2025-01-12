@@ -113,7 +113,7 @@ impl Segments {
         self.iter_between(self.begin_coord(), coord)
     }
 
-    fn next_coord(&self, coord: SegmentCoordinate) -> SegmentCoordinate {
+    pub fn next_coord(&self, coord: SegmentCoordinate) -> SegmentCoordinate {
         match self.0.get(coord.0) {
             None => coord,
             Some(s) => {
@@ -126,7 +126,7 @@ impl Segments {
         }
     }
 
-    fn prev_coord(&self, coord: SegmentCoordinate) -> SegmentCoordinate {
+    pub fn prev_coord(&self, coord: SegmentCoordinate) -> SegmentCoordinate {
         if coord.1 == 0 {
             if coord.0 == 0 {
                 coord
