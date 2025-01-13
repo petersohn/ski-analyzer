@@ -1,4 +1,5 @@
 use super::waypoint_ser::WaypointDef;
+use crate::error::Result;
 
 use gpx::Waypoint;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -156,6 +157,34 @@ impl Segments {
                 }
             }
         }
+    }
+
+    pub fn process<F>(self, mut func: F) -> Result<Segments>
+    where
+        F: FnMut(
+            &mut Segments,
+            &mut Segment,
+            &Waypoint,
+            SegmentCoordinate,
+        ) -> Result<()>,
+    {
+        let mut current_route: Segments = Segments::default();
+        for segment in self.0 {
+            let mut route_segment: Segment = Vec::new();
+            for point in segment {
+                let coordinate = (current_route.0.len(), route_segment.len());
+                func(
+                    &mut current_route,
+                    &mut route_segment,
+                    &point,
+                    coordinate,
+                )?;
+                route_segment.push(point);
+            }
+            current_route.0.push(route_segment);
+        }
+
+        Ok(current_route)
     }
 }
 

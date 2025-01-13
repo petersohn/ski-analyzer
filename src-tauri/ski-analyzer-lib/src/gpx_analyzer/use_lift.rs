@@ -445,17 +445,14 @@ pub fn find_lift_usage<'s>(
         .map(|(id, l)| (id.clone(), l.line.expanded_rect(MIN_DISTANCE)))
         .collect();
 
-    let mut current_route: Segments = Segments::default();
     let mut candidates: Candidates = Vec::new();
     let mut finished_candidates: Candidates = Vec::new();
 
-    for segment in segments.0 {
-        let mut route_segment: Segment = Vec::new();
-        for point in segment {
+    let current_route = segments.process(
+        |current_route, route_segment, point, mut coordinate| {
             cancel.check()?;
-            let mut coordinate = (current_route.0.len(), route_segment.len());
             let (mut finished, unfinished): (Candidates, Candidates) =
-                candidates
+                take(&mut candidates)
                     .into_iter()
                     .filter_map(|mut l| match l.add_point(&point, coordinate) {
                         LiftResult::Failure => None,
@@ -468,8 +465,8 @@ pub fn find_lift_usage<'s>(
             if candidates.is_empty() && !finished_candidates.is_empty() {
                 add_finished_candidates_to_route(
                     take(&mut finished_candidates),
-                    &mut current_route,
-                    &mut route_segment,
+                    current_route,
+                    route_segment,
                     &mut result,
                 );
                 coordinate = (current_route.0.len(), route_segment.len());
@@ -490,11 +487,9 @@ pub fn find_lift_usage<'s>(
                 &point,
             );
             candidates.append(&mut new_candidates);
-
-            route_segment.push(point);
-        }
-        current_route.0.push(route_segment);
-    }
+            Ok(())
+        },
+    )?;
 
     if !current_route.0.is_empty() {
         result.push(Activity::new(ActivityType::default(), current_route));
