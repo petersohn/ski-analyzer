@@ -1,8 +1,11 @@
 use super::waypoint_ser::WaypointDef;
+use super::{Activity, ActivityType};
 use crate::error::Result;
 
 use gpx::Waypoint;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+use std::mem::take;
 
 pub type Segment = Vec<Waypoint>;
 
@@ -185,6 +188,49 @@ impl Segments {
         }
 
         Ok(current_route)
+    }
+
+    pub fn commit<F>(
+        &mut self,
+        route_segment: &mut Segment,
+        func: F,
+    ) -> Vec<Activity>
+    where
+        F: FnOnce(&Segments) -> Vec<(ActivityType, SegmentCoordinate)>,
+    {
+        let mut result = Vec::new();
+        let is_new_segment = route_segment.is_empty();
+
+        if !is_new_segment {
+            self.0.push(take(route_segment));
+        }
+        let mut to_add: Vec<Activity> = func(&self)
+            .into_iter()
+            .rev()
+            .map(|(t, c)| Activity::new(t, self.split_end(c)))
+            .collect();
+
+        if !self.0.is_empty() {
+            to_add.push(Activity::new(ActivityType::default(), take(self)));
+        }
+        result.reserve(to_add.len());
+        to_add.into_iter().rev().for_each(|r| result.push(r));
+        if !is_new_segment {
+            route_segment.push(
+                result
+                    .last()
+                    .unwrap()
+                    .route
+                    .0
+                    .last()
+                    .unwrap()
+                    .last()
+                    .unwrap()
+                    .clone(),
+            );
+        }
+
+        result
     }
 }
 

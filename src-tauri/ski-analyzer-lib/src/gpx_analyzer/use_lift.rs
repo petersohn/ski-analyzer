@@ -1,6 +1,4 @@
-use super::{
-    get_speed, Activity, ActivityType, Segment, SegmentCoordinate, Segments,
-};
+use super::{get_speed, Activity, ActivityType, SegmentCoordinate, Segments};
 use crate::config::get_config;
 use crate::error::Result;
 use crate::ski_area::{Lift, SkiArea};
@@ -392,46 +390,6 @@ fn commit_lift_candidates<'s>(
 
 type Candidates<'s> = Vec<LiftCandidate<'s>>;
 
-fn add_finished_candidates_to_route(
-    finished_candidates: Candidates,
-    current_route: &mut Segments,
-    route_segment: &mut Segment,
-    result: &mut Vec<Activity>,
-) {
-    let is_new_segment = route_segment.is_empty();
-
-    if !is_new_segment {
-        current_route.0.push(take(route_segment));
-    }
-    let mut to_add: Vec<Activity> =
-        commit_lift_candidates(finished_candidates, &current_route)
-            .into_iter()
-            .rev()
-            .map(|(t, c)| Activity::new(t, current_route.split_end(c)))
-            .collect();
-
-    if !current_route.0.is_empty() {
-        to_add
-            .push(Activity::new(ActivityType::default(), take(current_route)));
-    }
-    result.reserve(to_add.len());
-    to_add.into_iter().rev().for_each(|r| result.push(r));
-    if !is_new_segment {
-        route_segment.push(
-            result
-                .last()
-                .unwrap()
-                .route
-                .0
-                .last()
-                .unwrap()
-                .last()
-                .unwrap()
-                .clone(),
-        );
-    }
-}
-
 pub fn find_lift_usage<'s>(
     cancel: &CancellationToken,
     ski_area: &'s SkiArea,
@@ -463,12 +421,10 @@ pub fn find_lift_usage<'s>(
             finished_candidates.append(&mut finished);
 
             if candidates.is_empty() && !finished_candidates.is_empty() {
-                add_finished_candidates_to_route(
-                    take(&mut finished_candidates),
-                    current_route,
-                    route_segment,
-                    &mut result,
-                );
+                let mut to_add = current_route.commit(route_segment, |r| {
+                    commit_lift_candidates(take(&mut finished_candidates), r)
+                });
+                result.append(&mut to_add);
                 coordinate = (current_route.0.len(), route_segment.len());
             }
 
