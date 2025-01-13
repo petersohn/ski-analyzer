@@ -762,8 +762,8 @@ fn multiple_lifts_same_start_take_longer(
     let s = ski_area(
         function_name!(),
         vec![
-            lift("Lift 1".to_string(), line00, &[], false, false),
-            lift("Lift 2".to_string(), line01, &[], false, false),
+            lift("Lift 1".to_string(), line00, &[], false, true),
+            lift("Lift 2".to_string(), line01, &[], false, true),
         ],
     );
     let g = make_gpx(vec![simple_segment]);
@@ -804,8 +804,8 @@ fn multiple_lifts_same_end_take_longer(
     let s = ski_area(
         function_name!(),
         vec![
-            lift("Lift 1".to_string(), line00, &[], false, false),
-            lift("Lift 2".to_string(), line01, &[], false, false),
+            lift("Lift 1".to_string(), line00, &[], false, true),
+            lift("Lift 2".to_string(), line01, &[], false, true),
         ],
     );
     let g = make_gpx(vec![simple_segment]);
@@ -846,8 +846,8 @@ fn multiple_lifts_same_end_take_shorter(
     let s = ski_area(
         function_name!(),
         vec![
-            lift("Lift 1".to_string(), line00, &[], false, false),
-            lift("Lift 2".to_string(), line01, &[], false, false),
+            lift("Lift 1".to_string(), line00, &[], false, true),
+            lift("Lift 2".to_string(), line01, &[], false, true),
         ],
     );
     let g = make_gpx(vec![get_in_segment]);
@@ -891,8 +891,8 @@ fn multiple_lifts_same_start_take_shorter(
     let s = ski_area(
         function_name!(),
         vec![
-            lift("Lift 1".to_string(), line00, &[], false, false),
-            lift("Lift 2".to_string(), line01, &[], false, false),
+            lift("Lift 1".to_string(), line00, &[], false, true),
+            lift("Lift 2".to_string(), line01, &[], false, true),
         ],
     );
     let g = make_gpx(vec![get_in_segment]);
