@@ -14,6 +14,7 @@ use crate::utils::option_time_ser;
 use use_lift::find_lift_usage;
 
 mod gpx_parser;
+mod moving;
 mod segments;
 mod use_lift;
 mod waypoint_ser;
@@ -27,6 +28,7 @@ mod test_util;
 #[cfg(test)]
 mod use_lift_test;
 
+pub use moving::Moving;
 pub use segments::{Segment, SegmentCoordinate, Segments};
 pub use use_lift::{LiftEnd, UseLift};
 
@@ -37,6 +39,7 @@ pub enum ActivityType {
     UseLift(UseLift),
     EnterLift(String),
     ExitLift(String),
+    Moving(Moving),
 }
 
 impl Default for ActivityType {
