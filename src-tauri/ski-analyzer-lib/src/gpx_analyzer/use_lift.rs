@@ -284,11 +284,8 @@ impl<'s> LiftCandidate<'s> {
 }
 
 fn is_slow(wp1: &Waypoint, wp2: &Waypoint) -> bool {
-    if wp1.time.is_none() || wp2.time.is_none() {
-        return false;
-    }
     match get_speed(wp1, wp2) {
-        None => true,
+        None => false,
         Some(speed) => speed.abs() < MIN_SPEED,
     }
 }
