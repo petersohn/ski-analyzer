@@ -26,37 +26,52 @@ fn create_candidates(
         .collect()
 }
 
-pub fn process_moves<'s>(
+pub fn process_moves(
     cancel: &CancellationToken,
-    segments: Segments,
+    segments: &Segments,
     move_types: &HashMap<MoveType, Box<dyn CandidateFactory>>,
 ) -> Result<Vec<(MoveType, SegmentCoordinate)>> {
     let mut result: Vec<(MoveType, SegmentCoordinate)> = Vec::new();
 
     let mut candidates = create_candidates(move_types);
+    let mut is_committed = true;
 
-    let current_route = segments.process(
-        |_current_route, _route_segment, point, coordinate| {
-            cancel.check()?;
-            let mut to_remove: Vec<MoveType> = Vec::new();
-            for (move_type, candidate) in &mut candidates {
-                if !candidate.add_point(point) {
-                    to_remove.push(*move_type);
-                }
+    let mut coordinate = segments.begin_coord();
+    while coordinate != segments.end_coord() {
+        cancel.check()?;
+        let point = segments.get(coordinate).unwrap();
+        let mut to_remove: Vec<MoveType> = Vec::new();
+        for (move_type, candidate) in &mut candidates {
+            if !candidate.add_point(point) {
+                to_remove.push(*move_type);
             }
-            for move_type in &to_remove {
-                candidates.remove(move_type);
-            }
-            if candidates.is_empty() {
-                result.push((*to_remove.first().unwrap(), coordinate));
-            }
-            Ok(())
-        },
-    );
+        }
+        for move_type in &to_remove {
+            candidates.remove(move_type);
+        }
+        eprintln!(
+            "{:?}: {:?} -> {:?}",
+            coordinate,
+            to_remove,
+            candidates.keys().map(|x| *x).collect::<Vec<MoveType>>()
+        );
+        if candidates.is_empty() {
+            eprintln!("  -> {:?}", to_remove.first().unwrap());
+            result.push((*to_remove.first().unwrap(), coordinate));
+            candidates = create_candidates(move_types);
+            is_committed = true;
+        } else {
+            is_committed = false;
+            coordinate = segments.next_coord(coordinate);
+        }
+    }
 
-    //if !current_route.0.is_empty() {
-    //    result.push((candidates.into_keys().next(), ));
-    //}
+    if !is_committed {
+        result.push((
+            candidates.into_iter().next().unwrap().0,
+            segments.end_coord(),
+        ));
+    }
 
     Ok(result)
 }

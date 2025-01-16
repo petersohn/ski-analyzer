@@ -267,6 +267,15 @@ impl<'de> Deserialize<'de> for Segments {
     }
 }
 
+impl<'a> IntoIterator for &'a Segments {
+    type Item = (SegmentCoordinate, &'a Waypoint);
+    type IntoIter = SegmentsIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 pub struct SegmentsIterator<'a> {
     obj: &'a Segments,
     begin: SegmentCoordinate,

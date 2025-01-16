@@ -2,6 +2,9 @@ use serde::{Deserialize, Serialize};
 
 mod process;
 
+#[cfg(test)]
+mod process_test;
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum MoveType {
     Ski,
