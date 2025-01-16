@@ -30,11 +30,12 @@ pub fn process_moves(
     cancel: &CancellationToken,
     segments: &Segments,
     move_types: &HashMap<MoveType, Box<dyn CandidateFactory>>,
-) -> Result<Vec<(MoveType, SegmentCoordinate)>> {
-    let mut result: Vec<(MoveType, SegmentCoordinate)> = Vec::new();
+) -> Result<Vec<(Option<MoveType>, SegmentCoordinate)>> {
+    let mut result = Vec::new();
 
     let mut candidates = create_candidates(move_types);
     let mut is_committed = true;
+    let mut is_bad = false;
 
     let mut coordinate = segments.begin_coord();
     while coordinate != segments.end_coord() {
@@ -56,19 +57,29 @@ pub fn process_moves(
             candidates.keys().map(|x| *x).collect::<Vec<MoveType>>()
         );
         if candidates.is_empty() {
-            eprintln!("  -> {:?}", to_remove.first().unwrap());
-            result.push((*to_remove.first().unwrap(), coordinate));
+            if is_committed {
+                is_bad = true;
+                coordinate = segments.next_coord(coordinate);
+            } else {
+                eprintln!("  -> {:?}", to_remove.first().unwrap());
+                result.push((Some(*to_remove.first().unwrap()), coordinate));
+                is_committed = true;
+            }
             candidates = create_candidates(move_types);
-            is_committed = true;
         } else {
+            if is_bad {
+                eprintln!("  -> None");
+                result.push((None, coordinate));
+                is_bad = false;
+            }
             is_committed = false;
             coordinate = segments.next_coord(coordinate);
         }
     }
 
-    if !is_committed {
+    if !is_committed && !is_bad {
         result.push((
-            candidates.into_iter().next().unwrap().0,
+            Some(candidates.into_iter().next().unwrap().0),
             segments.end_coord(),
         ));
     }
