@@ -1,16 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+mod move_type;
 mod process;
 
 #[cfg(test)]
 mod process_test;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum MoveType {
-    Ski,
-    Wait,
-    Climb,
-}
+pub use move_type::MoveType;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
