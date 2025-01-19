@@ -80,7 +80,7 @@ struct LiftCandidate<'s> {
     lift_length: f64,
     possible_begins: Vec<SegmentCoordinate>,
     possible_ends: Vec<SegmentCoordinate>,
-    avg_distance: Avg<f64>,
+    avg_distance: Avg,
     distance_from_begin: f64,
     direction_known: bool,
 }
