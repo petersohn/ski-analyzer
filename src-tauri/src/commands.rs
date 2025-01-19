@@ -4,7 +4,7 @@ use crate::config::{CachedSkiArea, MapConfig};
 use geo::{Intersects, Point, Rect};
 use gpx::Waypoint;
 use serde::{Deserialize, Deserializer, Serialize};
-use ski_analyzer_lib::gpx_analyzer::analyze_route;
+use ski_analyzer_lib::gpx_analyzer::{analyze_route, DerivedData};
 use ski_analyzer_lib::osm_query::{
     query_ski_area_details_by_id, query_ski_areas_by_coords,
     query_ski_areas_by_name,
@@ -329,12 +329,14 @@ pub struct WaypointIn {
     point: Point,
     #[serde(default, deserialize_with = "parse_time")]
     time: Option<OffsetDateTime>,
+    elevation: Option<f64>,
 }
 
 impl Into<Waypoint> for WaypointIn {
     fn into(self) -> Waypoint {
         let mut result = Waypoint::new(self.point);
         result.time = self.time.map(|t| t.into());
+        result.elevation = self.elevation;
         result
     }
 }
@@ -357,8 +359,8 @@ where
 }
 
 #[tauri::command]
-pub fn get_speed(wp1: WaypointIn, wp2: WaypointIn) -> Option<f64> {
-    ski_analyzer_lib::gpx_analyzer::get_speed(&wp1.into(), &wp2.into())
+pub fn get_derived_data(wp1: WaypointIn, wp2: WaypointIn) -> DerivedData {
+    DerivedData::calculate(&wp1.into(), &wp2.into())
 }
 
 #[derive(Serialize)]

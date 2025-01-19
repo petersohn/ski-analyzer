@@ -125,13 +125,63 @@ pub fn analyze_route(
     })
 }
 
-pub fn get_speed(wp1: &Waypoint, wp2: &Waypoint) -> Option<f64> {
+fn get_speed_inner(
+    wp1: &Waypoint,
+    wp2: &Waypoint,
+    distance: f64,
+) -> Option<f64> {
     let t1 = OffsetDateTime::from(wp1.time?);
     let t2 = OffsetDateTime::from(wp2.time?);
     if t1 == t2 {
         None
     } else {
         let t = (t2 - t1).as_seconds_f64();
-        Some(Haversine::distance(wp1.point(), wp2.point()) / t)
+        Some(distance / t)
+    }
+}
+
+fn get_speed(wp1: &Waypoint, wp2: &Waypoint) -> Option<f64> {
+    let p1 = wp1.point();
+    let p2 = wp2.point();
+    if p1 == p2 {
+        return Some(0.0);
+    }
+    let distance = Haversine::distance(wp1.point(), wp2.point());
+    get_speed_inner(wp1, wp2, distance)
+}
+
+fn get_inclination(
+    wp1: &Waypoint,
+    wp2: &Waypoint,
+    distance: f64,
+) -> Option<f64> {
+    let e1 = wp1.elevation?;
+    let e2 = wp2.elevation?;
+    Some((e2 - e1) / distance)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DerivedData {
+    pub speed: Option<f64>,
+    pub inclination: Option<f64>,
+}
+
+impl DerivedData {
+    pub fn calculate(wp1: &Waypoint, wp2: &Waypoint) -> Self {
+        let p1 = wp1.point();
+        let p2 = wp2.point();
+        // Optimization: we don't have to calculate distance if the two points are the
+        // same.
+        if p1 == p2 {
+            return Self {
+                speed: Some(0.0),
+                inclination: None,
+            };
+        }
+        let distance = Haversine::distance(wp1.point(), wp2.point());
+        Self {
+            speed: get_speed_inner(wp1, wp2, distance),
+            inclination: get_inclination(wp1, wp2, distance),
+        }
     }
 }

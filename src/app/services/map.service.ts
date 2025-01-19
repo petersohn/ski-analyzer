@@ -26,8 +26,9 @@ import {
 import { Coordinate } from "ol/coordinate";
 import { MultiPolygon, Point, LineString, Rect, Polygon } from "@/types/geo";
 import { SkiArea, Lift, Piste } from "@/types/skiArea";
-import { Activity, Track, Waypoint } from "@/types/track";
+import { Activity, DerivedData, Track, Waypoint } from "@/types/track";
 import { MapStyleService, SelectableStyle } from "./map-style.service";
+import { ActionsService } from "./actions.service";
 import { invoke } from "@tauri-apps/api/core";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
@@ -124,10 +125,12 @@ export class MapService {
   public readonly selectedLift = signal<Lift | undefined>(undefined);
   public readonly selectedActivity = signal<Activity | undefined>(undefined);
   public readonly selectedWaypoint = signal<Waypoint | undefined>(undefined);
-  public readonly currentWaypointSpeed = signal<number | undefined>(undefined);
-  public readonly currentWaypointClosestLift = signal<
-    { lift: Lift; distance: number } | undefined
-  >(undefined);
+  public readonly currentWaypointSpeed = signal<number | null>(null);
+  public readonly currentWaypointInclination = signal<number | null>(null);
+  public readonly currentWaypointClosestLift = signal<{
+    lift: Lift;
+    distance: number;
+  } | null>(null);
   public readonly isInitialized = signal(false);
 
   public readonly mapConfig = signal<MapConfig | undefined>(undefined);
@@ -158,7 +161,10 @@ export class MapService {
 
   private outlineLayer: Layer | undefined;
 
-  constructor(private readonly mapStyleService: MapStyleService) {}
+  constructor(
+    private readonly mapStyleService: MapStyleService,
+    private readonly actionsService: ActionsService,
+  ) {}
 
   public async createMap(targetElement: HTMLElement) {
     if (this.isInitialized()) {
@@ -419,8 +425,9 @@ export class MapService {
     this.selectedActivity.set(undefined);
     this.selectedActivityNode = undefined;
     this.selectedWaypoint.set(undefined);
-    this.currentWaypointSpeed.set(undefined);
-    this.currentWaypointClosestLift.set(undefined);
+    this.currentWaypointSpeed.set(null);
+    this.currentWaypointInclination.set(null);
+    this.currentWaypointClosestLift.set(null);
 
     for (const feature of this.selectedFeatures) {
       feature.feature.setStyle(feature.revertStyle);
@@ -547,12 +554,12 @@ export class MapService {
     this.selectFeature(node.feature, styles.node);
     this.selectedWaypoint.set(node.waypoint);
     if (node.previousNode !== undefined) {
-      invoke("get_speed", {
-        wp1: node.previousNode.waypoint,
-        wp2: node.waypoint,
-      }).then((speed) => {
-        return this.currentWaypointSpeed.set(speed as number | undefined);
-      });
+      this.actionsService
+        .getDerivedData(node.previousNode.waypoint, node.waypoint)
+        .then((derivedData: DerivedData) => {
+          this.currentWaypointSpeed.set(derivedData.speed);
+          this.currentWaypointInclination.set(derivedData.inclination);
+        });
     }
 
     invoke("get_closest_lift", {
@@ -560,13 +567,17 @@ export class MapService {
       limit: 100.0,
     }).then((data) => {
       if (!data) {
-        this.currentWaypointClosestLift.set(undefined);
+        this.currentWaypointClosestLift.set(null);
+      } else {
+        let { lift_id, distance } = data as {
+          lift_id: string;
+          distance: number;
+        };
+        this.currentWaypointClosestLift.set({
+          lift: this.skiArea!.lifts.get(lift_id)!,
+          distance,
+        });
       }
-      let { lift_id, distance } = data as { lift_id: string; distance: number };
-      this.currentWaypointClosestLift.set({
-        lift: this.skiArea!.lifts.get(lift_id)!,
-        distance,
-      });
     });
 
     this.ensureWithinView(this.pointToCoordinate(node.waypoint.point));

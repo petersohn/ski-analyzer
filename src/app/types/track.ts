@@ -143,3 +143,8 @@ export class TrackConverter {
     return (Object.keys(type)[0] ?? "Unknown") as ActivityType;
   }
 }
+
+export type DerivedData = {
+  speed: number | null;
+  inclination: number | null;
+};

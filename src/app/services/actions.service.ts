@@ -2,7 +2,7 @@ import { Injectable, signal } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
 import { SkiAreaChooserService } from "./ski-area-chooser.service";
 import { RawSkiArea, SkiAreaMetadata } from "@/types/skiArea";
-import { RawTrack, Waypoint } from "@/types/track";
+import { DerivedData, RawTrack, Waypoint } from "@/types/track";
 import { Rect } from "@/types/geo";
 import {
   MapConfig,
@@ -63,8 +63,8 @@ export class ActionsService {
     await invoke("save_current_route_to_file", { path });
   }
 
-  public getSpeed(wp1: Waypoint, wp2: Waypoint): Promise<number | undefined> {
-    return invoke("get_speed", { wp1, wp2 });
+  public getDerivedData(wp1: Waypoint, wp2: Waypoint): Promise<DerivedData> {
+    return invoke("get_derived_data", { wp1, wp2 });
   }
 
   public getMapConfig(): Promise<MapConfig | undefined> {

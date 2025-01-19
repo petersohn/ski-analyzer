@@ -27,6 +27,11 @@
     [value]="elevation()"
   ></name-value>
   <name-value
+    *ngIf="!!inclination()"
+    name="Inclination"
+    [value]="inclination()"
+  ></name-value>
+  <name-value
     *ngIf="!!elevationAccuracy()"
     name="Elevation accuracy"
     [value]="elevationAccuracy()"

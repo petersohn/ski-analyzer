@@ -45,7 +45,7 @@ pub fn run() {
             commands::get_active_ski_area,
             commands::has_active_ski_area,
             commands::get_active_route,
-            commands::get_speed,
+            commands::get_derived_data,
             commands::get_closest_lift,
             commands::save_map_config,
             commands::get_map_config,

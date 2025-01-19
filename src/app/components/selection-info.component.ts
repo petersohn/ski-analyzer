@@ -63,10 +63,12 @@ export class SelectionInfoComponent {
   public selectedLift: Signal<Lift | undefined>;
   public selectedActivity: Signal<Activity | undefined>;
   public selectedWaypoint: Signal<Waypoint | undefined>;
-  public currentWaypointSpeed: Signal<number | undefined>;
-  public currentWaypointClosestLift: Signal<
-    { lift: Lift; distance: number } | undefined
-  >;
+  public currentWaypointSpeed: Signal<number | null>;
+  public currentWaypointInclination: Signal<number | null>;
+  public currentWaypointClosestLift: Signal<{
+    lift: Lift;
+    distance: number;
+  } | null>;
 
   constructor(
     private readonly mapService: MapService,
@@ -77,6 +79,8 @@ export class SelectionInfoComponent {
     this.selectedActivity = this.mapService.selectedActivity;
     this.selectedWaypoint = this.mapService.selectedWaypoint;
     this.currentWaypointSpeed = this.mapService.currentWaypointSpeed;
+    this.currentWaypointInclination =
+      this.mapService.currentWaypointInclination;
     this.currentWaypointClosestLift =
       this.mapService.currentWaypointClosestLift;
     effect(() => {
@@ -161,6 +165,11 @@ export class SelectionInfoComponent {
     return !!elevation ? this.meters(elevation) : "";
   });
 
+  public inclination = computed(() => {
+    const inclination = this.currentWaypointInclination();
+    return !!inclination ? Math.round(inclination * 100) + "%" : "";
+  });
+
   public elevationAccuracy = computed(() => {
     const vdop = this.selectedWaypoint()?.vdop;
     return !!vdop ? this.meters(vdop) : "";
@@ -168,9 +177,7 @@ export class SelectionInfoComponent {
 
   public closestLift = computed(() => {
     const lift = this.currentWaypointClosestLift();
-    return lift !== undefined
-      ? `${lift.lift.name} (${this.meters(lift.distance)})`
-      : "";
+    return !!lift ? `${lift.lift.name} (${this.meters(lift.distance)})` : "";
   });
 
   private meters(len: number) {
