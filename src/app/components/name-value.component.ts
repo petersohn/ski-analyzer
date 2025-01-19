@@ -1,4 +1,4 @@
-import { Component, input } from "@angular/core";
+import { Component, input, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 
 @Component({
@@ -12,4 +12,24 @@ export class NameValueComponent {
   public name = input("");
   public value = input<string>("");
   public values = input<string[]>([]);
+
+  public singleValue = computed(() => {
+    const value = this.value();
+    if (value !== "") {
+      return value;
+    }
+    const values = this.values();
+    if (values.length === 1) {
+      return values[0];
+    }
+    return "";
+  });
+
+  public valueList = computed(() => {
+    const values = this.values();
+    if (values.length === 1 && this.value() === "") {
+      return [];
+    }
+    return values;
+  });
 }

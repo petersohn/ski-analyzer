@@ -1,9 +1,9 @@
 <div>
   <span class="label">{{ name() }}: </span>
-  <span *ngIf="value() !== ''" class="value">{{ value() }}</span>
+  <span *ngIf="singleValue() !== ''" class="value">{{ singleValue() }}</span>
 </div>
-<div *ngIf="values().length !== 0" class="values-list">
-  @for (value of values(); track value) {
+<div *ngIf="valueList().length !== 0" class="values-list">
+  @for (value of valueList(); track value) {
     <div class="value">{{ value }}</div>
   }
 </div>

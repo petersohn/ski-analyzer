@@ -66,8 +66,9 @@
     name="Stations"
     [values]="stations()"
   ></name-value>
-  <name-value name="Length" [value]="liftLength()"></name-value>
-  @for (len of liftLengths(); track len) {
-    <div class="sub-info">{{ len }}</div>
-  }
+  <name-value
+    *ngIf="liftLengths().length !== 0"
+    name="Length"
+    [values]="liftLengths()"
+  ></name-value>
 </mat-card>

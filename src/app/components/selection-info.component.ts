@@ -114,18 +114,9 @@ export class SelectionInfoComponent {
       s.elevation === 0 ? "?" : this.meters(s.elevation),
     );
   });
-  public liftLength = computed(() =>
-    this.lift()?.lengths.length === 1
-      ? this.meters(this.lift()?.lengths[0] ?? 0)
-      : "",
-  );
   public liftLengths = computed((): string[] => {
-    const lift = this.lift();
-    if ((lift?.lengths.length ?? 0) > 1) {
-      return lift!.lengths.map((l) => this.meters(l));
-    } else {
-      return [];
-    }
+    const lengths = this.lift()?.lengths ?? [];
+    return lengths.map((l) => this.meters(l));
   });
 
   public activityType = computed(
