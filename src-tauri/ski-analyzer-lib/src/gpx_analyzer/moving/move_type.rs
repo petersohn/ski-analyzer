@@ -1,9 +1,13 @@
+use std::collections::HashMap;
+use std::rc::Rc;
+
 use geo::{Distance, Haversine};
 use gpx::Waypoint;
 use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 
 use super::process::Candidate;
+use crate::gpx_analyzer::DerivedData;
 use crate::utils::collection::Avg;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Hash, PartialEq, Eq)]
@@ -54,70 +58,81 @@ impl Constraint {
     pub fn new(type_: ConstraintType, limit: ConstraintLimit) -> Self {
         Constraint { type_, limit }
     }
-
-    //fn evaluate(&self, wp1: &Waypoint, wp2: &Waypoint) -> Option<bool> {
-    //    let should_evaluate = match self.limit {
-    //        ConstraintLimit::Distance(d) => {
-    //            Haversine::distance(wp1.point(), wp2.point()) <= d
-    //        }
-    //        ConstraintLimit::Time(t) => match (wp1.time, wp2.time) {
-    //            (Some(t1), Some(t2)) => {
-    //                let duration =
-    //                    OffsetDateTime::from(t2) - OffsetDateTime::from(t1);
-    //                duration <= t
-    //            }
-    //            _ => false,
-    //        },
-    //    };
-    //
-    //    if !should_evaluate {
-    //        return None;
-    //    }
-    //
-    //    let ret = match self.type_ {
-    //        ConstraintType::Speed(s) => {
-    //            let speed = get_speed(wp1, wp2)?;
-    //            speed >= s.min && speed <= s.max
-    //        }
-    //        ConstraintType::Inclination(s) => {
-    //            let inclination = get_inclination(wp1, wp2)?;
-    //            inclination >= s.min && inclination <= s.max
-    //        }
-    //    };
-    //
-    //    Some(ret)
-    //}
 }
 
-#[derive(Debug)]
-pub struct SimpleCandidate {
-    constraints: Vec<Constraint>,
-    previous_point: Option<Waypoint>,
-    speed: Avg,
-    inclination: Avg,
+#[derive(Debug, Clone, Copy)]
+struct LineData {
+    data: DerivedData,
+    distance: f64,
 }
 
-impl SimpleCandidate {
-    pub fn new(constraints: impl Into<Vec<Constraint>>) -> Self {
-        SimpleCandidate {
-            constraints: constraints.into(),
-            previous_point: None,
-            speed: Avg::new(),
-            inclination: Avg::new(),
+struct ConstraintAggregate {
+    constraint: Constraint,
+    first_id: usize,
+    value: Avg,
+    extent: f64,
+}
+
+impl ConstraintAggregate {
+    fn new(constraint: Constraint) -> Self {
+        Self {
+            constraint,
+            first_id: 0,
+            value: Avg::new(),
+            extent: 0.0,
         }
     }
 }
 
-//impl Candidate for SimpleCandidate {
-//    fn add_point(&mut self, wp: &Waypoint) -> bool {
-//        if let Some(prev) = &self.previous_point {
-//            let distance = Haversine::distance(prev.point(), wp.point());
-//            match (wp1.time, wp2.time) {
-//                (Some(t1), Some(t2)) =>
-//            };
-//        }
-//
-//        self.previous_point = Some(wp.clone());
-//        true
-//    }
-//}
+pub struct SimpleCandidate {
+    constraints: Vec<ConstraintAggregate>,
+    previous_point: Option<Waypoint>,
+    line_data: Vec<LineData>,
+}
+
+impl SimpleCandidate {
+    pub fn new(constraints: impl IntoIterator<Item = Constraint>) -> Self {
+        SimpleCandidate {
+            constraints: constraints
+                .into_iter()
+                .map(|c| ConstraintAggregate::new(c))
+                .collect(),
+            previous_point: None,
+            line_data: Vec::new(),
+        }
+    }
+
+    fn check_constraint(&mut self, agg: &mut ConstraintAggregate) -> bool {
+        let value = match &agg.constraint.type_ {
+            ConstraintType::Speed(_) => line_data.data.speed,
+            ConstraintType::Inclination(_) => line_data.data.inclination,
+        };
+
+        //let (extent, limit) = match &agg.constraint.limit {
+        //    //ConstraintLimit::Time(_) => (
+        //}
+
+        if let Some(v) = value {
+            agg.value.add2(v, line_data.distance);
+        }
+    }
+}
+
+impl Candidate for SimpleCandidate {
+    fn add_point(&mut self, wp: &Waypoint) -> bool {
+        if let Some(prev) = &self.previous_point {
+            let (data, distance) = DerivedData::calculate_inner(prev, wp);
+            let line_data = LineData { data, distance };
+            self.line_data.push(line_data);
+
+            for agg in &mut self.constraints {
+                if !self.check_constraint(agg) {
+                    return false;
+                }
+            }
+        }
+
+        self.previous_point = Some(wp.clone());
+        true
+    }
+}

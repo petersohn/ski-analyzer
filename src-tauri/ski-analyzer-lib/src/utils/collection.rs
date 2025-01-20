@@ -21,7 +21,7 @@ where
 
 // trait AvgNum: Num + Copy + NumCast {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Avg {
     sum: f64,
     amount: f64,

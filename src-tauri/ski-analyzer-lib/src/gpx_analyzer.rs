@@ -150,7 +150,7 @@ fn get_speed(wp1: &Waypoint, wp2: &Waypoint) -> Option<f64> {
     get_speed_inner(wp1, wp2, distance)
 }
 
-fn get_inclination(
+fn get_inclination_inner(
     wp1: &Waypoint,
     wp2: &Waypoint,
     distance: f64,
@@ -160,28 +160,38 @@ fn get_inclination(
     Some((e2 - e1) / distance)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct DerivedData {
     pub speed: Option<f64>,
     pub inclination: Option<f64>,
 }
 
 impl DerivedData {
-    pub fn calculate(wp1: &Waypoint, wp2: &Waypoint) -> Self {
+    fn calculate_inner(wp1: &Waypoint, wp2: &Waypoint) -> (Self, f64) {
         let p1 = wp1.point();
         let p2 = wp2.point();
         // Optimization: we don't have to calculate distance if the two points are the
         // same.
         if p1 == p2 {
-            return Self {
-                speed: Some(0.0),
-                inclination: None,
-            };
+            return (
+                Self {
+                    speed: Some(0.0),
+                    inclination: None,
+                },
+                0.0,
+            );
         }
         let distance = Haversine::distance(wp1.point(), wp2.point());
-        Self {
-            speed: get_speed_inner(wp1, wp2, distance),
-            inclination: get_inclination(wp1, wp2, distance),
-        }
+        (
+            Self {
+                speed: get_speed_inner(wp1, wp2, distance),
+                inclination: get_inclination_inner(wp1, wp2, distance),
+            },
+            distance,
+        )
+    }
+
+    pub fn calculate(wp1: &Waypoint, wp2: &Waypoint) -> Self {
+        DerivedData::calculate_inner(wp1, wp2).0
     }
 }
