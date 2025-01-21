@@ -25,7 +25,7 @@ import { SkiAreaChooserService } from "@/services/ski-area-chooser.service";
     NameInputDialogComponent,
   ],
   templateUrl: "./main-menu.component.html",
-  styleUrls: ["./main-menu.component.css"],
+  styleUrls: ["./main-menu.component.scss"],
 })
 export class MainMenuComponent {
   public loading: Signal<boolean>;

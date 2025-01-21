@@ -17,7 +17,7 @@ import { SkiArea } from "@/types/skiArea";
   standalone: true,
   imports: [],
   templateUrl: "./map.component.html",
-  styleUrls: ["./map.component.css"],
+  styleUrls: ["./map.component.scss"],
 })
 export class MapComponent implements AfterViewInit, OnDestroy {
   @ViewChild("map")

@@ -27,13 +27,12 @@ import {
   ConfirmationDialogComponent,
   ConfirmationDialogOption,
 } from "./confirmation-dialog.component";
-import dayjs from "dayjs";
 import { lastValueFrom } from "rxjs";
 
 @Component({
   selector: "ski-area-selector",
   templateUrl: "./ski-area-selector.component.html",
-  styleUrl: "./ski-area-selector.component.css",
+  styleUrl: "./ski-area-selector.component.scss",
   standalone: true,
   imports: [
     MatListModule,

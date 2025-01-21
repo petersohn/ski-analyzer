@@ -20,7 +20,7 @@ export type ConfirmationDialogData = {
 @Component({
   selector: "confirmation-dialog",
   templateUrl: "./confirmation-dialog.component.html",
-  styleUrl: "./confirmation-dialog.component.css",
+  styleUrl: "./confirmation-dialog.component.scss",
   standalone: true,
   imports: [
     FormsModule,

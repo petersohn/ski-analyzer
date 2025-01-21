@@ -6,7 +6,7 @@ import { CommonModule } from "@angular/common";
   standalone: true,
   imports: [CommonModule],
   templateUrl: "./name-value.component.html",
-  styleUrls: ["./name-value.component.css"],
+  styleUrls: ["./name-value.component.scss"],
 })
 export class NameValueComponent {
   public name = input("");

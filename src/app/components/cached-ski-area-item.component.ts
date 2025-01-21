@@ -7,7 +7,7 @@ import { CachedSkiArea } from "@/types/config";
 @Component({
   selector: "cached-ski-area-item",
   templateUrl: "./cached-ski-area-item.component.html",
-  styleUrl: "./cached-ski-area-item.component.css",
+  styleUrl: "./cached-ski-area-item.component.scss",
   standalone: true,
   imports: [MatButtonModule, MatIconModule, MatListModule],
 })

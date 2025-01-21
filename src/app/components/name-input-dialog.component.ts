@@ -20,7 +20,7 @@ export type NameInputDialogData = {
 @Component({
   selector: "name-input-dialog",
   templateUrl: "./name-input-dialog.component.html",
-  styleUrl: "./name-input-dialog.component.css",
+  styleUrl: "./name-input-dialog.component.scss",
   standalone: true,
   imports: [
     FormsModule,

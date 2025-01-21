@@ -23,7 +23,7 @@ import { MatIconRegistry } from "@angular/material/icon";
     MatProgressBarModule,
   ],
   templateUrl: "./app.component.html",
-  styleUrls: ["./app.component.css"],
+  styleUrls: ["./app.component.scss"],
 })
 export class AppComponent implements OnInit, OnDestroy {
   public loading: Signal<boolean>;

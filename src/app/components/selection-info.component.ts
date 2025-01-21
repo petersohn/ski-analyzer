@@ -56,7 +56,7 @@ const activityTypes: { [type: string]: string } = {
   standalone: true,
   imports: [CommonModule, MatCardModule, NameValueComponent, MatIconModule],
   templateUrl: "./selection-info.component.html",
-  styleUrls: ["./selection-info.component.css"],
+  styleUrls: ["./selection-info.component.scss"],
 })
 export class SelectionInfoComponent {
   public selectedPiste: Signal<Piste | undefined>;
