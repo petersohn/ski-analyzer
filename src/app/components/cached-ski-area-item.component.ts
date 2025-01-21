@@ -5,11 +5,10 @@ import { MatIconModule } from "@angular/material/icon";
 import { CachedSkiArea } from "@/types/config";
 
 @Component({
-  selector: "cached-ski-area-item",
-  templateUrl: "./cached-ski-area-item.component.html",
-  styleUrl: "./cached-ski-area-item.component.scss",
-  standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatListModule],
+    selector: "cached-ski-area-item",
+    templateUrl: "./cached-ski-area-item.component.html",
+    styleUrl: "./cached-ski-area-item.component.scss",
+    imports: [MatButtonModule, MatIconModule, MatListModule]
 })
 export class CachedSkiAreaItem {
   public skiArea = input.required<CachedSkiArea>();

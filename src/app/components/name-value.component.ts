@@ -2,11 +2,10 @@ import { Component, input, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 
 @Component({
-  selector: "name-value",
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: "./name-value.component.html",
-  styleUrls: ["./name-value.component.scss"],
+    selector: "name-value",
+    imports: [CommonModule],
+    templateUrl: "./name-value.component.html",
+    styleUrls: ["./name-value.component.scss"]
 })
 export class NameValueComponent {
   public name = input("");

@@ -18,17 +18,16 @@ export type NameInputDialogData = {
 };
 
 @Component({
-  selector: "name-input-dialog",
-  templateUrl: "./name-input-dialog.component.html",
-  styleUrl: "./name-input-dialog.component.scss",
-  standalone: true,
-  imports: [
-    FormsModule,
-    MatInput,
-    MatFormFieldModule,
-    MatButtonModule,
-    MatDialogModule,
-  ],
+    selector: "name-input-dialog",
+    templateUrl: "./name-input-dialog.component.html",
+    styleUrl: "./name-input-dialog.component.scss",
+    imports: [
+        FormsModule,
+        MatInput,
+        MatFormFieldModule,
+        MatButtonModule,
+        MatDialogModule,
+    ]
 })
 export class NameInputDialogComponent {
   public value = signal("");

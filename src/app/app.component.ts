@@ -12,18 +12,17 @@ import { EventsService } from "@/services/events.service";
 import { MatIconRegistry } from "@angular/material/icon";
 
 @Component({
-  selector: "app-root",
-  standalone: true,
-  imports: [
-    MainMenuComponent,
-    MapComponent,
-    SelectionInfoComponent,
-    SkiAreaSelectorComponent,
-    CommonModule,
-    MatProgressBarModule,
-  ],
-  templateUrl: "./app.component.html",
-  styleUrls: ["./app.component.scss"],
+    selector: "app-root",
+    imports: [
+        MainMenuComponent,
+        MapComponent,
+        SelectionInfoComponent,
+        SkiAreaSelectorComponent,
+        CommonModule,
+        MatProgressBarModule,
+    ],
+    templateUrl: "./app.component.html",
+    styleUrls: ["./app.component.scss"]
 })
 export class AppComponent implements OnInit, OnDestroy {
   public loading: Signal<boolean>;

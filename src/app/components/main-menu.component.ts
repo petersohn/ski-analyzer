@@ -15,17 +15,16 @@ import { MapService } from "@/services/map.service";
 import { SkiAreaChooserService } from "@/services/ski-area-chooser.service";
 
 @Component({
-  selector: "main-menu",
-  standalone: true,
-  imports: [
-    MatButtonModule,
-    MatDividerModule,
-    MatIconModule,
-    MatMenuModule,
-    NameInputDialogComponent,
-  ],
-  templateUrl: "./main-menu.component.html",
-  styleUrls: ["./main-menu.component.scss"],
+    selector: "main-menu",
+    imports: [
+        MatButtonModule,
+        MatDividerModule,
+        MatIconModule,
+        MatMenuModule,
+        NameInputDialogComponent,
+    ],
+    templateUrl: "./main-menu.component.html",
+    styleUrls: ["./main-menu.component.scss"]
 })
 export class MainMenuComponent {
   public loading: Signal<boolean>;

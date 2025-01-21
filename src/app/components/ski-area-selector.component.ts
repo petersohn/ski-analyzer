@@ -30,20 +30,19 @@ import {
 import { lastValueFrom } from "rxjs";
 
 @Component({
-  selector: "ski-area-selector",
-  templateUrl: "./ski-area-selector.component.html",
-  styleUrl: "./ski-area-selector.component.scss",
-  standalone: true,
-  imports: [
-    MatListModule,
-    MatButtonModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    CachedSkiAreaItem,
-    MatIconModule,
-    ConfirmationDialogComponent,
-  ],
+    selector: "ski-area-selector",
+    templateUrl: "./ski-area-selector.component.html",
+    styleUrl: "./ski-area-selector.component.scss",
+    imports: [
+        MatListModule,
+        MatButtonModule,
+        FormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        CachedSkiAreaItem,
+        MatIconModule,
+        ConfirmationDialogComponent,
+    ]
 })
 export class SkiAreaSelectorComponent implements AfterViewInit {
   public loadedSkiAreas: Signal<SkiAreaMetadata[] | null | undefined>;

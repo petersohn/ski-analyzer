@@ -18,17 +18,16 @@ export type ConfirmationDialogData = {
 };
 
 @Component({
-  selector: "confirmation-dialog",
-  templateUrl: "./confirmation-dialog.component.html",
-  styleUrl: "./confirmation-dialog.component.scss",
-  standalone: true,
-  imports: [
-    FormsModule,
-    MatInput,
-    MatFormFieldModule,
-    MatButtonModule,
-    MatDialogModule,
-  ],
+    selector: "confirmation-dialog",
+    templateUrl: "./confirmation-dialog.component.html",
+    styleUrl: "./confirmation-dialog.component.scss",
+    imports: [
+        FormsModule,
+        MatInput,
+        MatFormFieldModule,
+        MatButtonModule,
+        MatDialogModule,
+    ]
 })
 export class ConfirmationDialogComponent {
   constructor(
