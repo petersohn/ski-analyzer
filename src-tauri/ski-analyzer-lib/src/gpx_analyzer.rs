@@ -4,7 +4,7 @@ use gpx_parser::parse_gpx;
 use serde::{Deserialize, Serialize};
 use std::mem::take;
 use time::format_description::well_known::Iso8601;
-use time::OffsetDateTime;
+use time::{Duration, OffsetDateTime};
 
 use crate::error::Result;
 use crate::ski_area::SkiArea;
@@ -125,17 +125,22 @@ pub fn analyze_route(
     })
 }
 
+fn get_time_diff(wp1: &Waypoint, wp2: &Waypoint) -> Option<Duration> {
+    let t1 = OffsetDateTime::from(wp1.time?);
+    let t2 = OffsetDateTime::from(wp2.time?);
+    Some(t2 - t1)
+}
+
 fn get_speed_inner(
     wp1: &Waypoint,
     wp2: &Waypoint,
     distance: f64,
 ) -> Option<f64> {
-    let t1 = OffsetDateTime::from(wp1.time?);
-    let t2 = OffsetDateTime::from(wp2.time?);
-    if t1 == t2 {
+    let dt = get_time_diff(wp1, wp2)?;
+    if dt.is_zero() {
         None
     } else {
-        let t = (t2 - t1).as_seconds_f64();
+        let t = dt.as_seconds_f64();
         Some(distance / t)
     }
 }

@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -7,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use time::{Duration, OffsetDateTime};
 
 use super::process::Candidate;
-use crate::gpx_analyzer::DerivedData;
+use crate::gpx_analyzer::{get_time_diff, DerivedData};
 use crate::utils::collection::Avg;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Hash, PartialEq, Eq)]
@@ -19,44 +20,41 @@ pub enum MoveType {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct MinMax<T>
-where
-    T: std::fmt::Debug + Clone + Copy,
-{
-    pub min: T,
-    pub max: T,
-}
-
-#[derive(Debug, Clone, Copy)]
 pub enum ConstraintType {
-    Speed(MinMax<f64>),
-    Inclination(MinMax<f64>),
-}
-
-impl ConstraintType {
-    pub fn speed(min: f64, max: f64) -> Self {
-        ConstraintType::Speed(MinMax { min, max })
-    }
-    pub fn inclination(min: f64, max: f64) -> Self {
-        ConstraintType::Inclination(MinMax { min, max })
-    }
+    Speed,
+    Inclination,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum ConstraintLimit {
-    Distance(f64),
-    Time(Duration),
+    Distance,
+    Time,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Constraint {
     pub type_: ConstraintType,
-    pub limit: ConstraintLimit,
+    pub min: f64,
+    pub max: f64,
+    pub limit_type: ConstraintLimit,
+    pub limit: f64,
 }
 
 impl Constraint {
-    pub fn new(type_: ConstraintType, limit: ConstraintLimit) -> Self {
-        Constraint { type_, limit }
+    pub fn new(
+        type_: ConstraintType,
+        min: f64,
+        max: f64,
+        limit_type: ConstraintLimit,
+        limit: f64,
+    ) -> Self {
+        Constraint {
+            type_,
+            min,
+            max,
+            limit_type,
+            limit,
+        }
     }
 }
 
@@ -64,6 +62,16 @@ impl Constraint {
 struct LineData {
     data: DerivedData,
     distance: f64,
+    time_diff: f64,
+}
+
+impl LineData {
+    fn get_extent(&self, limit_type: ConstraintLimit) -> f64 {
+        match limit_type {
+            ConstraintLimit::Time => self.time_diff,
+            ConstraintLimit::Distance => self.distance,
+        }
+    }
 }
 
 struct ConstraintAggregate {
@@ -101,20 +109,12 @@ impl SimpleCandidate {
             line_data: Vec::new(),
         }
     }
+}
 
-    fn check_constraint(&mut self, agg: &mut ConstraintAggregate) -> bool {
-        let value = match &agg.constraint.type_ {
-            ConstraintType::Speed(_) => line_data.data.speed,
-            ConstraintType::Inclination(_) => line_data.data.inclination,
-        };
-
-        //let (extent, limit) = match &agg.constraint.limit {
-        //    //ConstraintLimit::Time(_) => (
-        //}
-
-        if let Some(v) = value {
-            agg.value.add2(v, line_data.distance);
-        }
+fn get_value(data: &DerivedData, type_: ConstraintType) -> Option<f64> {
+    match type_ {
+        ConstraintType::Speed => data.speed,
+        ConstraintType::Inclination => data.inclination,
     }
 }
 
@@ -122,12 +122,38 @@ impl Candidate for SimpleCandidate {
     fn add_point(&mut self, wp: &Waypoint) -> bool {
         if let Some(prev) = &self.previous_point {
             let (data, distance) = DerivedData::calculate_inner(prev, wp);
-            let line_data = LineData { data, distance };
+            let line_data = LineData {
+                data,
+                distance,
+                time_diff: match get_time_diff(prev, wp) {
+                    Some(dt) => dt.as_seconds_f64(),
+                    None => 0.0,
+                },
+            };
             self.line_data.push(line_data);
 
             for agg in &mut self.constraints {
-                if !self.check_constraint(agg) {
-                    return false;
+                let value_ = get_value(&data, agg.constraint.type_);
+                if let Some(value) = value_ {
+                    agg.value.add2(value, distance);
+                    agg.extent +=
+                        line_data.get_extent(agg.constraint.limit_type);
+
+                    while agg.extent > agg.constraint.limit
+                        && agg.first_id < self.line_data.len()
+                    {
+                        let data_to_remove = self.line_data[agg.first_id];
+                        let value_ = get_value(
+                            &data_to_remove.data,
+                            agg.constraint.type_,
+                        );
+                        if let Some(value) = value_ {
+                            agg.value.remove2(value, data_to_remove.distance);
+                            agg.extent -= data_to_remove
+                                .get_extent(agg.constraint.limit_type);
+                        }
+                        agg.first_id += 1;
+                    }
                 }
             }
         }
