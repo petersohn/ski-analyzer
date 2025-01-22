@@ -90,6 +90,29 @@ impl ConstraintAggregate {
             extent: 0.0,
         }
     }
+
+    fn add(&mut self, value: f64, distance: f64, line_data: &LineData) {
+        self.value.add2(value, distance);
+        self.extent += line_data.get_extent(self.constraint.limit_type);
+    }
+
+    fn trim(&mut self, line_data: &[LineData]) {
+        while self.first_id < line_data.len() {
+            let data_to_remove = line_data[self.first_id];
+            let extent = data_to_remove.get_extent(self.constraint.limit_type);
+
+            if self.extent - extent < self.constraint.limit {
+                break;
+            }
+
+            let value_ = get_value(&data_to_remove.data, self.constraint.type_);
+            if let Some(value) = value_ {
+                self.value.remove2(value, data_to_remove.distance);
+                self.extent -= extent;
+            }
+            self.first_id += 1;
+        }
+    }
 }
 
 pub struct SimpleCandidate {
@@ -135,25 +158,8 @@ impl Candidate for SimpleCandidate {
             for agg in &mut self.constraints {
                 let value_ = get_value(&data, agg.constraint.type_);
                 if let Some(value) = value_ {
-                    agg.value.add2(value, distance);
-                    agg.extent +=
-                        line_data.get_extent(agg.constraint.limit_type);
-
-                    while agg.extent > agg.constraint.limit
-                        && agg.first_id < self.line_data.len()
-                    {
-                        let data_to_remove = self.line_data[agg.first_id];
-                        let value_ = get_value(
-                            &data_to_remove.data,
-                            agg.constraint.type_,
-                        );
-                        if let Some(value) = value_ {
-                            agg.value.remove2(value, data_to_remove.distance);
-                            agg.extent -= data_to_remove
-                                .get_extent(agg.constraint.limit_type);
-                        }
-                        agg.first_id += 1;
-                    }
+                    agg.add(value, distance, &line_data);
+                    agg.trim(&self.line_data);
                 }
             }
         }
