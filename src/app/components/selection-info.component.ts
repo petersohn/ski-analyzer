@@ -52,10 +52,10 @@ const activityTypes: { [type: string]: string } = {
 };
 
 @Component({
-    selector: "selection-info",
-    imports: [CommonModule, MatCardModule, NameValueComponent, MatIconModule],
-    templateUrl: "./selection-info.component.html",
-    styleUrls: ["./selection-info.component.scss"]
+  selector: "selection-info",
+  imports: [CommonModule, MatCardModule, NameValueComponent, MatIconModule],
+  templateUrl: "./selection-info.component.html",
+  styleUrls: ["./selection-info.component.scss"],
 })
 export class SelectionInfoComponent {
   public selectedPiste: Signal<Piste | undefined>;

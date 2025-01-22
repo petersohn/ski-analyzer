@@ -13,10 +13,10 @@ import { EventsService } from "@/services/events.service";
 import { SkiArea } from "@/types/skiArea";
 
 @Component({
-    selector: "map",
-    imports: [],
-    templateUrl: "./map.component.html",
-    styleUrls: ["./map.component.scss"]
+  selector: "map",
+  imports: [],
+  templateUrl: "./map.component.html",
+  styleUrls: ["./map.component.scss"],
 })
 export class MapComponent implements AfterViewInit, OnDestroy {
   @ViewChild("map")
