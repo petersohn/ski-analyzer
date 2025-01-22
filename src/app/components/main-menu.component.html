@@ -1,17 +1,20 @@
 <div class="menu">
-  <mat-menu #mainMenu="matMenu">
+  <mat-menu #skiAreaMenu="matMenu">
+    <button mat-menu-item (click)="loadSkiArea()">Import ski area</button>
+    <button mat-menu-item (click)="saveSkiArea()">Export ski area</button>
+    <mat-divider></mat-divider>
     <button mat-menu-item (click)="loadCachedSkiArea()">Ski areas</button>
     <button mat-menu-item (click)="findSkiArea()">Find ski area by name</button>
     <button mat-menu-item (click)="findNearbySkiAreas()">
       Find nearby ski areas
     </button>
-    <mat-divider></mat-divider>
-    <button mat-menu-item (click)="loadSkiArea()">Import ski area</button>
-    <button mat-menu-item (click)="saveSkiArea()">Export ski area</button>
-    <mat-divider></mat-divider>
-    <button mat-menu-item (click)="loadGpx()">Analyze GPX</button>
+  </mat-menu>
+
+  <mat-menu #gpxMenu="matMenu">
     <button mat-menu-item (click)="loadRoute()">Import analyzed route</button>
     <button mat-menu-item (click)="saveRoute()">Export analyzed route</button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="loadGpx()">Analyze GPX</button>
   </mat-menu>
 
   @if (loading()) {
@@ -19,8 +22,15 @@
       <mat-icon class="menu-icon cancel-icon" fontIcon="cancel"></mat-icon>
     </button>
   } @else if (!hasSelectableSkiArea()) {
-    <button class="menu-button" [matMenuTriggerFor]="mainMenu" mat-icon-button>
-      <mat-icon class="menu-icon" fontIcon="menu"></mat-icon>
+    <button
+      class="menu-button"
+      [matMenuTriggerFor]="skiAreaMenu"
+      mat-icon-button
+    >
+      <mat-icon fontIcon="map"></mat-icon>
+    </button>
+    <button class="menu-button" [matMenuTriggerFor]="gpxMenu" mat-icon-button>
+      <mat-icon svgIcon="route"></mat-icon>
     </button>
   }
 </div>
