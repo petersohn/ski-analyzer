@@ -1,20 +1,36 @@
 <div class="menu">
   <mat-menu #skiAreaMenu="matMenu">
-    <button mat-menu-item (click)="loadSkiArea()">Import ski area</button>
-    <button mat-menu-item (click)="saveSkiArea()">Export ski area</button>
+    <button mat-menu-item (click)="loadSkiArea()">
+      <mat-icon svgIcon="import"></mat-icon><span>Import ski area</span>
+    </button>
+    <button mat-menu-item (click)="saveSkiArea()">
+      <mat-icon svgIcon="export"></mat-icon><span>Export ski area</span>
+    </button>
     <mat-divider></mat-divider>
-    <button mat-menu-item (click)="loadCachedSkiArea()">Ski areas</button>
-    <button mat-menu-item (click)="findSkiArea()">Find ski area by name</button>
+    <button mat-menu-item (click)="loadCachedSkiArea()">
+      <mat-icon fontIcon="save"></mat-icon><span>Ski areas</span>
+    </button>
+    <button mat-menu-item (click)="findSkiArea()">
+      <mat-icon fontIcon="search"></mat-icon><span>Find ski area by name</span>
+    </button>
     <button mat-menu-item (click)="findNearbySkiAreas()">
-      Find nearby ski areas
+      <mat-icon svgIcon="map-search"></mat-icon
+      ><span>Find nearby ski areas</span>
     </button>
   </mat-menu>
 
   <mat-menu #gpxMenu="matMenu">
-    <button mat-menu-item (click)="loadRoute()">Import analyzed route</button>
-    <button mat-menu-item (click)="saveRoute()">Export analyzed route</button>
+    <button mat-menu-item (click)="loadRoute()">
+      <mat-icon svgIcon="import"></mat-icon><span>Import analyzed route</span>
+    </button>
+    <button mat-menu-item (click)="saveRoute()">
+      <mat-icon svgIcon="export"></mat-icon><span>Export analyzed route</span>
+    </button>
     <mat-divider></mat-divider>
-    <button mat-menu-item (click)="loadGpx()">Analyze GPX</button>
+    <button mat-menu-item (click)="loadGpx()">
+      <mat-icon svgIcon="route"></mat-icon>
+      <span>Analyze GPX</span>
+    </button>
   </mat-menu>
 
   @if (loading()) {

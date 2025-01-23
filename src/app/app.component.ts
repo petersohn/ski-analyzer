@@ -60,6 +60,9 @@ export class AppComponent implements OnInit, OnDestroy {
       .addSvgIcon("draglift", this.sanitize("/assets/lift/draglift.svg"))
       .addSvgIcon("gondola", this.sanitize("/assets/lift/gondola.svg"))
       .addSvgIcon("zipline", this.sanitize("/assets/lift/zipline.svg"))
-      .addSvgIcon("route", this.sanitize("/assets/route.svg"));
+      .addSvgIcon("route", this.sanitize("/assets/route.svg"))
+      .addSvgIcon("map-search", this.sanitize("/assets/map-search.svg"))
+      .addSvgIcon("import", this.sanitize("/assets/import.svg"))
+      .addSvgIcon("export", this.sanitize("/assets/export.svg"));
   }
 }
