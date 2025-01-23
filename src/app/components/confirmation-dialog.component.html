@@ -2,7 +2,7 @@
   <mat-dialog-content>
     {{ data.text }}
   </mat-dialog-content>
-  <mat-dialog-actions align="center">
+  <mat-dialog-actions class="actions-list" align="center">
     @for (option of data.options; track option.value) {
       <div class="button">
         @if (option.default) {
