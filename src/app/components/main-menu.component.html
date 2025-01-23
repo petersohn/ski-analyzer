@@ -40,12 +40,18 @@
   } @else if (!hasSelectableSkiArea()) {
     <button
       class="menu-button"
+      title="Ski area"
       [matMenuTriggerFor]="skiAreaMenu"
       mat-icon-button
     >
       <mat-icon fontIcon="map"></mat-icon>
     </button>
-    <button class="menu-button" [matMenuTriggerFor]="gpxMenu" mat-icon-button>
+    <button
+      class="menu-button"
+      title="Route"
+      [matMenuTriggerFor]="gpxMenu"
+      mat-icon-button
+    >
       <mat-icon svgIcon="route"></mat-icon>
     </button>
   }
