@@ -1,4 +1,10 @@
-import { Component, Inject, HostListener } from "@angular/core";
+import {
+  Component,
+  Inject,
+  HostListener,
+  ElementRef,
+  AfterViewInit,
+} from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { MatFormFieldModule } from "@angular/material/form-field";
@@ -22,11 +28,25 @@ export type ConfirmationDialogData = {
   styleUrl: "./confirmation-dialog.component.scss",
   imports: [FormsModule, MatFormFieldModule, MatButtonModule, MatDialogModule],
 })
-export class ConfirmationDialogComponent {
+export class ConfirmationDialogComponent implements AfterViewInit {
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: ConfirmationDialogData,
     private readonly dialogRef: MatDialogRef<ConfirmationDialogComponent>,
+    private readonly elementRef: ElementRef<HTMLElement>,
   ) {}
+
+  public ngAfterViewInit() {
+    let width = 0;
+    this.elementRef.nativeElement
+      .querySelectorAll(".button button")
+      .forEach((button) => {
+        width = Math.max(width, (button as HTMLElement).offsetWidth);
+      });
+    this.elementRef.nativeElement.style.setProperty(
+      "--button-width",
+      width + "px",
+    );
+  }
 
   @HostListener("window:keyup.enter")
   public onEnter() {

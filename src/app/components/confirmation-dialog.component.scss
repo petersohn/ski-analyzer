@@ -1,5 +1,9 @@
 .button {
   padding: 10px 20px;
+
+  button {
+    min-width: var(--button-width);
+  }
 }
 
 .actions-list {
