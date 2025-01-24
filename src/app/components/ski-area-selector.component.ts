@@ -115,18 +115,18 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
         cached.sort((a, b) => b.date.diff(a.date));
         replaceOptions = [
           {
-            text: "Relpace all cached",
+            text: "Replace all cached",
             value: "replace_all",
           },
           {
-            text: "Relpace latest cached",
+            text: "Replace latest cached",
             value: "replace_latest",
           },
         ];
       } else {
         replaceOptions = [
           {
-            text: "Relpace cached",
+            text: "Replace cached",
             value: "replace_latest",
           },
         ];
