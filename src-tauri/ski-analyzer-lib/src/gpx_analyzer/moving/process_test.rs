@@ -10,14 +10,19 @@ use crate::utils::cancel::CancellationToken;
 
 #[derive(Clone, Copy)]
 struct TestCandidate {
+    min_none: f64,
     min: f64,
     max: f64,
 }
 
 impl Candidate for TestCandidate {
-    fn add_point(&mut self, wp: &Waypoint) -> bool {
+    fn add_point(&mut self, wp: &Waypoint) -> Option<bool> {
         let p = wp.point();
-        p.x() >= self.min && p.x() <= self.max
+        if p.x() >= self.min_none && p.x() < self.min {
+            None
+        } else {
+            Some(p.x() >= self.min && p.x() <= self.max)
+        }
     }
 }
 
@@ -28,7 +33,17 @@ struct TestCandidateFactory {
 impl TestCandidateFactory {
     fn new(min: f64, max: f64) -> Self {
         Self {
-            candidate: TestCandidate { min, max },
+            candidate: TestCandidate {
+                min_none: min,
+                min,
+                max,
+            },
+        }
+    }
+
+    fn with_none(min_none: f64, min: f64, max: f64) -> Self {
+        Self {
+            candidate: TestCandidate { min_none, min, max },
         }
     }
 }
@@ -47,6 +62,20 @@ fn cfs(
         .map(|(move_type, min, max)| {
             let cf: Box<dyn CandidateFactory> =
                 Box::new(TestCandidateFactory::new(*min, *max));
+            (*move_type, cf)
+        })
+        .collect()
+}
+
+fn cfs_none(
+    input: &[(MoveType, f64, f64, f64)],
+) -> HashMap<MoveType, Box<dyn CandidateFactory>> {
+    input
+        .iter()
+        .map(|(move_type, min_none, min, max)| {
+            let cf: Box<dyn CandidateFactory> = Box::new(
+                TestCandidateFactory::with_none(*min_none, *min, *max),
+            );
             (*move_type, cf)
         })
         .collect()
@@ -123,7 +152,7 @@ fn bad_end() {
     let actual =
         process_moves(&CancellationToken::new(), &segments, &move_types)
             .unwrap();
-    let expected = vec![(Some(MoveType::Ski), (1, 1))];
+    let expected = vec![(Some(MoveType::Ski), (1, 1)), (None, (3, 0))];
     assert_eq!(actual, expected);
 }
 
@@ -142,6 +171,47 @@ fn bad_middle() {
     let expected = vec![
         (Some(MoveType::Ski), (1, 1)),
         (None, (2, 0)),
+        (Some(MoveType::Climb), (3, 0)),
+    ];
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn unknown_then_good() {
+    let segments = Segments::new(vec![
+        vec![wp(1.0, 0.0, None), wp(2.0, 0.0, None), wp(3.0, 0.0, None)],
+        vec![wp(4.0, 0.0, None), wp(5.0, 0.0, None), wp(6.0, 0.0, None)],
+        vec![wp(7.0, 0.0, None), wp(8.0, 0.0, None), wp(9.0, 0.0, None)],
+    ]);
+    let move_types = cfs_none(&[
+        (MoveType::Ski, 1.0, 3.0, 10.0),
+        (MoveType::Climb, 1.0, 1.0, 5.0),
+    ]);
+    let actual =
+        process_moves(&CancellationToken::new(), &segments, &move_types)
+            .unwrap();
+    let expected = vec![(Some(MoveType::Ski), (3, 0))];
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn unknown_then_bad() {
+    let segments = Segments::new(vec![
+        vec![wp(1.0, 0.0, None), wp(2.0, 0.0, None), wp(3.0, 0.0, None)],
+        vec![wp(4.0, 0.0, None), wp(5.0, 0.0, None), wp(6.0, 0.0, None)],
+        vec![wp(7.0, 0.0, None), wp(8.0, 0.0, None), wp(9.0, 0.0, None)],
+    ]);
+    let move_types = cfs_none(&[
+        (MoveType::Traverse, 0.0, 1.0, 2.0),
+        (MoveType::Ski, 1.0, 4.0, 0.0),
+        (MoveType::Climb, 3.0, 6.0, 10.0),
+    ]);
+    let actual =
+        process_moves(&CancellationToken::new(), &segments, &move_types)
+            .unwrap();
+    let expected = vec![
+        (Some(MoveType::Traverse), (0, 1)),
+        (None, (0, 2)),
         (Some(MoveType::Climb), (3, 0)),
     ];
     assert_eq!(actual, expected);
