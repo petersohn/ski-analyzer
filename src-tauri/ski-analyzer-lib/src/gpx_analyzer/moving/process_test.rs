@@ -203,15 +203,15 @@ fn unknown_then_bad() {
     ]);
     let move_types = cfs_none(&[
         (MoveType::Traverse, 0.0, 1.0, 2.0),
-        (MoveType::Ski, 1.0, 4.0, 0.0),
-        (MoveType::Climb, 3.0, 6.0, 10.0),
+        (MoveType::Ski, 2.0, 5.0, 0.0),
+        (MoveType::Climb, 4.0, 7.0, 10.0),
     ]);
     let actual =
         process_moves(&CancellationToken::new(), &segments, &move_types)
             .unwrap();
     let expected = vec![
-        (Some(MoveType::Traverse), (0, 1)),
-        (None, (0, 2)),
+        (Some(MoveType::Traverse), (0, 2)),
+        (None, (1, 0)),
         (Some(MoveType::Climb), (3, 0)),
     ];
     assert_eq!(actual, expected);
