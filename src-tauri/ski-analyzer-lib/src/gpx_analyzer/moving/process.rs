@@ -57,7 +57,11 @@ impl<'a> Process<'a> {
         }
     }
 
-    fn add_point(&mut self, coordinate: SegmentCoordinate, point: &Waypoint) {
+    fn add_point(
+        &mut self,
+        coordinate: SegmentCoordinate,
+        point: &Waypoint,
+    ) -> bool {
         let mut to_remove: Vec<MoveType> = Vec::new();
         for (move_type, (from, candidate)) in &mut self.candidates {
             let res = candidate.add_point(point);
@@ -75,6 +79,8 @@ impl<'a> Process<'a> {
             self.candidates.remove(move_type);
             self.finish(*move_type, coordinate);
         }
+
+        !to_remove.is_empty()
     }
 
     fn finish(&mut self, move_type: MoveType, coordinate: SegmentCoordinate) {
@@ -104,6 +110,7 @@ impl<'a> Process<'a> {
     }
 
     fn commit(&mut self) {
+        eprintln!("commit");
         if self.finished_candidates.is_empty() {
             return;
         }
@@ -136,6 +143,10 @@ impl<'a> Process<'a> {
             }
         }
     }
+
+    fn should_commit(&self, coordinate: SegmentCoordinate) -> bool {
+        self.candidates.values().all(|(c, _)| *c == coordinate)
+    }
 }
 
 pub fn process_moves(
@@ -149,7 +160,10 @@ pub fn process_moves(
         cancel.check()?;
         eprintln!("{coordinate:?}");
         process.fill(coordinate);
-        process.add_point(coordinate, point);
+        let was_finished = process.add_point(coordinate, point);
+        if was_finished && process.should_commit(coordinate) {
+            process.commit();
+        }
     }
 
     let end = segments.end_coord();
