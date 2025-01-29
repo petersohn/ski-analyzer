@@ -65,7 +65,6 @@ impl<'a> Process<'a> {
         let mut to_remove: Vec<MoveType> = Vec::new();
         for (move_type, (from, candidate)) in &mut self.candidates {
             let res = candidate.add_point(point);
-            eprintln!("  {move_type:?} -> {res:?}");
             match res {
                 None => (),
                 Some(false) => to_remove.push(*move_type),
@@ -89,7 +88,6 @@ impl<'a> Process<'a> {
         {
             let min = entry.remove();
             let max = coordinate;
-            eprintln!("Finish {move_type:?}: {min:?}->{max:?}");
             self.finished_candidates.push(FinishedCandidate {
                 move_type,
                 min,
@@ -110,7 +108,6 @@ impl<'a> Process<'a> {
     }
 
     fn commit(&mut self) {
-        eprintln!("commit");
         if self.finished_candidates.is_empty() {
             return;
         }
@@ -158,7 +155,6 @@ pub fn process_moves(
 
     for (coordinate, point) in segments {
         cancel.check()?;
-        eprintln!("{coordinate:?}");
         process.fill(coordinate);
         let was_finished = process.add_point(coordinate, point);
         if was_finished && process.should_commit(coordinate) {
