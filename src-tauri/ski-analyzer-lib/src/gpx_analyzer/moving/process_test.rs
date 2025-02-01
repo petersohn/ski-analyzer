@@ -16,7 +16,7 @@ struct TestCandidate {
 }
 
 impl Candidate for TestCandidate {
-    fn add_point(&mut self, _wp0: &Waypoint, wp1: &Waypoint) -> Option<bool> {
+    fn add_line(&mut self, _wp0: &Waypoint, wp1: &Waypoint) -> Option<bool> {
         let p = wp1.point();
         if p.x() >= self.min_none && p.x() < self.min {
             None

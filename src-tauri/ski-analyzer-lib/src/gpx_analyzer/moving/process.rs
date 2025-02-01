@@ -13,7 +13,7 @@ use crate::utils::cancel::CancellationToken;
 // Some(false) -> should drop
 // None -> cannot commit, but should not drop
 pub trait Candidate {
-    fn add_point(&mut self, wp0: &Waypoint, wp1: &Waypoint) -> Option<bool>;
+    fn add_line(&mut self, wp0: &Waypoint, wp1: &Waypoint) -> Option<bool>;
 }
 
 pub trait CandidateFactory {
@@ -65,7 +65,7 @@ impl<'a> Process<'a> {
     ) -> bool {
         let mut to_remove: Vec<MoveType> = Vec::new();
         for (move_type, (from, candidate)) in &mut self.candidates {
-            let res = candidate.add_point(wp0, wp1);
+            let res = candidate.add_line(wp0, wp1);
             match res {
                 None => (),
                 Some(false) => to_remove.push(*move_type),

@@ -140,7 +140,7 @@ fn get_value(data: &DerivedData, type_: ConstraintType) -> Option<f64> {
 }
 
 impl Candidate for SimpleCandidate {
-    fn add_point(&mut self, wp0: &Waypoint, wp1: &Waypoint) -> Option<bool> {
+    fn add_line(&mut self, wp0: &Waypoint, wp1: &Waypoint) -> Option<bool> {
         let (data, distance) = DerivedData::calculate_inner(wp0, wp1);
         let line_data = LineData {
             data,
