@@ -13,7 +13,7 @@ use crate::utils::cancel::CancellationToken;
 // Some(false) -> should drop
 // None -> cannot commit, but should not drop
 pub trait Candidate {
-    fn add_point(&mut self, wp: &Waypoint) -> Option<bool>;
+    fn add_point(&mut self, wp0: &Waypoint, wp1: &Waypoint) -> Option<bool>;
 }
 
 pub trait CandidateFactory {
@@ -60,11 +60,12 @@ impl<'a> Process<'a> {
     fn add_point(
         &mut self,
         coordinate: SegmentCoordinate,
-        point: &Waypoint,
+        wp0: &Waypoint,
+        wp1: &Waypoint,
     ) -> bool {
         let mut to_remove: Vec<MoveType> = Vec::new();
         for (move_type, (from, candidate)) in &mut self.candidates {
-            let res = candidate.add_point(point);
+            let res = candidate.add_point(wp0, wp1);
             match res {
                 None => (),
                 Some(false) => to_remove.push(*move_type),
@@ -153,18 +154,25 @@ pub fn process_moves(
     move_types: &HashMap<MoveType, Box<dyn CandidateFactory>>,
 ) -> Result<Vec<(Option<MoveType>, SegmentCoordinate)>> {
     let mut process = Process::new(move_types);
+    let mut prev: Option<&Waypoint> = None;
 
     for (coordinate, point) in segments {
         cancel.check()?;
         if coordinate.1 == 0 {
             process.finish_all(coordinate);
             process.commit();
+            prev = Some(point);
+            process.fill(coordinate);
+            continue;
         }
+
         process.fill(coordinate);
-        let was_finished = process.add_point(coordinate, point);
+        let was_finished = process.add_point(coordinate, prev.unwrap(), point);
         if was_finished && process.should_commit(coordinate) {
             process.commit();
         }
+
+        prev = Some(point);
     }
 
     let end = segments.end_coord();

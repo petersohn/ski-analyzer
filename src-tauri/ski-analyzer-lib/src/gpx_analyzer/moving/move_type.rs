@@ -117,7 +117,6 @@ impl ConstraintAggregate {
 
 pub struct SimpleCandidate {
     constraints: Vec<ConstraintAggregate>,
-    previous_point: Option<Waypoint>,
     line_data: Vec<LineData>,
 }
 
@@ -128,7 +127,6 @@ impl SimpleCandidate {
                 .into_iter()
                 .map(|c| ConstraintAggregate::new(c))
                 .collect(),
-            previous_point: None,
             line_data: Vec::new(),
         }
     }
@@ -142,29 +140,26 @@ fn get_value(data: &DerivedData, type_: ConstraintType) -> Option<f64> {
 }
 
 impl Candidate for SimpleCandidate {
-    fn add_point(&mut self, wp: &Waypoint) -> Option<bool> {
-        if let Some(prev) = &self.previous_point {
-            let (data, distance) = DerivedData::calculate_inner(prev, wp);
-            let line_data = LineData {
-                data,
-                distance,
-                time_diff: match get_time_diff(prev, wp) {
-                    Some(dt) => dt.as_seconds_f64(),
-                    None => 0.0,
-                },
-            };
-            self.line_data.push(line_data);
+    fn add_point(&mut self, wp0: &Waypoint, wp1: &Waypoint) -> Option<bool> {
+        let (data, distance) = DerivedData::calculate_inner(wp0, wp1);
+        let line_data = LineData {
+            data,
+            distance,
+            time_diff: match get_time_diff(wp0, wp1) {
+                Some(dt) => dt.as_seconds_f64(),
+                None => 0.0,
+            },
+        };
+        self.line_data.push(line_data);
 
-            for agg in &mut self.constraints {
-                let value_ = get_value(&data, agg.constraint.type_);
-                if let Some(value) = value_ {
-                    agg.add(value, distance, &line_data);
-                    agg.trim(&self.line_data);
-                }
+        for agg in &mut self.constraints {
+            let value_ = get_value(&data, agg.constraint.type_);
+            if let Some(value) = value_ {
+                agg.add(value, distance, &line_data);
+                agg.trim(&self.line_data);
             }
         }
 
-        self.previous_point = Some(wp.clone());
         Some(true)
     }
 }
