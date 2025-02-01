@@ -105,6 +105,7 @@ impl<'a> Process<'a> {
         {
             self.finish(move_type, coordinate);
         }
+        self.candidates.clear();
     }
 
     fn commit(&mut self) {
@@ -155,6 +156,10 @@ pub fn process_moves(
 
     for (coordinate, point) in segments {
         cancel.check()?;
+        if coordinate.1 == 0 {
+            process.finish_all(coordinate);
+            process.commit();
+        }
         process.fill(coordinate);
         let was_finished = process.add_point(coordinate, point);
         if was_finished && process.should_commit(coordinate) {

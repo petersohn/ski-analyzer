@@ -83,11 +83,17 @@ fn cfs_none(
 
 #[test]
 fn single_candidate() {
-    let segments = Segments::new(vec![
-        vec![wp(1.0, 0.0, None), wp(2.0, 0.0, None), wp(3.0, 0.0, None)],
-        vec![wp(4.0, 0.0, None), wp(5.0, 0.0, None), wp(6.0, 0.0, None)],
-        vec![wp(7.0, 0.0, None), wp(8.0, 0.0, None), wp(9.0, 0.0, None)],
-    ]);
+    let segments = Segments::new(vec![vec![
+        wp(1.0, 0.0, None),
+        wp(2.0, 0.0, None),
+        wp(3.0, 0.0, None),
+        wp(4.0, 0.0, None),
+        wp(5.0, 0.0, None),
+        wp(6.0, 0.0, None),
+        wp(7.0, 0.0, None),
+        wp(8.0, 0.0, None),
+        wp(9.0, 0.0, None),
+    ]]);
     let move_types = cfs(&[
         (MoveType::Ski, 1.0, 4.0),
         (MoveType::Wait, 5.0, 5.0),
@@ -97,20 +103,26 @@ fn single_candidate() {
         process_moves(&CancellationToken::new(), &segments, &move_types)
             .unwrap();
     let expected = vec![
-        (Some(MoveType::Ski), (1, 1)),
-        (Some(MoveType::Wait), (1, 2)),
-        (Some(MoveType::Climb), (3, 0)),
+        (Some(MoveType::Ski), (0, 4)),
+        (Some(MoveType::Wait), (0, 5)),
+        (Some(MoveType::Climb), (1, 0)),
     ];
     assert_eq!(actual, expected);
 }
 
 #[test]
 fn multiple_candidate() {
-    let segments = Segments::new(vec![
-        vec![wp(1.0, 0.0, None), wp(2.0, 0.0, None), wp(3.0, 0.0, None)],
-        vec![wp(4.0, 0.0, None), wp(5.0, 0.0, None), wp(6.0, 0.0, None)],
-        vec![wp(7.0, 0.0, None), wp(8.0, 0.0, None), wp(9.0, 0.0, None)],
-    ]);
+    let segments = Segments::new(vec![vec![
+        wp(1.0, 0.0, None),
+        wp(2.0, 0.0, None),
+        wp(3.0, 0.0, None),
+        wp(4.0, 0.0, None),
+        wp(5.0, 0.0, None),
+        wp(6.0, 0.0, None),
+        wp(7.0, 0.0, None),
+        wp(8.0, 0.0, None),
+        wp(9.0, 0.0, None),
+    ]]);
     let move_types = cfs(&[
         (MoveType::Ski, 1.0, 4.0),
         (MoveType::Wait, 1.0, 5.0),
@@ -120,69 +132,93 @@ fn multiple_candidate() {
         process_moves(&CancellationToken::new(), &segments, &move_types)
             .unwrap();
     let expected = vec![
-        (Some(MoveType::Wait), (1, 2)),
-        (Some(MoveType::Climb), (3, 0)),
+        (Some(MoveType::Wait), (0, 5)),
+        (Some(MoveType::Climb), (1, 0)),
     ];
     assert_eq!(actual, expected);
 }
 
 #[test]
 fn bad_begin() {
-    let segments = Segments::new(vec![
-        vec![wp(1.0, 0.0, None), wp(2.0, 0.0, None), wp(3.0, 0.0, None)],
-        vec![wp(4.0, 0.0, None), wp(5.0, 0.0, None), wp(6.0, 0.0, None)],
-        vec![wp(7.0, 0.0, None), wp(8.0, 0.0, None), wp(9.0, 0.0, None)],
-    ]);
+    let segments = Segments::new(vec![vec![
+        wp(1.0, 0.0, None),
+        wp(2.0, 0.0, None),
+        wp(3.0, 0.0, None),
+        wp(4.0, 0.0, None),
+        wp(5.0, 0.0, None),
+        wp(6.0, 0.0, None),
+        wp(7.0, 0.0, None),
+        wp(8.0, 0.0, None),
+        wp(9.0, 0.0, None),
+    ]]);
     let move_types = cfs(&[(MoveType::Ski, 5.0, 10.0)]);
     let actual =
         process_moves(&CancellationToken::new(), &segments, &move_types)
             .unwrap();
-    let expected = vec![(None, (1, 1)), (Some(MoveType::Ski), (3, 0))];
+    let expected = vec![(None, (0, 4)), (Some(MoveType::Ski), (1, 0))];
     assert_eq!(actual, expected);
 }
 
 #[test]
 fn bad_end() {
-    let segments = Segments::new(vec![
-        vec![wp(1.0, 0.0, None), wp(2.0, 0.0, None), wp(3.0, 0.0, None)],
-        vec![wp(4.0, 0.0, None), wp(5.0, 0.0, None), wp(6.0, 0.0, None)],
-        vec![wp(7.0, 0.0, None), wp(8.0, 0.0, None), wp(9.0, 0.0, None)],
-    ]);
+    let segments = Segments::new(vec![vec![
+        wp(1.0, 0.0, None),
+        wp(2.0, 0.0, None),
+        wp(3.0, 0.0, None),
+        wp(4.0, 0.0, None),
+        wp(5.0, 0.0, None),
+        wp(6.0, 0.0, None),
+        wp(7.0, 0.0, None),
+        wp(8.0, 0.0, None),
+        wp(9.0, 0.0, None),
+    ]]);
     let move_types = cfs(&[(MoveType::Ski, 1.0, 4.0)]);
     let actual =
         process_moves(&CancellationToken::new(), &segments, &move_types)
             .unwrap();
-    let expected = vec![(Some(MoveType::Ski), (1, 1)), (None, (3, 0))];
+    let expected = vec![(Some(MoveType::Ski), (0, 4)), (None, (1, 0))];
     assert_eq!(actual, expected);
 }
 
 #[test]
 fn bad_middle() {
-    let segments = Segments::new(vec![
-        vec![wp(1.0, 0.0, None), wp(2.0, 0.0, None), wp(3.0, 0.0, None)],
-        vec![wp(4.0, 0.0, None), wp(5.0, 0.0, None), wp(6.0, 0.0, None)],
-        vec![wp(7.0, 0.0, None), wp(8.0, 0.0, None), wp(9.0, 0.0, None)],
-    ]);
+    let segments = Segments::new(vec![vec![
+        wp(1.0, 0.0, None),
+        wp(2.0, 0.0, None),
+        wp(3.0, 0.0, None),
+        wp(4.0, 0.0, None),
+        wp(5.0, 0.0, None),
+        wp(6.0, 0.0, None),
+        wp(7.0, 0.0, None),
+        wp(8.0, 0.0, None),
+        wp(9.0, 0.0, None),
+    ]]);
     let move_types =
         cfs(&[(MoveType::Ski, 1.0, 4.0), (MoveType::Climb, 7.0, 10.0)]);
     let actual =
         process_moves(&CancellationToken::new(), &segments, &move_types)
             .unwrap();
     let expected = vec![
-        (Some(MoveType::Ski), (1, 1)),
-        (None, (2, 0)),
-        (Some(MoveType::Climb), (3, 0)),
+        (Some(MoveType::Ski), (0, 4)),
+        (None, (0, 6)),
+        (Some(MoveType::Climb), (1, 0)),
     ];
     assert_eq!(actual, expected);
 }
 
 #[test]
 fn unknown_then_good() {
-    let segments = Segments::new(vec![
-        vec![wp(1.0, 0.0, None), wp(2.0, 0.0, None), wp(3.0, 0.0, None)],
-        vec![wp(4.0, 0.0, None), wp(5.0, 0.0, None), wp(6.0, 0.0, None)],
-        vec![wp(7.0, 0.0, None), wp(8.0, 0.0, None), wp(9.0, 0.0, None)],
-    ]);
+    let segments = Segments::new(vec![vec![
+        wp(1.0, 0.0, None),
+        wp(2.0, 0.0, None),
+        wp(3.0, 0.0, None),
+        wp(4.0, 0.0, None),
+        wp(5.0, 0.0, None),
+        wp(6.0, 0.0, None),
+        wp(7.0, 0.0, None),
+        wp(8.0, 0.0, None),
+        wp(9.0, 0.0, None),
+    ]]);
     let move_types = cfs_none(&[
         (MoveType::Ski, 1.0, 3.0, 10.0),
         (MoveType::Climb, 1.0, 1.0, 5.0),
@@ -190,17 +226,23 @@ fn unknown_then_good() {
     let actual =
         process_moves(&CancellationToken::new(), &segments, &move_types)
             .unwrap();
-    let expected = vec![(Some(MoveType::Ski), (3, 0))];
+    let expected = vec![(Some(MoveType::Ski), (1, 0))];
     assert_eq!(actual, expected);
 }
 
 #[test]
 fn unknown_then_bad() {
-    let segments = Segments::new(vec![
-        vec![wp(1.0, 0.0, None), wp(2.0, 0.0, None), wp(3.0, 0.0, None)],
-        vec![wp(4.0, 0.0, None), wp(5.0, 0.0, None), wp(6.0, 0.0, None)],
-        vec![wp(7.0, 0.0, None), wp(8.0, 0.0, None), wp(9.0, 0.0, None)],
-    ]);
+    let segments = Segments::new(vec![vec![
+        wp(1.0, 0.0, None),
+        wp(2.0, 0.0, None),
+        wp(3.0, 0.0, None),
+        wp(4.0, 0.0, None),
+        wp(5.0, 0.0, None),
+        wp(6.0, 0.0, None),
+        wp(7.0, 0.0, None),
+        wp(8.0, 0.0, None),
+        wp(9.0, 0.0, None),
+    ]]);
     let move_types = cfs_none(&[
         (MoveType::Traverse, 0.0, 1.0, 2.0),
         (MoveType::Ski, 2.0, 5.0, 0.0),
@@ -211,8 +253,34 @@ fn unknown_then_bad() {
             .unwrap();
     let expected = vec![
         (Some(MoveType::Traverse), (0, 2)),
-        (None, (1, 0)),
-        (Some(MoveType::Climb), (3, 0)),
+        (None, (0, 3)),
+        (Some(MoveType::Climb), (1, 0)),
     ];
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn multiple_segments() {
+    let segments = Segments::new(vec![
+        vec![
+            wp(1.0, 0.0, None),
+            wp(2.0, 0.0, None),
+            wp(3.0, 0.0, None),
+            wp(4.0, 0.0, None),
+        ],
+        vec![
+            wp(5.0, 0.0, None),
+            wp(6.0, 0.0, None),
+            wp(7.0, 0.0, None),
+            wp(8.0, 0.0, None),
+            wp(9.0, 0.0, None),
+        ],
+    ]);
+    let move_types = cfs_none(&[(MoveType::Ski, 0.0, 1.0, 10.0)]);
+    let actual =
+        process_moves(&CancellationToken::new(), &segments, &move_types)
+            .unwrap();
+    let expected =
+        vec![(Some(MoveType::Ski), (1, 0)), (Some(MoveType::Ski), (2, 0))];
     assert_eq!(actual, expected);
 }
