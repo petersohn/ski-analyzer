@@ -56,13 +56,10 @@ impl AppState {
         self.config_path.push("ski-analyzer");
         self.config_file_path = self.config_path.join("config.json");
         self.ski_areas_path = self.config_path.join("ski_areas");
-        let config = match self.load_config() {
-            Ok(c) => c,
-            Err(err) => {
-                eprintln!("Failed to load config: {}", err);
-                Config::default()
-            }
-        };
+        let config = self.load_config().unwrap_or_else(|err| {
+            eprintln!("Failed to load config: {}", err);
+            Config::default()
+        });
 
         if let Some(uuid) = config.current_ski_area {
             if let Err(err) =
@@ -223,10 +220,10 @@ impl AppState {
     ) {
         self.get_config_mut().remove_ski_area(uuid);
         let config = self.get_config_mut();
-        let should_clear = match &config.current_ski_area {
-            None => false,
-            Some(saved) => saved == uuid,
-        };
+        let should_clear = config
+            .current_ski_area
+            .as_ref()
+            .map_or(false, |saved| saved == uuid);
 
         if should_clear {
             config.current_ski_area = None;

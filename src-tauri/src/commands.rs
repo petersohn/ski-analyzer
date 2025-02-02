@@ -217,10 +217,7 @@ fn load_gpx_inner(
     })?;
 
     let mut lock = state.inner().lock().map_err(|e| e.to_string())?;
-    if !match lock.get_ski_area() {
-        Some((uuid2, _)) => *uuid2 == uuid,
-        _ => false,
-    } {
+    if !lock.get_ski_area().map_or(false, |(u, _)| *u == uuid) {
         return Err(Box::new(ski_analyzer_lib::error::Error::new_s(
             ski_analyzer_lib::error::ErrorType::Cancelled,
             "Ski area changed",
@@ -317,11 +314,9 @@ pub fn get_active_route(
 ) -> Result<Option<String>, String> {
     let app_state = state.inner().lock().map_err(|e| e.to_string())?;
     let route = app_state.get_route();
-    let res = match route {
-        None => None,
-        Some(r) => Some(serde_json::to_string(&r).map_err(|e| e.to_string())?),
-    };
-    Ok(res)
+    route
+        .map(|r| serde_json::to_string(&r).map_err(|e| e.to_string()))
+        .transpose()
 }
 
 #[derive(Deserialize, Debug)]
@@ -348,14 +343,10 @@ where
     D: Deserializer<'de>,
 {
     let time_str: Option<String> = Option::deserialize(deserializer)?;
-    match time_str {
-        None => Ok(None),
-        Some(s) => {
-            let t = OffsetDateTime::parse(&s, &Rfc3339)
-                .map_err(serde::de::Error::custom)?;
-            Ok(Some(t))
-        }
-    }
+    time_str
+        .map(|s| OffsetDateTime::parse(&s, &Rfc3339))
+        .transpose()
+        .map_err(serde::de::Error::custom)
 }
 
 #[tauri::command]
