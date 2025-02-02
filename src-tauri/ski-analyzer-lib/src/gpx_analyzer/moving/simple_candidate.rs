@@ -1,8 +1,8 @@
+use geo::{Distance, Haversine};
 use gpx::Waypoint;
 
 use super::process::{Candidate, CandidateFactory};
-use crate::gpx_analyzer::{get_time_diff, DerivedData};
-use crate::utils::collection::Avg;
+use crate::gpx_analyzer::{get_elevation_diff, get_time_diff};
 
 #[derive(Debug, Clone, Copy)]
 pub enum ConstraintType {
@@ -45,15 +45,23 @@ impl Constraint {
 
 #[derive(Debug, Clone, Copy)]
 struct LineData {
-    data: DerivedData,
     distance: f64,
-    time_diff: f64,
+    elevation_diff: Option<f64>,
+    time_diff: Option<f64>,
 }
 
 impl LineData {
+    fn get_value(&self, type_: ConstraintType) -> (f64, f64) {
+        match (type_, self.elevation_diff, self.time_diff) {
+            (ConstraintType::Speed, _, Some(dt)) => (self.distance, dt),
+            (ConstraintType::Inclination, Some(de), _) => (de, self.distance),
+            _ => (0.0, 0.0),
+        }
+    }
+
     fn get_extent(&self, limit_type: ConstraintLimit) -> f64 {
         match limit_type {
-            ConstraintLimit::Time => self.time_diff,
+            ConstraintLimit::Time => self.time_diff.unwrap_or(0.0),
             ConstraintLimit::Distance => self.distance,
         }
     }
@@ -62,7 +70,7 @@ impl LineData {
 struct ConstraintAggregate {
     constraint: Constraint,
     first_id: usize,
-    value: Avg,
+    value: (f64, f64),
     extent: f64,
 }
 
@@ -71,13 +79,15 @@ impl ConstraintAggregate {
         Self {
             constraint,
             first_id: 0,
-            value: Avg::new(),
+            value: (0.0, 0.0),
             extent: 0.0,
         }
     }
 
-    fn add(&mut self, value: f64, distance: f64, line_data: &LineData) {
-        self.value.add2(value, distance);
+    fn add(&mut self, line_data: &LineData) {
+        let value = line_data.get_value(self.constraint.type_);
+        self.value.0 += value.0;
+        self.value.1 += value.1;
         self.extent += line_data.get_extent(self.constraint.limit_type);
     }
 
@@ -90,21 +100,20 @@ impl ConstraintAggregate {
                 break;
             }
 
-            let value_ = get_value(&data_to_remove.data, self.constraint.type_);
-            if let Some(value) = value_ {
-                self.value.remove2(value, data_to_remove.distance);
-                self.extent -= extent;
-            }
+            let value = data_to_remove.get_value(self.constraint.type_);
+            self.value.0 -= value.0;
+            self.value.1 -= value.1;
+            self.extent -= extent;
             self.first_id += 1;
         }
     }
 
     fn evaluate(&self) -> Option<bool> {
-        if self.extent < self.constraint.limit {
+        if self.extent < self.constraint.limit || self.value.1 == 0.0 {
             return None;
         }
 
-        let value = self.value.get();
+        let value = self.value.0 / self.value.1;
         Some(
             self.constraint.min.map_or(true, |m| value >= m)
                 && self.constraint.max.map_or(true, |m| value <= m),
@@ -129,32 +138,21 @@ impl SimpleCandidate {
     }
 }
 
-fn get_value(data: &DerivedData, type_: ConstraintType) -> Option<f64> {
-    match type_ {
-        ConstraintType::Speed => data.speed,
-        ConstraintType::Inclination => data.inclination,
-    }
-}
-
 impl Candidate for SimpleCandidate {
     fn add_line(&mut self, wp0: &Waypoint, wp1: &Waypoint) -> Option<bool> {
-        let (data, distance) = DerivedData::calculate_inner(wp0, wp1);
+        let distance = Haversine::distance(wp0.point(), wp1.point());
         let line_data = LineData {
-            data,
             distance,
-            time_diff: get_time_diff(wp0, wp1)
-                .map_or(0.0, |dt| dt.as_seconds_f64()),
+            elevation_diff: get_elevation_diff(wp0, wp1),
+            time_diff: get_time_diff(wp0, wp1).map(|d| d.as_seconds_f64()),
         };
         self.line_data.push(line_data);
 
         let mut has_not_evaluatable_constraint = false;
 
         for agg in &mut self.constraints {
-            let value_ = get_value(&data, agg.constraint.type_);
-            if let Some(value) = value_ {
-                agg.add(value, distance, &line_data);
-                agg.trim(&self.line_data);
-            }
+            agg.add(&line_data);
+            agg.trim(&self.line_data);
 
             match agg.evaluate() {
                 None => has_not_evaluatable_constraint = true,

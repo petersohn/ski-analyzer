@@ -1,5 +1,3 @@
-use num::Float;
-
 pub fn max_if<It, F, P, B>(it: It, mut func: F, mut pred: P) -> Option<It::Item>
 where
     It: Iterator,

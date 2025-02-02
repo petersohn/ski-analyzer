@@ -318,7 +318,7 @@ fn group_lift_candidates<'s>(
 fn commit_lift_candidates<'s>(
     candidates: Vec<LiftCandidate<'s>>,
     route: &Segments,
-) -> Vec<(ActivityType, SegmentCoordinate)> {
+) -> impl DoubleEndedIterator<Item = (ActivityType, SegmentCoordinate)> {
     let config = get_config();
     if config.is_vv() {
         let get_station = |s: &Option<usize>| match s {
@@ -385,7 +385,7 @@ fn commit_lift_candidates<'s>(
         current = next;
     }
     current.commit(route, coord, route.end_coord(), &mut result);
-    result
+    result.into_iter()
 }
 
 type Candidates<'s> = Vec<LiftCandidate<'s>>;
@@ -421,9 +421,13 @@ pub fn find_lift_usage<'s>(
             finished_candidates.append(&mut finished);
 
             if candidates.is_empty() && !finished_candidates.is_empty() {
-                let mut to_add = current_route.commit(route_segment, |r| {
-                    commit_lift_candidates(take(&mut finished_candidates), r)
-                });
+                let mut to_add =
+                    current_route.commit(Some(route_segment), |r| {
+                        commit_lift_candidates(
+                            take(&mut finished_candidates),
+                            r,
+                        )
+                    });
                 result.append(&mut to_add);
                 coordinate = (current_route.0.len(), route_segment.len());
             }

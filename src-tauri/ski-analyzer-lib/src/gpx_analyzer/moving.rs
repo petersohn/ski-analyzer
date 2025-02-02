@@ -1,3 +1,11 @@
+use super::{Activity, ActivityType, Segments};
+use crate::error::Result;
+use crate::ski_area::SkiArea;
+use crate::utils::cancel::CancellationToken;
+
+use move_type::get_move_candidates;
+use process::process_moves;
+
 use serde::{Deserialize, Serialize};
 
 mod move_type;
@@ -12,6 +20,28 @@ pub use move_type::MoveType;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Moving {
-    pub ski_type: MoveType,
+    pub move_type: MoveType,
     pub piste_id: String,
+}
+
+pub fn find_moves<'s>(
+    cancel: &CancellationToken,
+    _ski_area: &'s SkiArea,
+    mut segments: Segments,
+) -> Result<Vec<Activity>> {
+    let moves = process_moves(cancel, &segments, &get_move_candidates())?;
+
+    let result = segments.commit(None, |_segments| {
+        moves.into_iter().map(|(move_type, coord)| {
+            let activity_type =
+                move_type.map_or_else(ActivityType::default, |mt| {
+                    ActivityType::Moving(Moving {
+                        move_type: mt,
+                        piste_id: "".to_string(),
+                    })
+                });
+            (activity_type, coord)
+        })
+    });
+    Ok(result)
 }

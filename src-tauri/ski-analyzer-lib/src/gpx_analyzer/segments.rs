@@ -190,22 +190,23 @@ impl Segments {
         Ok(current_route)
     }
 
-    pub fn commit<F>(
+    pub fn commit<F, Ret>(
         &mut self,
-        route_segment: &mut Segment,
+        mut route_segment: Option<&mut Segment>,
         func: F,
     ) -> Vec<Activity>
     where
-        F: FnOnce(&Segments) -> Vec<(ActivityType, SegmentCoordinate)>,
+        F: FnOnce(&Segments) -> Ret,
+        Ret: DoubleEndedIterator<Item = (ActivityType, SegmentCoordinate)>,
     {
         let mut result = Vec::new();
-        let is_new_segment = route_segment.is_empty();
+        let is_new_segment =
+            route_segment.as_ref().map_or(true, |s| s.is_empty());
 
         if !is_new_segment {
-            self.0.push(take(route_segment));
+            self.0.push(take(route_segment.as_mut().unwrap()));
         }
         let mut to_add: Vec<Activity> = func(&self)
-            .into_iter()
             .rev()
             .map(|(t, c)| Activity::new(t, self.split_end(c)))
             .collect();
@@ -216,7 +217,7 @@ impl Segments {
         result.reserve(to_add.len());
         to_add.into_iter().rev().for_each(|r| result.push(r));
         if !is_new_segment {
-            route_segment.push(
+            route_segment.unwrap().push(
                 result
                     .last()
                     .unwrap()

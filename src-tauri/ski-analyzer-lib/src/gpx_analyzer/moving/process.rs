@@ -4,7 +4,7 @@ use std::mem::take;
 use gpx::Waypoint;
 
 use super::super::segments::Segments;
-use super::{move_type, MoveType};
+use super::MoveType;
 use crate::error::Result;
 use crate::gpx_analyzer::SegmentCoordinate;
 use crate::utils::cancel::CancellationToken;

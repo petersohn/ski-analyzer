@@ -20,11 +20,17 @@ export type RawUseLift = {
   is_reverse: boolean;
 };
 
+export type Moving = {
+  move_type: string;
+  piste_id: string;
+};
+
 export type RawActivityType = {
   Unknown?: null;
   UseLift?: RawUseLift;
   EnterLift?: string;
   ExitLift?: string;
+  Moving?: Moving;
 };
 
 export type RawActivity = {
@@ -59,13 +65,19 @@ export type UseLift = {
   is_reverse: boolean;
 };
 
-export type ActivityType = "Unknown" | "UseLift" | "EnterLift" | "ExitLift";
+export type ActivityType =
+  | "Unknown"
+  | "UseLift"
+  | "EnterLift"
+  | "ExitLift"
+  | "Moving";
 
 export type Activity = {
   type: ActivityType;
   useLift?: UseLift;
   enterLift?: Lift;
   exitLift?: Lift;
+  moving?: Moving;
   route: Segments;
   begin_time: Dayjs | null;
   end_time: Dayjs | null;
@@ -88,6 +100,7 @@ export class TrackConverter {
           useLift: this.convertUseLift(activity.type.UseLift),
           enterLift: this.getLift(activity.type.EnterLift),
           exitLift: this.getLift(activity.type.ExitLift),
+          moving: activity.type.Moving,
           route: this.convertRoute(activity.route),
           begin_time: dayjs(activity.begin_time),
           end_time: dayjs(activity.end_time),

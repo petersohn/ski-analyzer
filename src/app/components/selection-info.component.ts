@@ -118,9 +118,13 @@ export class SelectionInfoComponent {
     return lengths.map((l) => this.meters(l));
   });
 
-  public activityType = computed(
-    () => activityTypes[this.selectedActivity()?.type ?? "Unknown"],
-  );
+  public activityType = computed(() => {
+    const activity = this.selectedActivity();
+    if (activity?.type !== "Moving") {
+      return activityTypes[activity?.type ?? "Unknown"];
+    }
+    return this.selectedActivity()!.moving!.move_type;
+  });
   public activityLength = computed(() =>
     this.meters(this.selectedActivity()?.length ?? 0),
   );

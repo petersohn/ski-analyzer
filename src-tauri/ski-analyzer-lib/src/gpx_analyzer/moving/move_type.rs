@@ -18,10 +18,73 @@ pub enum MoveType {
 
 pub fn get_move_candidates() -> HashMap<MoveType, Box<dyn CandidateFactory>> {
     [
-        (MoveType::Ski, SimpleCandidateFactory::new(vec![])),
-        (MoveType::Wait, SimpleCandidateFactory::new(vec![])),
-        (MoveType::Climb, SimpleCandidateFactory::new(vec![])),
-        (MoveType::Traverse, SimpleCandidateFactory::new(vec![])),
+        (
+            MoveType::Ski,
+            SimpleCandidateFactory::new(vec![
+                Constraint::new(
+                    ConstraintType::Speed,
+                    Some(5.0),
+                    None,
+                    ConstraintLimit::Distance,
+                    100.0,
+                ),
+                Constraint::new(
+                    ConstraintType::Inclination,
+                    None,
+                    Some(-10.0),
+                    ConstraintLimit::Distance,
+                    300.0,
+                ),
+            ]),
+        ),
+        (
+            MoveType::Wait,
+            SimpleCandidateFactory::new(vec![Constraint::new(
+                ConstraintType::Speed,
+                None,
+                Some(1.0),
+                ConstraintLimit::Time,
+                20.0,
+            )]),
+        ),
+        (
+            MoveType::Climb,
+            SimpleCandidateFactory::new(vec![
+                Constraint::new(
+                    ConstraintType::Speed,
+                    Some(0.1),
+                    Some(2.0),
+                    ConstraintLimit::Time,
+                    30.0,
+                ),
+                Constraint::new(
+                    ConstraintType::Inclination,
+                    Some(5.0),
+                    None,
+                    ConstraintLimit::Distance,
+                    300.0,
+                ),
+            ]),
+        ),
+        (
+            MoveType::Traverse,
+            SimpleCandidateFactory::new(vec![
+                Constraint::new(
+                    ConstraintType::Speed,
+                    Some(0.1),
+                    Some(2.0),
+                    ConstraintLimit::Time,
+                    30.0,
+                ),
+                Constraint::new(
+                    ConstraintType::Inclination,
+                    Some(5.0),
+                    None,
+                    ConstraintLimit::Distance,
+                    300.0,
+                ),
+            ]),
+        ),
     ]
     .into()
 }

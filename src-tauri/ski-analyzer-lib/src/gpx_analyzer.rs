@@ -1,6 +1,7 @@
 use geo::{Distance, Haversine, Length, Line};
 use gpx::{Gpx, Time, Waypoint};
 use gpx_parser::parse_gpx;
+use moving::find_moves;
 use serde::{Deserialize, Serialize};
 use std::mem::take;
 use time::format_description::well_known::Iso8601;
@@ -118,7 +119,25 @@ pub fn analyze_route(
     gpx: Gpx,
 ) -> Result<AnalyzedRoute> {
     let mut segments = parse_gpx(gpx)?;
-    let result = find_lift_usage(cancel, ski_area, take(&mut segments.item))?;
+    let result0 = find_lift_usage(cancel, ski_area, take(&mut segments.item))?;
+
+    let mut result = Vec::new();
+    result.reserve(result0.len());
+    for activity in result0 {
+        let is_unknown = match activity.type_ {
+            ActivityType::Unknown(_) => true,
+            _ => false,
+        };
+        if !is_unknown {
+            result.push(activity);
+            continue;
+        }
+
+        for a in find_moves(cancel, ski_area, activity.route)? {
+            result.push(a);
+        }
+    }
+
     Ok(BoundedGeometry {
         item: result,
         bounding_rect: segments.bounding_rect,
@@ -155,14 +174,19 @@ fn get_speed(wp1: &Waypoint, wp2: &Waypoint) -> Option<f64> {
     get_speed_inner(wp1, wp2, distance)
 }
 
+fn get_elevation_diff(wp1: &Waypoint, wp2: &Waypoint) -> Option<f64> {
+    let e1 = wp1.elevation?;
+    let e2 = wp2.elevation?;
+    Some(e2 - e1)
+}
+
 fn get_inclination_inner(
     wp1: &Waypoint,
     wp2: &Waypoint,
     distance: f64,
 ) -> Option<f64> {
-    let e1 = wp1.elevation?;
-    let e2 = wp2.elevation?;
-    Some((e2 - e1) / distance)
+    let de = get_elevation_diff(wp1, wp2)?;
+    Some(de / distance)
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
