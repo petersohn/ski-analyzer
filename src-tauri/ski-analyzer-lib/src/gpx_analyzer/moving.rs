@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 mod move_type;
 mod process;
+mod simple_candidate;
 
 #[cfg(test)]
 mod process_test;
