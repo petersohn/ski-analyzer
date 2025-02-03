@@ -1,10 +1,13 @@
 use crate::config::{set_config, Config};
+use crate::gpx_analyzer::Segments;
 use crate::osm_reader as r;
 use crate::ski_area::{SkiArea, SkiAreaMetadata};
 use crate::utils::bounded_geometry::BoundedGeometry;
 
-use geo::{coord, LineString, Polygon, Rect};
+use geo::{coord, point, LineString, Polygon, Rect};
+use gpx::{Gpx, Track, TrackSegment, Waypoint};
 use rstest::fixture;
+use time::OffsetDateTime;
 
 use std::collections::HashMap;
 use std::fs::OpenOptions;
@@ -78,6 +81,33 @@ pub fn create_ski_area_metadata(name: String) -> SkiAreaMetadata {
             ),
         },
     }
+}
+
+pub fn segment(input: &[(f64, f64)]) -> TrackSegment {
+    let mut result = TrackSegment::new();
+    result.points = input
+        .iter()
+        .map(|(x, y)| Waypoint::new(point! { x: *x, y: *y }))
+        .collect();
+    result
+}
+
+pub fn make_gpx(input: Vec<TrackSegment>) -> Gpx {
+    let mut track = Track::new();
+    track.segments = input;
+    let mut result = Gpx::default();
+    result.tracks = vec![track];
+    result
+}
+
+pub fn get_segments(gpx: Gpx) -> Segments {
+    Segments::new(
+        gpx.tracks
+            .into_iter()
+            .map(|t| t.segments.into_iter().map(|s| s.points))
+            .flatten()
+            .collect(),
+    )
 }
 
 pub struct Init;

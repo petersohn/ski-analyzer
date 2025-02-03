@@ -14,6 +14,8 @@ mod simple_candidate;
 
 #[cfg(test)]
 mod process_test;
+#[cfg(test)]
+mod simple_candidate_test;
 
 pub use move_type::MoveType;
 

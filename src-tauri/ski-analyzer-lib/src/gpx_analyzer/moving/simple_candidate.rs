@@ -114,6 +114,10 @@ impl ConstraintAggregate {
         }
 
         let value = self.value.0 / self.value.1;
+        eprintln!(
+            "{} -> {} / {} = {}",
+            self.extent, self.value.0, self.value.1, value
+        );
         Some(
             self.constraint.min.map_or(true, |m| value >= m)
                 && self.constraint.max.map_or(true, |m| value <= m),
