@@ -125,7 +125,7 @@ export class MainMenuComponent {
     const result = (await lastValueFrom(dialogRef.afterClosed())) as UiConfig;
     if (result) {
       this.configService.autoFill(result);
-      this.configService.setConfig(result);
+      await this.configService.setConfig(result);
     }
   }
 }

@@ -13,9 +13,9 @@ export class ConfigService {
     this.init();
   }
 
-  public setConfig(config: UiConfig) {
-    this.config = { ...config };
-    this.mapTileUrl.set(config.mapTileUrl);
+  public async setConfig(config: UiConfig) {
+    this.setConfigInner(config);
+    await this.actionsService.setUiConfig(config);
   }
 
   public getConfig(): UiConfig {
@@ -48,5 +48,10 @@ export class ConfigService {
 
     this.setConfig(config);
     this.initialized.set(true);
+  }
+
+  public setConfigInner(config: UiConfig) {
+    this.config = { ...config };
+    this.mapTileUrl.set(config.mapTileUrl);
   }
 }
