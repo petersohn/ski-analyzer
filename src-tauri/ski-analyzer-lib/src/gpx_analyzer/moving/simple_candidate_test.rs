@@ -283,3 +283,62 @@ fn speed_minmax_nok_by_average(mut segment0: TrackSegment) {
         ],
     );
 }
+
+#[rstest]
+fn inclination_minmax_ok(mut segment0: TrackSegment) {
+    add_time_and_ele(
+        &mut segment0,
+        &[
+            (0.0, 100.0),
+            (1.0, 99.0),
+            (2.0, 98.0),
+            (3.0, 97.0),
+            (4.0, 96.0),
+            (5.0, 95.0),
+        ],
+    );
+    let candidate = SimpleCandidate::new([Constraint::new(
+        ConstraintType::Inclination,
+        Some(-0.12),
+        Some(-0.08),
+        ConstraintLimit::Distance,
+        25.0,
+    )]);
+    run_test(
+        candidate,
+        &segment0,
+        &[None, None, Some(true), Some(true), Some(true)],
+    );
+}
+
+#[rstest]
+fn inclination_minmax_too_steep(mut segment0: TrackSegment) {
+    add_time_and_ele(
+        &mut segment0,
+        &[(0.0, 100.0), (1.0, 98.0), (2.0, 96.0), (3.0, 94.0)],
+    );
+    let candidate = SimpleCandidate::new([Constraint::new(
+        ConstraintType::Inclination,
+        Some(-0.12),
+        Some(-0.08),
+        ConstraintLimit::Distance,
+        25.0,
+    )]);
+    run_test(candidate, &segment0, &[None, None, Some(false)]);
+}
+
+#[rstest]
+fn inclination_minmax_not_steep_enough(mut segment0: TrackSegment) {
+    add_time_and_ele(
+        &mut segment0,
+        &[(0.0, 100.0), (1.0, 99.50), (2.0, 99.0), (3.0, 98.5)],
+    );
+    let candidate = SimpleCandidate::new([Constraint::new(
+        ConstraintType::Inclination,
+        Some(-0.12),
+        Some(-0.08),
+        ConstraintLimit::Distance,
+        25.0,
+    )]);
+    run_test(candidate, &segment0, &[None, None, Some(false)]);
+}
