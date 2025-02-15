@@ -101,6 +101,11 @@ impl AppState {
         }
     }
 
+    fn save_config_immediately(&mut self) {
+        self.save_config();
+        self.window_saver.cancel();
+    }
+
     fn save_config_delayed<M: Manager<R>, R: Runtime>(&mut self, manager: &M) {
         let state = Arc::clone(manager.state::<AppStateType>().inner());
         self.window_saver.call(Box::new(move || {
@@ -168,7 +173,7 @@ impl AppState {
         serde_json::to_writer(file, ski_area)?;
 
         self.get_config_mut().save_current_ski_area(Some(*uuid));
-        self.save_config();
+        self.save_config_immediately();
 
         Ok(())
     }
@@ -203,7 +208,7 @@ impl AppState {
     ) -> std::result::Result<(), Box<dyn std::error::Error>> {
         self.load_cached_ski_area_inner(app_handle, uuid)?;
         if self.get_config_mut().save_current_ski_area(Some(*uuid)) {
-            self.save_config();
+            self.save_config_immediately();
         }
 
         Ok(())
@@ -232,7 +237,7 @@ impl AppState {
         }
 
         remove_file(&self.get_ski_area_path(uuid));
-        self.save_config();
+        self.save_config_immediately();
     }
 
     pub fn get_route(&self) -> Option<&AnalyzedRoute> {
@@ -365,6 +370,15 @@ impl AppState {
             task.cancel();
         }
         self.active_tasks.clear();
+    }
+
+    pub fn get_ui_config(&self) -> String {
+        self.get_config().ui_config.clone()
+    }
+
+    pub fn set_ui_config(&mut self, config: String) {
+        self.get_config_mut().ui_config = config;
+        self.save_config_immediately();
     }
 }
 

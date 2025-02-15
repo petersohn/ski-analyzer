@@ -13,6 +13,12 @@ import { lastValueFrom } from "rxjs";
 import { ActionsService } from "@/services/actions.service";
 import { MapService } from "@/services/map.service";
 import { SkiAreaChooserService } from "@/services/ski-area-chooser.service";
+import { ConfigService } from "@/services/config.service";
+import {
+  SettingsDialogComponent,
+  SettingsDialogData,
+} from "./settings-dialog.component";
+import { UiConfig } from "@/types/config";
 
 @Component({
   selector: "main-menu",
@@ -29,6 +35,7 @@ export class MainMenuComponent {
     public readonly mapService: MapService,
     public readonly actionsService: ActionsService,
     private readonly skiAreaChooserService: SkiAreaChooserService,
+    private readonly configService: ConfigService,
   ) {
     this.loading = this.actionsService.loading;
     this.hasSelectableSkiArea = this.skiAreaChooserService.hasChoosableSkiArea;
@@ -105,5 +112,20 @@ export class MainMenuComponent {
 
   public async cancelAllTasks(): Promise<void> {
     await this.actionsService.cancelAllTasks();
+  }
+
+  public async settings(): Promise<void> {
+    const config = this.configService.getConfig();
+    const dialogRef = this.dialog.open<
+      SettingsDialogComponent,
+      SettingsDialogData
+    >(SettingsDialogComponent, {
+      data: { config },
+    });
+    const result = (await lastValueFrom(dialogRef.afterClosed())) as UiConfig;
+    if (result) {
+      this.configService.autoFill(result);
+      this.configService.setConfig(result);
+    }
   }
 }

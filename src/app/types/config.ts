@@ -20,6 +20,13 @@ export type CachedSkiArea = {
   date: Dayjs;
 };
 
+export type MapTileType = "OpenStreetMap" | "Custom";
+
+export type UiConfig = {
+  mapTileType: MapTileType;
+  mapTileUrl: string;
+};
+
 export function convertCachedSkiAreas(
   input: RawCachedSkiArea[],
 ): CachedSkiArea[] {

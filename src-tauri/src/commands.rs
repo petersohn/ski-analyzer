@@ -452,3 +452,22 @@ pub fn cancel_all_tasks(
     app_state.cancel_all_tasks();
     Ok(())
 }
+
+#[tauri::command]
+pub fn get_ui_config(
+    state: tauri::State<AppStateType>,
+) -> Result<String, String> {
+    let app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    Ok(app_state.get_ui_config())
+}
+
+#[tauri::command]
+pub fn set_ui_config(
+    state: tauri::State<AppStateType>,
+    config: String,
+) -> Result<(), String> {
+    eprintln!("set_ui_config");
+    let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
+    app_state.set_ui_config(config);
+    Ok(())
+}

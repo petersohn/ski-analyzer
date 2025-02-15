@@ -55,6 +55,8 @@ pub fn run() {
             commands::get_cached_ski_areas_by_name,
             commands::remove_cached_ski_area,
             commands::cancel_all_tasks,
+            commands::get_ui_config,
+            commands::set_ui_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

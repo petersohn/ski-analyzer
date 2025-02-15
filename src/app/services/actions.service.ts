@@ -9,6 +9,7 @@ import {
   RawCachedSkiArea,
   convertCachedSkiAreas,
   CachedSkiArea,
+  UiConfig,
 } from "@/types/config";
 
 @Injectable({ providedIn: "root" })
@@ -94,6 +95,15 @@ export class ActionsService {
 
   public async cancelAllTasks(): Promise<void> {
     await invoke("cancel_all_tasks", {});
+  }
+
+  public async getUiConfig(): Promise<UiConfig | undefined> {
+    const config = (await invoke("get_ui_config", {})) as string;
+    return !!config ? JSON.parse(config) : undefined;
+  }
+
+  public async setUiConfig(config: UiConfig): Promise<void> {
+    await invoke("set_ui_config", { config: JSON.stringify(config) });
   }
 
   private async getAllCachedSkiAreas(): Promise<CachedSkiArea[]> {

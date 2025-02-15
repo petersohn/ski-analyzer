@@ -1,0 +1,35 @@
+<div class="dialog-background">
+  <h1 mat-dialog-title>Settings</h1>
+
+  <mat-dialog-content>
+    <form [formGroup]="formGroup">
+      <div class="field">
+        <mat-button-toggle-group formControlName="mapTileType">
+          <mat-button-toggle value="OpenStreetMap"
+            >OpenStreetMap</mat-button-toggle
+          >
+          <mat-button-toggle value="Custom">Custom</mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+
+      @if (formGroup.controls.mapTileType.value === "Custom") {
+        <div class="field">
+          <mat-form-field class="url-input">
+            <mat-label>URL</mat-label>
+            <input
+              matInput
+              formControlName="mapTileUrl"
+              placeholder="https://tile.example.com/{z}/{x}/{y}"
+            />
+          </mat-form-field>
+        </div>
+      }
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button mat-flat-button [disabled]="!formGroup.dirty" (click)="save()">
+      Save
+    </button>
+    <button mat-button mat-dialog-close>Cancel</button>
+  </mat-dialog-actions>
+</div>

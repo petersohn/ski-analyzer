@@ -1,4 +1,4 @@
-import { Injectable, signal } from "@angular/core";
+import { effect, Injectable, signal } from "@angular/core";
 import OlMap from "ol/Map";
 import OlView from "ol/View";
 import Layer from "ol/layer/Layer";
@@ -33,6 +33,7 @@ import { invoke } from "@tauri-apps/api/core";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import { MapConfig } from "@/types/config";
+import { ConfigService } from "./config.service";
 
 dayjs.extend(duration);
 
@@ -136,11 +137,7 @@ export class MapService {
   public readonly mapConfig = signal<MapConfig | undefined>(undefined);
 
   private map: OlMap | undefined;
-  private readonly baseLayer = new TileLayer({
-    source: new XYZ({
-      url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    }),
-  });
+  private baseLayer: Layer | undefined;
 
   private projection: Projection | undefined;
   private targetElement: HTMLElement | undefined;
@@ -164,7 +161,29 @@ export class MapService {
   constructor(
     private readonly mapStyleService: MapStyleService,
     private readonly actionsService: ActionsService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    effect(() => {
+      const url = this.configService.mapTileUrl();
+      if (!!this.map && !!this.baseLayer) {
+        this.map.removeLayer(this.baseLayer);
+      }
+
+      if (!url) {
+        return;
+      }
+
+      this.baseLayer = new TileLayer({
+        source: new XYZ({
+          url,
+        }),
+      });
+
+      if (!!this.map) {
+        this.map.getLayers().insertAt(0, this.baseLayer);
+      }
+    });
+  }
 
   public async createMap(targetElement: HTMLElement) {
     if (this.isInitialized()) {
@@ -176,7 +195,7 @@ export class MapService {
       interactions: defaultInteractions().extend([new EventHandler(this)]),
       keyboardEventTarget: document,
       target: targetElement,
-      layers: [this.baseLayer],
+      layers: !!this.baseLayer ? [this.baseLayer] : [],
       view: new OlView({
         center: [0, 0],
         zoom: 2,

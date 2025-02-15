@@ -81,6 +81,8 @@ pub struct Config {
     pub ski_areas: HashMap<Uuid, CachedSkiArea>,
     #[serde(default)]
     pub current_ski_area: Option<Uuid>,
+    #[serde(default)]
+    pub ui_config: String,
 }
 
 impl Config {
