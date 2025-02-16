@@ -31,7 +31,7 @@ pub fn get_move_candidates() -> HashMap<MoveType, Box<dyn CandidateFactory>> {
                 Constraint::new(
                     ConstraintType::Inclination,
                     None,
-                    Some(-0.1),
+                    Some(-0.05),
                     ConstraintLimit::Distance,
                     300.0,
                 ),
@@ -71,15 +71,15 @@ pub fn get_move_candidates() -> HashMap<MoveType, Box<dyn CandidateFactory>> {
             SimpleCandidateFactory::new(vec![
                 Constraint::new(
                     ConstraintType::Speed,
-                    Some(0.1),
-                    Some(2.0),
+                    Some(0.5),
+                    Some(5.0),
                     ConstraintLimit::Time,
                     30.0,
                 ),
                 Constraint::new(
                     ConstraintType::Inclination,
-                    Some(0.05),
-                    None,
+                    Some(-0.1),
+                    Some(0.1),
                     ConstraintLimit::Distance,
                     300.0,
                 ),
