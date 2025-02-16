@@ -79,6 +79,13 @@ impl Segments {
         self.0.get(coord.0).and_then(|s| s.get(coord.1))
     }
 
+    pub fn get_mut<'a>(
+        &'a mut self,
+        coord: SegmentCoordinate,
+    ) -> Option<&'a mut Waypoint> {
+        self.0.get_mut(coord.0).and_then(|s| s.get_mut(coord.1))
+    }
+
     pub fn begin_coord(&self) -> SegmentCoordinate {
         (0, 0)
     }

@@ -11,6 +11,7 @@ export type RawWaypoint = {
   hdop?: number;
   vdop?: number;
   speed?: number;
+  comment?: string;
 };
 
 export type RawUseLift = {
@@ -53,6 +54,7 @@ export type Waypoint = {
   hdop?: number;
   vdop?: number;
   speed?: number;
+  comment?: string;
 };
 
 export type Segment = Waypoint[];
@@ -147,6 +149,7 @@ export class TrackConverter {
           hdop: wp.hdop,
           vdop: wp.vdop,
           speed: wp.speed,
+          comment: wp.comment,
         };
       }),
     );

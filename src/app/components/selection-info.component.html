@@ -41,6 +41,11 @@
     name="Closest lift"
     [value]="closestLift()"
   ></name-value>
+  <name-value
+    *ngIf="waypointComment().length !== 0"
+    name="Comment"
+    [values]="waypointComment()"
+  ></name-value>
 </mat-card>
 
 <mat-card class="card" *ngIf="!!selectedPiste()">

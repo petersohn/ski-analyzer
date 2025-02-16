@@ -15,6 +15,7 @@ pub struct WaypointDef {
     elevation: Option<f64>,
     hdop: Option<f64>,
     vdop: Option<f64>,
+    comment: Option<String>,
 }
 
 impl From<Waypoint> for WaypointDef {
@@ -26,6 +27,7 @@ impl From<Waypoint> for WaypointDef {
             elevation: wp.elevation,
             hdop: wp.hdop,
             vdop: wp.vdop,
+            comment: wp.comment,
         }
     }
 }
@@ -38,6 +40,7 @@ impl Into<Waypoint> for WaypointDef {
         result.elevation = self.elevation;
         result.hdop = self.hdop;
         result.vdop = self.vdop;
+        result.comment = self.comment;
         result
     }
 }

@@ -31,7 +31,7 @@ pub fn find_moves<'s>(
     _ski_area: &'s SkiArea,
     mut segments: Segments,
 ) -> Result<Vec<Activity>> {
-    let moves = process_moves(cancel, &segments, &get_move_candidates())?;
+    let moves = process_moves(cancel, &mut segments, &get_move_candidates())?;
 
     let result = segments.commit(None, |_segments| {
         moves.into_iter().map(|(move_type, coord)| {

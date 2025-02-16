@@ -149,6 +149,11 @@ export class SelectionInfoComponent {
     return !!speed ? this.metersPerSecond(speed) : "";
   });
 
+  public waypointComment = computed(() => {
+    const comment = this.selectedWaypoint()?.comment ?? "";
+    return comment.split("\n");
+  });
+
   public speed = computed(() => {
     const speed = this.currentWaypointSpeed();
     return !!speed ? this.metersPerSecond(speed) : "";
