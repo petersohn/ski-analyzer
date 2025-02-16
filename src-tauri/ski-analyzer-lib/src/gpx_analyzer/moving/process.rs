@@ -33,6 +33,7 @@ struct Process<'a> {
     finished_candidates: Vec<FinishedCandidate>,
     result: Vec<(Option<MoveType>, SegmentCoordinate)>,
     last_commit: SegmentCoordinate,
+    comment: String,
 }
 
 impl<'a> Process<'a> {
@@ -46,6 +47,7 @@ impl<'a> Process<'a> {
             finished_candidates: Vec::new(),
             result: Vec::new(),
             last_commit: (0, 0),
+            comment: String::new(),
         }
     }
 
@@ -62,9 +64,8 @@ impl<'a> Process<'a> {
         coordinate: SegmentCoordinate,
         wp0: &Waypoint,
         wp1: &Waypoint,
-    ) -> (bool, String) {
+    ) -> bool {
         let mut to_remove: Vec<MoveType> = Vec::new();
-        let mut comment = String::new();
         for (move_type, (from, candidate)) in &mut self.candidates {
             let res = candidate.add_line(wp0, wp1);
             match res {
@@ -74,7 +75,8 @@ impl<'a> Process<'a> {
                     self.can_finish.entry(*move_type).or_insert(*from);
                 }
             };
-            comment.push_str(&format!("{move_type:?} -> {res:?}\n"));
+            self.comment
+                .push_str(&format!("{move_type:?} -> {res:?}\n"));
         }
 
         for move_type in &to_remove {
@@ -82,7 +84,7 @@ impl<'a> Process<'a> {
             self.finish(*move_type, coordinate);
         }
 
-        (!to_remove.is_empty(), comment)
+        !to_remove.is_empty()
     }
 
     fn finish(&mut self, move_type: MoveType, coordinate: SegmentCoordinate) {
@@ -91,6 +93,8 @@ impl<'a> Process<'a> {
         {
             let min = entry.remove();
             let max = coordinate;
+            self.comment
+                .push_str(&format!("finish {move_type:?}: {min:?}->{max:?}\n"));
             self.finished_candidates.push(FinishedCandidate {
                 move_type,
                 min,
@@ -111,19 +115,17 @@ impl<'a> Process<'a> {
         self.candidates.clear();
     }
 
-    fn commit(&mut self) -> String {
+    fn commit(&mut self) {
         if self.finished_candidates.is_empty() {
-            return String::new();
+            return;
         }
 
         let mut finished_candidates = take(&mut self.finished_candidates);
 
         finished_candidates.sort_by_key(|c| std::cmp::Reverse(c.min));
 
-        let mut comment = String::new();
-
         let mut push = |x, coord| {
-            comment.push_str(&format!("commit {coord:?} {x:?}\n"));
+            self.comment.push_str(&format!("commit {coord:?} {x:?}\n"));
             self.result.push((x, coord));
         };
 
@@ -136,9 +138,9 @@ impl<'a> Process<'a> {
                 .max_by_key(|c| c.max)
                 .unwrap();
             if to_commit.min != self.last_commit {
-                push(None, to_commit.min);
+                push(None, self.last_commit);
             }
-            push(Some(to_commit.move_type), to_commit.max);
+            push(Some(to_commit.move_type), to_commit.min);
             self.last_commit = to_commit.max;
             finished_candidates = finished_candidates
                 .into_iter()
@@ -150,8 +152,6 @@ impl<'a> Process<'a> {
                 }
             }
         }
-
-        comment
     }
 
     fn should_commit(&self, coordinate: SegmentCoordinate) -> bool {
@@ -172,42 +172,45 @@ pub fn process_moves(
         cancel.check()?;
         if coordinate.1 == 0 {
             process.finish_all(coordinate);
-            comments.insert(coordinate, process.commit());
+            process.commit();
             prev = Some(point);
             process.fill(coordinate);
+            comments.insert(coordinate, take(&mut process.comment));
             continue;
         }
 
         process.fill(coordinate);
-        let (was_finished, mut comment) =
-            process.add_point(coordinate, prev.unwrap(), point);
+        let was_finished = process.add_point(coordinate, prev.unwrap(), point);
         let should_commit = process.should_commit(coordinate);
-        comment.push_str(&format!(
+        process.comment.push_str(&format!(
             "was_finished={was_finished}, should_commit={should_commit}\n"
         ));
 
         if was_finished && should_commit {
-            comment.push_str(&process.commit());
+            process.commit();
         }
 
-        comments.insert(coordinate, comment);
+        comments.insert(coordinate, take(&mut process.comment));
         prev = Some(point);
-    }
-
-    let mut coordinate = segments.begin_coord();
-    while coordinate != segments.end_coord() {
-        if let Some(comment) = comments.get_mut(&coordinate) {
-            segments.get_mut(coordinate).as_mut().unwrap().comment =
-                Some(format!("{coordinate:?}\n{comment}"));
-        }
-        coordinate = segments.next_coord(coordinate);
     }
 
     let end = segments.end_coord();
     process.finish_all(end);
     process.commit();
+    comments.insert(end, take(&mut process.comment));
     if process.last_commit != end {
-        process.result.push((None, end));
+        process.result.push((None, process.last_commit));
     }
+
+    let mut coordinate = segments.begin_coord();
+    while coordinate != segments.end_coord() {
+        if let Some(comment) = comments.get_mut(&coordinate) {
+            let comment = format!("{coordinate:?}\n{comment}");
+            segments.get_mut(coordinate).as_mut().unwrap().comment =
+                Some(comment);
+        }
+        coordinate = segments.next_coord(coordinate);
+    }
+
     Ok(process.result)
 }
