@@ -1,4 +1,9 @@
-import { Component, Inject, ChangeDetectionStrategy } from "@angular/core";
+import {
+  Component,
+  HostListener,
+  Inject,
+  ChangeDetectionStrategy,
+} from "@angular/core";
 import {
   FormGroup,
   FormControl,
@@ -47,6 +52,13 @@ export class SettingsDialogComponent {
   ) {
     this.formGroup.controls.mapTileType.setValue(this.data.config.mapTileType);
     this.formGroup.controls.mapTileUrl.setValue(this.data.config.mapTileUrl);
+  }
+
+  @HostListener("window:keyup.enter")
+  public onEnter() {
+    if (this.formGroup.dirty) {
+      this.save();
+    }
   }
 
   public save() {
