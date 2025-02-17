@@ -1,4 +1,10 @@
-import { Component, input, output, computed } from "@angular/core";
+import {
+  Component,
+  ChangeDetectionStrategy,
+  input,
+  output,
+  computed,
+} from "@angular/core";
 import { MatButtonModule } from "@angular/material/button";
 import { MatListModule } from "@angular/material/list";
 import { MatIconModule } from "@angular/material/icon";
@@ -9,6 +15,7 @@ import { CachedSkiArea } from "@/types/config";
   templateUrl: "./cached-ski-area-item.component.html",
   styleUrl: "./cached-ski-area-item.component.scss",
   imports: [MatButtonModule, MatIconModule, MatListModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CachedSkiAreaItem {
   public skiArea = input.required<CachedSkiArea>();

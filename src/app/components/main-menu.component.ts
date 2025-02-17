@@ -1,4 +1,4 @@
-import { Component, Signal } from "@angular/core";
+import { Component, Signal, ChangeDetectionStrategy } from "@angular/core";
 import { MatButtonModule } from "@angular/material/button";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
@@ -25,6 +25,7 @@ import { UiConfig } from "@/types/config";
   imports: [MatButtonModule, MatDividerModule, MatIconModule, MatMenuModule],
   templateUrl: "./main-menu.component.html",
   styleUrls: ["./main-menu.component.scss"],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MainMenuComponent {
   public loading: Signal<boolean>;

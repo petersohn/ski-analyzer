@@ -1,4 +1,10 @@
-import { Component, OnInit, OnDestroy, Signal } from "@angular/core";
+import {
+  Component,
+  ChangeDetectionStrategy,
+  OnInit,
+  OnDestroy,
+  Signal,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { MatProgressBarModule } from "@angular/material/progress-bar";
@@ -23,6 +29,7 @@ import { MatIconRegistry } from "@angular/material/icon";
   ],
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.scss"],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent implements OnInit, OnDestroy {
   public loading: Signal<boolean>;

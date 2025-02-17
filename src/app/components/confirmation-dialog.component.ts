@@ -4,6 +4,7 @@ import {
   HostListener,
   ElementRef,
   AfterViewInit,
+  ChangeDetectionStrategy,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
@@ -27,6 +28,7 @@ export type ConfirmationDialogData = {
   templateUrl: "./confirmation-dialog.component.html",
   styleUrl: "./confirmation-dialog.component.scss",
   imports: [FormsModule, MatFormFieldModule, MatButtonModule, MatDialogModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConfirmationDialogComponent implements AfterViewInit {
   constructor(

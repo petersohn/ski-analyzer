@@ -1,4 +1,9 @@
-import { Component, input, computed } from "@angular/core";
+import {
+  Component,
+  ChangeDetectionStrategy,
+  input,
+  computed,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 
 @Component({
@@ -6,6 +11,7 @@ import { CommonModule } from "@angular/common";
   imports: [CommonModule],
   templateUrl: "./name-value.component.html",
   styleUrls: ["./name-value.component.scss"],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NameValueComponent {
   public name = input("");

@@ -6,6 +6,7 @@ import {
   ViewChild,
   effect,
   EffectRef,
+  ChangeDetectionStrategy,
 } from "@angular/core";
 import { MapService } from "@/services/map.service";
 import { ActionsService } from "@/services/actions.service";
@@ -17,6 +18,7 @@ import { SkiArea } from "@/types/skiArea";
   imports: [],
   templateUrl: "./map.component.html",
   styleUrls: ["./map.component.scss"],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MapComponent implements AfterViewInit, OnDestroy {
   @ViewChild("map")

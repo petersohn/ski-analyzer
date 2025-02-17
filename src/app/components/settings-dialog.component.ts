@@ -1,4 +1,4 @@
-import { Component, Inject } from "@angular/core";
+import { Component, Inject, ChangeDetectionStrategy } from "@angular/core";
 import {
   FormGroup,
   FormControl,
@@ -24,6 +24,7 @@ export type SettingsDialogData = {
   selector: "settings-dialog",
   templateUrl: "./settings-dialog.component.html",
   styleUrl: "./settings-dialog.component.scss",
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatButtonModule,
     MatButtonToggleModule,

@@ -1,4 +1,11 @@
-import { Component, ElementRef, Signal, computed, effect } from "@angular/core";
+import {
+  Component,
+  ElementRef,
+  Signal,
+  ChangeDetectionStrategy,
+  computed,
+  effect,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
 import { MatIconModule } from "@angular/material/icon";
@@ -56,6 +63,7 @@ const activityTypes: { [type: string]: string } = {
   imports: [CommonModule, MatCardModule, NameValueComponent, MatIconModule],
   templateUrl: "./selection-info.component.html",
   styleUrls: ["./selection-info.component.scss"],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SelectionInfoComponent {
   public selectedPiste: Signal<Piste | undefined>;

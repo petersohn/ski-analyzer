@@ -7,6 +7,7 @@ import {
   ViewChild,
   ElementRef,
   AfterViewInit,
+  ChangeDetectionStrategy,
 } from "@angular/core";
 import { MatListModule } from "@angular/material/list";
 import { MatInputModule } from "@angular/material/input";
@@ -33,6 +34,7 @@ import { lastValueFrom } from "rxjs";
   selector: "ski-area-selector",
   templateUrl: "./ski-area-selector.component.html",
   styleUrl: "./ski-area-selector.component.scss",
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatListModule,
     MatButtonModule,
