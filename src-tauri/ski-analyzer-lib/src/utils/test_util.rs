@@ -3,6 +3,7 @@ use crate::gpx_analyzer::Segments;
 use crate::osm_reader as r;
 use crate::ski_area::{SkiArea, SkiAreaMetadata};
 use crate::utils::bounded_geometry::BoundedGeometry;
+use crate::utils::json::save_to_file;
 
 use geo::{coord, point, LineString, Polygon, Rect};
 use gpx::{Gpx, Track, TrackSegment, Waypoint};
@@ -10,7 +11,6 @@ use rstest::fixture;
 use time::OffsetDateTime;
 
 use std::collections::HashMap;
-use std::fs::OpenOptions;
 
 pub fn node(x: f64, y: f64) -> r::Node {
     r::Node {
@@ -60,13 +60,7 @@ pub fn line(points: &[(f64, f64)]) -> LineString {
 }
 
 pub fn save_ski_area(piste: &SkiArea, filename: &str) {
-    let file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(filename)
-        .unwrap();
-    serde_json::to_writer_pretty(file, &piste).unwrap();
+    save_to_file(piste, filename).unwrap();
 }
 
 pub fn create_ski_area_metadata(name: String) -> SkiAreaMetadata {

@@ -1,5 +1,5 @@
 use ski_analyzer_lib::config::{set_config, Config};
-use ski_analyzer_lib::error::{convert_err, Error, ErrorType, Result};
+use ski_analyzer_lib::error::{Error, ErrorType, Result};
 use ski_analyzer_lib::gpx_analyzer::analyze_route;
 use ski_analyzer_lib::osm_query::{
     query_ski_area_details_by_id, query_ski_areas_by_name,
@@ -7,13 +7,13 @@ use ski_analyzer_lib::osm_query::{
 use ski_analyzer_lib::osm_reader::Document;
 use ski_analyzer_lib::ski_area::{SkiArea, SkiAreaMetadata};
 use ski_analyzer_lib::utils::cancel::CancellationToken;
+use ski_analyzer_lib::utils::json::{
+    load_from_file, save_to_file, save_to_file_pretty,
+};
 
 use clap::{Args, Parser, Subcommand};
 use gpx;
 use serde::Serialize;
-
-use std::fs::OpenOptions;
-use std::io::BufReader;
 
 #[derive(Parser)]
 struct ArgParser {
@@ -38,23 +38,11 @@ impl SerializedOutput {
     where
         T: Serialize,
     {
-        let file = convert_err(
-            OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(&self.output),
-            ErrorType::ExternalError,
-        )?;
-        convert_err(
-            if self.pretty {
-                serde_json::to_writer_pretty(file, &data)
-            } else {
-                serde_json::to_writer(file, &data)
-            },
-            ErrorType::ExternalError,
-        )?;
-        Ok(())
+        if self.pretty {
+            save_to_file_pretty(data, &self.output)
+        } else {
+            save_to_file(data, &self.output)
+        }
     }
 }
 
@@ -117,38 +105,18 @@ async fn main() -> Result<()> {
                 ski_area.clip_piste_lines();
             }
 
-            convert_err(
-                output.write_to_file(&ski_area),
-                ErrorType::ExternalError,
-            )?;
+            output.write_to_file(&ski_area)?;
         }
         Command::Gpx {
             input,
             area,
             output,
         } => {
-            let gpx: gpx::Gpx = {
-                let file = convert_err(
-                    OpenOptions::new().read(true).open(input),
-                    ErrorType::ExternalError,
-                )?;
-                let reader = BufReader::new(file);
-                convert_err(gpx::read(reader), ErrorType::ExternalError)?
-            };
+            let gpx: gpx::Gpx = load_from_file(input)?;
 
             // println!("{:#?}", gpx);
 
-            let ski_area: SkiArea = {
-                let file = convert_err(
-                    OpenOptions::new().read(true).open(area),
-                    ErrorType::ExternalError,
-                )?;
-                let reader = BufReader::new(file);
-                convert_err(
-                    serde_json::from_reader(reader),
-                    ErrorType::ExternalError,
-                )?
-            };
+            let ski_area: SkiArea = load_from_file(area)?;
 
             let result =
                 analyze_route(&CancellationToken::new(), &ski_area, gpx)?;

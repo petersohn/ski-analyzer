@@ -11,14 +11,13 @@ use ski_analyzer_lib::osm_query::{
 };
 use ski_analyzer_lib::osm_reader::Document;
 use ski_analyzer_lib::ski_area::{SkiArea, SkiAreaMetadata};
+use ski_analyzer_lib::utils::json::{load_from_file, save_to_file};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
 use core::str;
 use std::error::Error;
-use std::fs::OpenOptions;
-use std::io::BufReader;
 
 #[derive(Serialize, Deserialize)]
 pub struct CachedSkiAreaWithUuid {
@@ -48,8 +47,7 @@ fn load_ski_area_from_file_inner(
     state: tauri::State<AppStateType>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn Error>> {
-    let file = OpenOptions::new().read(true).open(path)?;
-    let ski_area = serde_json::from_reader(&file)?;
+    let ski_area = load_from_file(&path)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
     app_state.set_ski_area(&app_handle, ski_area);
     Ok(())
@@ -81,12 +79,7 @@ fn save_current_ski_area_to_file_inner(
             Some((_, s)) => s.clone(),
         }
     };
-    let file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(&path)?;
-    serde_json::to_writer(file, &ski_area)?;
+    save_to_file(&ski_area, &path)?;
     Ok(())
 }
 
@@ -195,9 +188,7 @@ fn load_gpx_inner(
     state: tauri::State<AppStateType>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn Error>> {
-    let file = OpenOptions::new().read(true).open(path)?;
-    let reader = BufReader::new(file);
-    let gpx = gpx::read(reader)?;
+    let gpx = load_from_file(&path)?;
 
     let (uuid, ski_area) = state
         .inner()
@@ -242,9 +233,7 @@ fn load_route_inner(
     state: tauri::State<AppStateType>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn Error>> {
-    let file = OpenOptions::new().read(true).open(path)?;
-    let reader = BufReader::new(file);
-    let route = serde_json::from_reader(reader)?;
+    let route = load_from_file(&path)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
     app_state.set_route(&app_handle, route);
     Ok(())
@@ -275,12 +264,7 @@ fn save_current_route_to_file_inner(
             Some(r) => (*r).clone(),
         }
     };
-    let file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(&path)?;
-    serde_json::to_writer(file, &route)?;
+    save_to_file(&route, &path)?;
     Ok(())
 }
 

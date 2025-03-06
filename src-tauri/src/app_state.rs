@@ -1,17 +1,21 @@
 use std::collections::HashMap;
-use std::fs::{create_dir_all, OpenOptions};
+use std::fs::create_dir_all;
 use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use serde::Serialize;
-use ski_analyzer_lib::error::Result;
+use ski_analyzer_lib::error::{Error, ErrorType, Result};
 use ski_analyzer_lib::gpx_analyzer::AnalyzedRoute;
 use ski_analyzer_lib::ski_area::SkiArea;
 use ski_analyzer_lib::utils::cancel::{
     Cancellable, CancellableTask, CancellationToken,
 };
+use ski_analyzer_lib::utils::json::{
+    load_from_file, load_from_file_if_exists, save_to_file,
+};
+
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, Position, Runtime, Size,
     Window, WindowEvent,
@@ -72,12 +76,8 @@ impl AppState {
         self.config = Some(config);
     }
 
-    fn load_config(
-        &self,
-    ) -> std::result::Result<Config, Box<dyn std::error::Error>> {
-        let file =
-            OpenOptions::new().read(true).open(&self.config_file_path)?;
-        Ok(serde_json::from_reader(file)?)
+    fn load_config(&self) -> Result<Config> {
+        load_from_file(&self.config_file_path)
     }
 
     fn save_config_inner(
@@ -85,14 +85,7 @@ impl AppState {
     ) -> std::result::Result<(), Box<dyn std::error::Error>> {
         create_dir_all(&self.config_path)?;
         eprintln!("save config -> {:?}", self.config_file_path);
-        let file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(&self.config_file_path)?;
-        serde_json::to_writer(file, self.get_config())?;
-
-        Ok(())
+        Ok(save_to_file(self.get_config(), &self.config_file_path)?)
     }
 
     fn save_config(&self) {
@@ -165,13 +158,7 @@ impl AppState {
         self.save_config_inner()?;
         create_dir_all(&self.ski_areas_path)?;
         let path = self.get_ski_area_path(uuid);
-        let file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(&path)?;
-        serde_json::to_writer(file, ski_area)?;
-
+        save_to_file(ski_area, &path)?;
         self.get_config_mut().save_current_ski_area(Some(*uuid));
         self.save_config_immediately();
 
@@ -186,17 +173,18 @@ impl AppState {
         &mut self,
         app_handle: &AppHandle<R>,
         uuid: &Uuid,
-    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
-        let file = OpenOptions::new()
-            .read(true)
-            .open(&self.get_ski_area_path(uuid));
-        if let Err(err) = &file {
-            if err.kind() == std::io::ErrorKind::NotFound {
-                self.remove_cached_ski_area(app_handle, uuid);
-            }
-        }
-
-        let result: SkiArea = serde_json::from_reader(file?)?;
+    ) -> Result<()> {
+        let result: SkiArea =
+            match load_from_file_if_exists(&self.get_ski_area_path(uuid))? {
+                None => {
+                    self.remove_cached_ski_area(app_handle, uuid);
+                    return Err(Error::new_s(
+                        ErrorType::ExternalError,
+                        "Ski area file not found",
+                    ));
+                }
+                Some(s) => s,
+            };
         self.set_ski_area_inner(app_handle, result.clone(), *uuid);
         Ok(())
     }
