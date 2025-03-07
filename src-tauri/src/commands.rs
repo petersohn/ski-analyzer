@@ -18,6 +18,8 @@ use uuid::Uuid;
 
 use core::str;
 use std::error::Error;
+use std::fs::OpenOptions;
+use std::io::BufReader;
 
 #[derive(Serialize, Deserialize)]
 pub struct CachedSkiAreaWithUuid {
@@ -188,7 +190,9 @@ fn load_gpx_inner(
     state: tauri::State<AppStateType>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn Error>> {
-    let gpx = load_from_file(&path)?;
+    let file = OpenOptions::new().read(true).open(path)?;
+    let reader = BufReader::new(file);
+    let gpx = gpx::read(reader)?;
 
     let (uuid, ski_area) = state
         .inner()
