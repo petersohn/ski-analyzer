@@ -69,6 +69,8 @@ pub struct CachedSkiArea {
     pub metadata: SkiAreaMetadata,
     #[serde(with = "time_ser")]
     pub date: OffsetDateTime,
+    #[serde(default)]
+    pub clipped_uuid: Option<Uuid>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -115,6 +117,7 @@ impl Config {
             CachedSkiArea {
                 metadata: ski_area.metadata.clone(),
                 date: ski_area.date,
+                clipped_uuid: None,
             },
         );
         uuid

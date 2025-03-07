@@ -198,7 +198,7 @@ fn load_gpx_inner(
         .inner()
         .lock()
         .map_err(|e| e.to_string())?
-        .get_ski_area()
+        .get_clipped_ski_area()
         .ok_or_else(|| {
             ski_analyzer_lib::error::Error::new_s(
                 ski_analyzer_lib::error::ErrorType::LogicError,

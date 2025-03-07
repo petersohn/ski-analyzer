@@ -155,14 +155,57 @@ impl AppState {
         ski_area: &SkiArea,
     ) -> std::result::Result<(), Box<dyn std::error::Error>> {
         self.window_saver.cancel();
-        self.save_config_inner()?;
-        create_dir_all(&self.ski_areas_path)?;
-        let path = self.get_ski_area_path(uuid);
-        save_to_file(ski_area, &path)?;
+        self.save_ski_area_inner(uuid, ski_area)?;
         self.get_config_mut().save_current_ski_area(Some(*uuid));
         self.save_config_immediately();
 
         Ok(())
+    }
+
+    fn save_ski_area_inner(
+        &mut self,
+        uuid: &Uuid,
+        ski_area: &SkiArea,
+    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        create_dir_all(&self.ski_areas_path)?;
+        let path = self.get_ski_area_path(uuid);
+        save_to_file(ski_area, &path)?;
+        Ok(())
+    }
+
+    pub fn get_clipped_ski_area(&mut self) -> Option<(Uuid, SkiArea)> {
+        let uuid = match self.ski_area.as_ref() {
+            None => return None,
+            Some(x) => x.0,
+        };
+
+        let cached_ski_area = self.get_config().ski_areas.get(&uuid).unwrap();
+        if let Some(clipped_uuid) = cached_ski_area.clipped_uuid {
+            let path = self.get_ski_area_path(&clipped_uuid);
+            let result: Result<SkiArea> = load_from_file(&path);
+            match result {
+                Ok(ski_area) => return Some((uuid, ski_area)),
+                Err(err) => {
+                    eprintln!("Failed to read cached clipped ski area: {}", err)
+                }
+            };
+        }
+
+        let mut clipped = self.ski_area.as_ref().unwrap().1.clone();
+        clipped.clip_piste_lines();
+        let clipped_uuid = Uuid::new_v4();
+        let path = self.get_ski_area_path(&clipped_uuid);
+        if let Err(err) = save_to_file(&clipped, &path) {
+            eprintln!("Failed to save clipped ski area: {}", err);
+            return Some((uuid, clipped));
+        }
+
+        let cached_ski_area_mut =
+            self.get_config_mut().ski_areas.get_mut(&uuid).unwrap();
+        cached_ski_area_mut.clipped_uuid = Some(clipped_uuid);
+        self.save_config_immediately();
+
+        Some((uuid, clipped))
     }
 
     fn get_ski_area_path(&self, uuid: &Uuid) -> PathBuf {
