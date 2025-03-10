@@ -4,13 +4,15 @@ use crate::config::{CachedSkiArea, MapConfig};
 use geo::{Intersects, Point, Rect};
 use gpx::Waypoint;
 use serde::{Deserialize, Deserializer, Serialize};
-use ski_analyzer_lib::gpx_analyzer::{analyze_route, DerivedData};
+use ski_analyzer_lib::error::{convert_err, ErrorType};
+use ski_analyzer_lib::gpx_analyzer::{analyze_route, get_lines, DerivedData};
 use ski_analyzer_lib::osm_query::{
     query_ski_area_details_by_id, query_ski_areas_by_coords,
     query_ski_areas_by_name,
 };
 use ski_analyzer_lib::osm_reader::Document;
 use ski_analyzer_lib::ski_area::{SkiArea, SkiAreaMetadata};
+use ski_analyzer_lib::utils::bounded_geometry::BoundedGeometry;
 use ski_analyzer_lib::utils::json::{load_from_file, save_to_file};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
@@ -185,51 +187,51 @@ pub fn load_cached_ski_area(
         .map_err(|e| e.to_string())
 }
 
-fn load_gpx_inner(
-    path: String,
-    state: tauri::State<AppStateType>,
-    app_handle: tauri::AppHandle,
-) -> Result<(), Box<dyn Error>> {
-    let file = OpenOptions::new().read(true).open(path)?;
-    let reader = BufReader::new(file);
-    let gpx = gpx::read(reader)?;
-
-    let (uuid, ski_area) = state
-        .inner()
-        .lock()
-        .map_err(|e| e.to_string())?
-        .get_clipped_ski_area()
-        .ok_or_else(|| {
-            ski_analyzer_lib::error::Error::new_s(
-                ski_analyzer_lib::error::ErrorType::LogicError,
-                "No ski area loaded",
-            )
-        })?
-        .clone();
-
-    let route = AppState::add_sync_task(&app_handle, |cancel| {
-        analyze_route(cancel, &ski_area, gpx)
-    })?;
-
-    let mut lock = state.inner().lock().map_err(|e| e.to_string())?;
-    if !lock.get_ski_area().map_or(false, |(u, _)| *u == uuid) {
-        return Err(Box::new(ski_analyzer_lib::error::Error::new_s(
-            ski_analyzer_lib::error::ErrorType::Cancelled,
-            "Ski area changed",
-        )));
-    }
-    lock.set_route(&app_handle, route);
-
-    Ok(())
-}
-
 #[tauri::command(async)]
 pub fn load_gpx(
     path: String,
     state: tauri::State<AppStateType>,
     app_handle: tauri::AppHandle,
-) -> Result<(), String> {
-    load_gpx_inner(path, state, app_handle).map_err(|e| e.to_string())
+) -> Result<(), ski_analyzer_lib::error::Error> {
+    let file = convert_err(
+        OpenOptions::new().read(true).open(path),
+        ErrorType::ExternalError,
+    )?;
+    let reader = BufReader::new(file);
+    let gpx = convert_err(gpx::read(reader), ErrorType::ExternalError)?;
+
+    let (uuid, ski_area) = {
+        let mut lock = state.inner().lock().unwrap();
+        let cached = lock.get_current_cached_ski_area().ok_or_else(|| {
+            ski_analyzer_lib::error::Error::new_s(
+                ski_analyzer_lib::error::ErrorType::BadSkiArea,
+                "No ski area loaded",
+            )
+        })?;
+        let line = BoundedGeometry::new(get_lines(&gpx))?;
+        if !cached.metadata.outline.intersects(&line) {
+            return Err(ski_analyzer_lib::error::Error::new_s(
+                ski_analyzer_lib::error::ErrorType::BadSkiArea,
+                "Wrong ski area for GPX",
+            ));
+        }
+        lock.get_clipped_ski_area().unwrap().clone()
+    };
+
+    let route = AppState::add_sync_task(&app_handle, |cancel| {
+        analyze_route(cancel, &ski_area, gpx)
+    })?;
+
+    let mut lock = state.inner().lock().unwrap();
+    if !lock.get_ski_area().map_or(false, |(u, _)| *u == uuid) {
+        return Err(ski_analyzer_lib::error::Error::new_s(
+            ski_analyzer_lib::error::ErrorType::Cancelled,
+            "Ski area changed",
+        ));
+    }
+    lock.set_route(&app_handle, route);
+
+    Ok(())
 }
 
 fn load_route_inner(

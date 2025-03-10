@@ -1,16 +1,19 @@
+use serde::Serialize;
 use std::fmt;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum ErrorType {
     InputError,
     OSMError,
     LogicError,
     ExternalError,
+    BadSkiArea,
     Cancelled,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Error {
+    #[serde(rename = "type")]
     type_: ErrorType,
     msg: String,
 }

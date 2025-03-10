@@ -1,4 +1,4 @@
-use geo::{BoundingRect, CoordFloat, CoordNum, Rect};
+use geo::{BoundingRect, CoordFloat, CoordNum, Intersects, Rect};
 use num_traits::cast::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
@@ -64,5 +64,17 @@ where
 {
     fn eq(&self, other: &Self) -> bool {
         self.item == other.item
+    }
+}
+
+impl<T, U, C> Intersects<BoundedGeometry<U, C>> for BoundedGeometry<T, C>
+where
+    C: CoordNum,
+    T: BoundingRect<C> + Intersects<U>,
+    U: BoundingRect<C>,
+{
+    fn intersects(&self, rhs: &BoundedGeometry<U, C>) -> bool {
+        self.bounding_rect.intersects(&rhs.bounding_rect)
+            && self.item.intersects(&rhs.item)
     }
 }

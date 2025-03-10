@@ -1,4 +1,4 @@
-use geo::{Distance, Haversine, Length, Line};
+use geo::{Distance, Haversine, Length, Line, MultiLineString};
 use gpx::{Gpx, Time, Waypoint};
 use gpx_parser::parse_gpx;
 use moving::find_moves;
@@ -223,4 +223,14 @@ impl DerivedData {
     pub fn calculate(wp1: &Waypoint, wp2: &Waypoint) -> Self {
         DerivedData::calculate_inner(wp1, wp2).0
     }
+}
+
+pub fn get_lines(gpx: &Gpx) -> MultiLineString {
+    MultiLineString::new(
+        gpx.tracks
+            .iter()
+            .map(|t| t.segments.iter().map(|s| s.linestring()))
+            .flatten()
+            .collect(),
+    )
 }

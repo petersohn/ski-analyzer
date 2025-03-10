@@ -278,6 +278,11 @@ impl AppState {
         self.save_config_immediately();
     }
 
+    pub fn get_current_cached_ski_area(&self) -> Option<&CachedSkiArea> {
+        let config = self.get_config();
+        config.ski_areas.get(&config.current_ski_area?)
+    }
+
     pub fn get_route(&self) -> Option<&AnalyzedRoute> {
         self.analyzed_route.as_ref()
     }
