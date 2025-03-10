@@ -254,8 +254,11 @@ impl AppState {
         app_handle: &AppHandle<R>,
         uuid: &Uuid,
     ) {
-        self.get_config_mut().remove_ski_area(uuid);
         let config = self.get_config_mut();
+        let clipped_uuid = config
+            .remove_ski_area(uuid)
+            .map(|x| x.clipped_uuid)
+            .flatten();
         let should_clear = config
             .current_ski_area
             .as_ref()
@@ -268,6 +271,10 @@ impl AppState {
         }
 
         remove_file(&self.get_ski_area_path(uuid));
+
+        if let Some(clipped) = clipped_uuid {
+            remove_file(&self.get_ski_area_path(&clipped));
+        }
         self.save_config_immediately();
     }
 

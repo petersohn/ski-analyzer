@@ -123,7 +123,7 @@ impl Config {
         uuid
     }
 
-    pub fn remove_ski_area(&mut self, uuid: &Uuid) {
-        self.ski_areas.remove(uuid);
+    pub fn remove_ski_area(&mut self, uuid: &Uuid) -> Option<CachedSkiArea> {
+        self.ski_areas.remove(uuid)
     }
 }
