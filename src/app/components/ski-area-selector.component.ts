@@ -176,13 +176,13 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
           return;
       }
     }
-    this.actionsService.loadSkiAreaFromId(skiArea.id);
-    this.close();
+    await this.actionsService.loadSkiAreaFromId(skiArea.id);
+    this.accept();
   }
 
-  public acceptCached(uuid: string) {
-    this.actionsService.loadCachedSkiArea(uuid);
-    this.close();
+  public async acceptCached(uuid: string) {
+    await this.actionsService.loadCachedSkiArea(uuid);
+    this.accept();
   }
 
   public deleteCached(skiArea: CachedSkiArea) {
@@ -196,11 +196,19 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
     }
   }
 
+  private accept() {
+    if (this.skiAreaChooserService.actionOnSelect) {
+      this.skiAreaChooserService.actionOnSelect();
+    }
+    this.close();
+  }
+
   public cancel() {
     this.close();
   }
 
   public close() {
+    this.skiAreaChooserService.actionOnSelect = null;
     this.mapService.clearOutline();
     this.skiAreaChooserService.clearChoosableSkiAreas();
   }

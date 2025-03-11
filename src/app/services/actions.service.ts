@@ -4,6 +4,7 @@ import { SkiAreaChooserService } from "./ski-area-chooser.service";
 import { RawSkiArea, SkiAreaMetadata } from "@/types/skiArea";
 import { DerivedData, RawTrack, Waypoint } from "@/types/track";
 import { Rect } from "@/types/geo";
+import { Error } from "@/types/error";
 import {
   MapConfig,
   RawCachedSkiArea,
@@ -53,7 +54,17 @@ export class ActionsService {
   }
 
   public async loadGpx(path: string): Promise<void> {
-    await this.doJob(invoke("load_gpx", { path }));
+    try {
+      await this.doJob(invoke("load_gpx", { path }));
+    } catch (e) {
+      const err = e as Error;
+      if (err.type === "NoSkiAreaAtLocation") {
+        this.skiAreaChooserService.actionOnSelect = () => {
+          this.loadGpx(path);
+        };
+        await this.findSkiAreasByCoords(err.details!);
+      }
+    }
   }
 
   public async loadRoute(path: string): Promise<void> {

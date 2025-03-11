@@ -278,6 +278,7 @@ impl<'s> LiftCandidate<'s> {
     }
 
     fn can_go_after(&self, other: &LiftCandidate) -> bool {
+        eprintln!("can_go_after {:?} -> {:?}", self, other);
         self.possible_begins.last().unwrap()
             >= other.possible_ends.first().unwrap()
     }

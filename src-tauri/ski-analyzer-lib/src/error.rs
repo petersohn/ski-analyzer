@@ -1,19 +1,21 @@
+use geo::Rect;
 use serde::Serialize;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[serde(tag = "type", content = "details")]
 pub enum ErrorType {
     InputError,
     OSMError,
     LogicError,
     ExternalError,
-    BadSkiArea,
+    NoSkiAreaAtLocation(Rect),
     Cancelled,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Error {
-    #[serde(rename = "type")]
+    #[serde(flatten)]
     type_: ErrorType,
     msg: String,
 }

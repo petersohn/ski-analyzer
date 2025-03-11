@@ -202,16 +202,20 @@ pub fn load_gpx(
 
     let (uuid, ski_area) = {
         let mut lock = state.inner().lock().unwrap();
+        let line = BoundedGeometry::new(get_lines(&gpx))?;
         let cached = lock.get_current_cached_ski_area().ok_or_else(|| {
             ski_analyzer_lib::error::Error::new_s(
-                ski_analyzer_lib::error::ErrorType::BadSkiArea,
+                ski_analyzer_lib::error::ErrorType::NoSkiAreaAtLocation(
+                    line.bounding_rect,
+                ),
                 "No ski area loaded",
             )
         })?;
-        let line = BoundedGeometry::new(get_lines(&gpx))?;
         if !cached.metadata.outline.intersects(&line) {
             return Err(ski_analyzer_lib::error::Error::new_s(
-                ski_analyzer_lib::error::ErrorType::BadSkiArea,
+                ski_analyzer_lib::error::ErrorType::NoSkiAreaAtLocation(
+                    line.bounding_rect,
+                ),
                 "Wrong ski area for GPX",
             ));
         }

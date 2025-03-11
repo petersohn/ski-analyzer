@@ -609,6 +609,51 @@ fn get_out_good_multisegment(
 
 #[rstest]
 #[named]
+fn get_out_good_multisegment_multiple_candidates(
+    _init: Init,
+    line00: LineString,
+    line01: LineString,
+    mut get_out_segment: TrackSegment,
+) {
+    let s = ski_area(
+        function_name!(),
+        vec![
+            lift("Lift 1".to_string(), line00, &[], false, false),
+            lift("Lift 2".to_string(), line01, &[], false, false),
+        ],
+    );
+    let mut seg2 = TrackSegment::new();
+    seg2.points
+        .append(&mut get_out_segment.points.split_off(28));
+    get_out_segment.points.pop();
+    let g = make_gpx(vec![get_out_segment, seg2]);
+    let segments = get_segments(g);
+
+    let expected: Vec<Activity> = vec![
+        Activity::new(
+            ActivityType::Unknown(()),
+            segments.clone_part((0, 0), (0, 3)),
+        ),
+        Activity::new(
+            ActivityType::UseLift(UseLift {
+                lift_id: "Lift 1".to_string(),
+                begin_station: Some(0),
+                end_station: None,
+                is_reverse: false,
+            }),
+            segments.clone_part((0, 2), (1, 0)),
+        ),
+        Activity::new(
+            ActivityType::Unknown(()),
+            segments.clone_part((1, 0), (1, 2)),
+        ),
+    ];
+
+    run(&s, segments, expected, function_name!());
+}
+
+#[rstest]
+#[named]
 fn get_in_bad(_init: Init, line00: LineString, get_in_segment: TrackSegment) {
     let s = ski_area(
         function_name!(),
