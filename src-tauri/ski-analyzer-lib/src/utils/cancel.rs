@@ -54,6 +54,7 @@ impl CancellableTask {
         let task = CancellableTask {
             abort_handle: handle.abort_handle(),
         };
+        // Convert Result<Result<R>> to Result<R>
         let fut = handle.map(|res| match res {
             Ok(r) => r,
             Err(e) => {

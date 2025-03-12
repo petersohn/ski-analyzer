@@ -208,7 +208,6 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
   }
 
   public close() {
-    this.skiAreaChooserService.actionOnSelect = null;
     this.mapService.clearOutline();
     this.skiAreaChooserService.clearChoosableSkiAreas();
   }

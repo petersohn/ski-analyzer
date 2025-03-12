@@ -12,10 +12,13 @@ export class SkiAreaChooserService {
       this.cachedSkiAreas().length !== 0,
   );
   private cachedSkiAreaMap: Map<string, CachedSkiArea> = new Map();
+  private loadId = 0;
 
   public actionOnSelect: (() => void | Promise<void>) | null = null;
 
   public clearChoosableSkiAreas(): void {
+    ++this.loadId;
+    this.actionOnSelect = null;
     this.loadedSkiAreas.set([]);
     this.cachedSkiAreaMap = new Map();
     this.updateCachedSkiAreas();
@@ -30,11 +33,23 @@ export class SkiAreaChooserService {
     cachedP: Promise<CachedSkiArea[]>,
     loadedP: Promise<SkiAreaMetadata[] | undefined>,
   ) {
+    const loadId = ++this.loadId;
     this.loadedSkiAreas.set(null);
+
     const cached = await cachedP;
+    if (loadId !== this.loadId) {
+      return;
+    }
+
     this.cachedSkiAreaMap = new Map(cached.map((c) => [c.uuid, c]));
     this.updateCachedSkiAreas();
-    this.loadedSkiAreas.set(await loadedP);
+
+    const loaded = await loadedP;
+    if (loadId !== this.loadId) {
+      return;
+    }
+
+    this.loadedSkiAreas.set(loaded);
   }
 
   private updateCachedSkiAreas() {
