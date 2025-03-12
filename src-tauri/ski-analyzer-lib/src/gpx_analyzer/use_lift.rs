@@ -233,11 +233,6 @@ impl<'s> LiftCandidate<'s> {
             };
             let begin_time = get_time(begin);
             let end_time = get_time(route.prev_coord(end));
-
-            eprintln!(
-                "Use lift {}-{}: {} {}",
-                begin_time, end_time, self.lift.ref_, self.lift.name
-            );
         }
         let lift_id = self.data.lift_id.clone();
 
@@ -278,7 +273,6 @@ impl<'s> LiftCandidate<'s> {
     }
 
     fn can_go_after(&self, other: &LiftCandidate) -> bool {
-        eprintln!("can_go_after {:?} -> {:?}", self, other);
         self.possible_begins.last().unwrap()
             >= other.possible_ends.first().unwrap()
     }

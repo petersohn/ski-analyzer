@@ -13,7 +13,7 @@ export class SkiAreaChooserService {
   );
   private cachedSkiAreaMap: Map<string, CachedSkiArea> = new Map();
 
-  public actionOnSelect: (() => void) | null = null;
+  public actionOnSelect: (() => void | Promise<void>) | null = null;
 
   public clearChoosableSkiAreas(): void {
     this.loadedSkiAreas.set([]);

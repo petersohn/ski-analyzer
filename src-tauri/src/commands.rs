@@ -460,7 +460,6 @@ pub fn set_ui_config(
     state: tauri::State<AppStateType>,
     config: String,
 ) -> Result<(), String> {
-    eprintln!("set_ui_config");
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
     app_state.set_ui_config(config);
     Ok(())

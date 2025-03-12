@@ -11,6 +11,12 @@ mod utils;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let default_panic = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        default_panic(info);
+        std::process::exit(1);
+    }));
+
     set_config(Config { verbose: 0 }).unwrap();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())

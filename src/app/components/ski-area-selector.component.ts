@@ -177,12 +177,12 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
       }
     }
     await this.actionsService.loadSkiAreaFromId(skiArea.id);
-    this.accept();
+    await this.accept();
   }
 
   public async acceptCached(uuid: string) {
     await this.actionsService.loadCachedSkiArea(uuid);
-    this.accept();
+    await this.accept();
   }
 
   public deleteCached(skiArea: CachedSkiArea) {
@@ -196,9 +196,9 @@ export class SkiAreaSelectorComponent implements AfterViewInit {
     }
   }
 
-  private accept() {
+  private async accept() {
     if (this.skiAreaChooserService.actionOnSelect) {
-      this.skiAreaChooserService.actionOnSelect();
+      await this.skiAreaChooserService.actionOnSelect();
     }
     this.close();
   }

@@ -60,7 +60,7 @@ export class ActionsService {
       const err = e as Error;
       if (err.type === "NoSkiAreaAtLocation") {
         this.skiAreaChooserService.actionOnSelect = () => {
-          this.loadGpx(path);
+          return this.loadGpx(path);
         };
         await this.findSkiAreasByCoords(err.details!);
       }
