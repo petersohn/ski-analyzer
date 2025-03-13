@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fs::create_dir_all;
-use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -9,9 +8,6 @@ use serde::Serialize;
 use ski_analyzer_lib::error::{Error, ErrorType, Result};
 use ski_analyzer_lib::gpx_analyzer::AnalyzedRoute;
 use ski_analyzer_lib::ski_area::SkiArea;
-use ski_analyzer_lib::utils::cancel::{
-    Cancellable, CancellableTask, CancellationToken,
-};
 use ski_analyzer_lib::utils::json::{
     load_from_file, load_from_file_if_exists, save_to_file,
 };
@@ -35,7 +31,6 @@ pub struct AppState {
     ski_area: Option<Arc<(Uuid, SkiArea)>>,
     analyzed_route: Option<AnalyzedRoute>,
     task_id: u64,
-    active_tasks: HashMap<u64, Arc<dyn Cancellable + Send + Sync>>,
 }
 
 fn remove_file(path: &Path) {
@@ -366,55 +361,6 @@ impl AppState {
         Ok(())
     }
 
-    fn add_task(&mut self, cancel: Arc<dyn Cancellable + Send + Sync>) -> u64 {
-        self.task_id += 1;
-        self.active_tasks.insert(self.task_id, cancel);
-        self.task_id
-    }
-
-    fn remove_task(&mut self, id: u64) {
-        self.active_tasks.remove(&id);
-    }
-
-    pub fn add_sync_task<M, R, F, Ret>(manager: &M, func: F) -> Result<Ret>
-    where
-        M: Manager<R>,
-        R: Runtime,
-        F: FnOnce(&CancellationToken) -> Result<Ret>,
-    {
-        let state = manager.state::<AppStateType>();
-        let cancel = Arc::new(CancellationToken::new());
-        let task_id = state.lock().unwrap().add_task(cancel.clone());
-        let ret = func(&*cancel);
-        state.lock().unwrap().remove_task(task_id);
-        ret
-    }
-
-    pub async fn add_async_task<M, R, F, Ret>(
-        manager: &M,
-        future: F,
-    ) -> Result<Ret>
-    where
-        M: Manager<R>,
-        R: Runtime,
-        F: Future<Output = Result<Ret>> + Send + 'static,
-        Ret: Send + 'static,
-    {
-        let state = manager.state::<AppStateType>();
-        let (fut, cancel) = CancellableTask::spawn(future);
-        let task_id = state.lock().unwrap().add_task(Arc::new(cancel));
-        let ret = fut.await;
-        state.lock().unwrap().remove_task(task_id);
-        ret
-    }
-
-    pub fn cancel_all_tasks(&mut self) {
-        for (_, task) in &self.active_tasks {
-            task.cancel();
-        }
-        self.active_tasks.clear();
-    }
-
     pub fn get_ui_config(&self) -> String {
         self.get_config().ui_config.clone()
     }
@@ -437,7 +383,6 @@ impl Default for AppState {
             ski_area: None,
             analyzed_route: None,
             task_id: 0,
-            active_tasks: HashMap::new(),
         }
     }
 }
