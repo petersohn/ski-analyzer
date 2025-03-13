@@ -9,15 +9,15 @@ use ski_analyzer_lib::utils::cancel::{
     Cancellable, CancellableTask, CancellationToken,
 };
 
-pub type TaskHandlerType = Arc<Mutex<TaskHandler>>;
+pub type TaskManagerType = Arc<Mutex<TaskManager>>;
 
 #[derive(Default)]
-pub struct TaskHandler {
+pub struct TaskManager {
     task_id: u64,
     active_tasks: HashMap<u64, Arc<dyn Cancellable + Send + Sync>>,
 }
 
-impl TaskHandler {
+impl TaskManager {
     fn add_task(&mut self, cancel: Arc<dyn Cancellable + Send + Sync>) -> u64 {
         self.task_id += 1;
         self.active_tasks.insert(self.task_id, cancel);
@@ -41,7 +41,7 @@ impl TaskHandler {
         R: Runtime,
         F: FnOnce(&CancellationToken) -> Result<Ret>,
     {
-        let state = manager.state::<TaskHandlerType>();
+        let state = manager.state::<TaskManagerType>();
         let cancel = Arc::new(CancellationToken::new());
         let task_id = state.lock().unwrap().add_task(cancel.clone());
         let ret = func(&*cancel);
@@ -59,7 +59,7 @@ impl TaskHandler {
         F: Future<Output = Result<Ret>> + Send + 'static,
         Ret: Send + 'static,
     {
-        let state = manager.state::<TaskHandlerType>();
+        let state = manager.state::<TaskManagerType>();
         let (fut, cancel) = CancellableTask::spawn(future);
         let task_id = state.lock().unwrap().add_task(Arc::new(cancel));
         let ret = fut.await;

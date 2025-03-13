@@ -1,6 +1,6 @@
 use crate::app_state::{AppState, AppStateType};
 use crate::config::{CachedSkiArea, MapConfig};
-use crate::task_handler::{TaskHandler, TaskHandlerType};
+use crate::task_manager::{TaskManager, TaskManagerType};
 
 use geo::{Intersects, Point, Rect};
 use gpx::Waypoint;
@@ -100,7 +100,7 @@ async fn find_ski_areas_by_name_inner(
     name: String,
     app_handle: tauri::AppHandle,
 ) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
-    let json = TaskHandler::add_async_task(&app_handle, async move {
+    let json = TaskManager::add_async_task(&app_handle, async move {
         query_ski_areas_by_name(name.as_str()).await
     })
     .await?;
@@ -122,7 +122,7 @@ async fn find_ski_areas_by_coords_inner(
     rect: Rect,
     app_handle: tauri::AppHandle,
 ) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
-    let json = TaskHandler::add_async_task(
+    let json = TaskManager::add_async_task(
         &app_handle,
         query_ski_areas_by_coords(rect),
     )
@@ -146,13 +146,13 @@ async fn load_ski_area_from_id_inner<'a>(
     state: tauri::State<'a, AppStateType>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn Error>> {
-    let json = TaskHandler::add_async_task(
+    let json = TaskManager::add_async_task(
         &app_handle,
         query_ski_area_details_by_id(id),
     )
     .await?;
     let doc = Document::parse(&json)?;
-    let ski_area = TaskHandler::add_sync_task(&app_handle, |cancel| {
+    let ski_area = TaskManager::add_sync_task(&app_handle, |cancel| {
         SkiArea::parse(cancel, &doc)
     })?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
@@ -227,7 +227,7 @@ pub fn load_gpx(
         lock.get_clipped_ski_area().unwrap().clone()
     };
 
-    let route = TaskHandler::add_sync_task(&app_handle, |cancel| {
+    let route = TaskManager::add_sync_task(&app_handle, |cancel| {
         analyze_route(cancel, &ski_area, gpx)
     })?;
 
@@ -445,9 +445,9 @@ pub fn remove_cached_ski_area(
 
 #[tauri::command]
 pub fn cancel_all_tasks(
-    task_handler: tauri::State<TaskHandlerType>,
+    task_manager: tauri::State<TaskManagerType>,
 ) -> Result<(), String> {
-    let mut lock = task_handler.inner().lock().map_err(|e| e.to_string())?;
+    let mut lock = task_manager.inner().lock().map_err(|e| e.to_string())?;
     lock.cancel_all_tasks();
     Ok(())
 }

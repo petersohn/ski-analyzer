@@ -1,6 +1,6 @@
 use app_state::{AppState, AppStateType};
 use ski_analyzer_lib::config::{set_config, Config};
-use task_handler::TaskHandler;
+use task_manager::TaskManager;
 use tauri::Manager;
 
 use std::sync::{Arc, Mutex};
@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 mod app_state;
 mod commands;
 mod config;
-mod task_handler;
+mod task_manager;
 mod utils;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -23,7 +23,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(Arc::new(Mutex::new(AppState::default())))
-        .manage(Arc::new(Mutex::new(TaskHandler::default())))
+        .manage(Arc::new(Mutex::new(TaskManager::default())))
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
