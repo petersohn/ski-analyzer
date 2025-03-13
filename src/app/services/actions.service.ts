@@ -12,12 +12,16 @@ import {
   CachedSkiArea,
   UiConfig,
 } from "@/types/config";
+import { TasksService } from "./tasks.service";
 
 @Injectable({ providedIn: "root" })
 export class ActionsService {
   public loading = signal(false);
 
-  constructor(private readonly skiAreaChooserService: SkiAreaChooserService) {}
+  constructor(
+    private readonly skiAreaChooserService: SkiAreaChooserService,
+    private readonly tasksService: TasksService,
+  ) {}
 
   public async loadSkiArea(path: string): Promise<void> {
     await invoke("load_ski_area_from_file", { path });
@@ -34,7 +38,10 @@ export class ActionsService {
   public async findSkiAreasByName(name: string): Promise<void> {
     const cached = this.getCachedSkiAreasByName(name);
     const loaded = this.doJob<SkiAreaMetadata[]>(
-      invoke("find_ski_areas_by_name", { name }),
+      (async () =>
+        this.tasksService.addTask(
+          await invoke("find_ski_areas_by_name", { name }),
+        ))(),
     );
     await this.skiAreaChooserService.selectSkiAreas(cached, loaded);
   }

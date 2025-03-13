@@ -1,6 +1,8 @@
 use crate::app_state::AppStateType;
 use crate::config::{CachedSkiArea, MapConfig};
-use crate::task_manager::{TaskManager, TaskManagerType};
+use crate::task_manager::{
+    do_with_task, TaskHandle, TaskManager, TaskManagerType,
+};
 
 use geo::{Intersects, Point, Rect};
 use gpx::Waypoint;
@@ -24,7 +26,7 @@ use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::BufReader;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct CachedSkiAreaWithUuid {
     uuid: Uuid,
     #[serde(flatten)]
@@ -97,10 +99,9 @@ pub fn save_current_ski_area_to_file(
 }
 
 async fn find_ski_areas_by_name_inner(
+    task: TaskHandle,
     name: String,
-    task_manager: tauri::State<'_, TaskManagerType>,
 ) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
-    let task = TaskManager::add_task((*task_manager).clone());
     let json = task
         .add_async_task(
             async move { query_ski_areas_by_name(name.as_str()).await },
@@ -113,11 +114,13 @@ async fn find_ski_areas_by_name_inner(
 #[tauri::command]
 pub async fn find_ski_areas_by_name(
     name: String,
-    task_manager: tauri::State<'_, TaskManagerType>,
-) -> Result<Vec<SkiAreaMetadata>, String> {
-    find_ski_areas_by_name_inner(name, task_manager)
-        .await
-        .map_err(|e| e.to_string())
+    app_handle: tauri::AppHandle,
+) -> u64 {
+    do_with_task(app_handle, move |task| async move {
+        find_ski_areas_by_name_inner(task, name)
+            .await
+            .map_err(|e| e.to_string())
+    })
 }
 
 async fn find_ski_areas_by_coords_inner(

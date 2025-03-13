@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use serde::Serialize;
 use ski_analyzer_lib::error::{Error, ErrorType, Result};
 use ski_analyzer_lib::gpx_analyzer::AnalyzedRoute;
 use ski_analyzer_lib::ski_area::SkiArea;
@@ -13,13 +12,14 @@ use ski_analyzer_lib::utils::json::{
 };
 
 use tauri::{
-    AppHandle, Emitter, Manager, PhysicalPosition, Position, Runtime, Size,
-    Window, WindowEvent,
+    AppHandle, Manager, PhysicalPosition, Position, Runtime, Size, Window,
+    WindowEvent,
 };
 use uuid::Uuid;
 
 use crate::config::{CachedSkiArea, Config, MapConfig, WindowConfig};
 use crate::utils::delayed_action::DelayedAction;
+use crate::utils::event::emit_event;
 
 pub struct AppState {
     config_path: PathBuf,
@@ -35,16 +35,6 @@ pub struct AppState {
 fn remove_file(path: &Path) {
     if let Err(err) = std::fs::remove_file(path) {
         eprintln!("Failed to remove {:?}: {}", path, err);
-    }
-}
-
-fn emit_event<T: Serialize + Clone, R: Runtime>(
-    app_handle: &AppHandle<R>,
-    name: &str,
-    data: &T,
-) {
-    if let Err(err) = app_handle.emit(name, data) {
-        eprintln!("Failed to send event {}: {}", name, err);
     }
 }
 

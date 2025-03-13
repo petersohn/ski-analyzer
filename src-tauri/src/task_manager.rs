@@ -1,11 +1,15 @@
+use serde::Serialize;
 use std::collections::HashMap;
 use std::future::Future;
 use std::sync::{Arc, Mutex};
+use tauri::{AppHandle, Manager, Runtime};
 
 use ski_analyzer_lib::error::{Error, ErrorType, Result};
 use ski_analyzer_lib::utils::cancel::{
     Cancellable, CancellableTask, CancellationToken,
 };
+
+use crate::utils::event::emit_event;
 
 pub type TaskManagerType = Arc<Mutex<TaskManager>>;
 
@@ -119,4 +123,46 @@ impl Drop for TaskHandle {
     fn drop(&mut self) {
         self.manager.lock().unwrap().active_tasks.remove(&self.id);
     }
+}
+
+#[derive(Serialize, Clone)]
+pub struct TaskResult<T>
+where
+    T: Serialize + Clone,
+{
+    task_id: u64,
+    data: T,
+}
+
+pub fn do_with_task<Fut, R, Ret, Err>(
+    app_handle: AppHandle<R>,
+    func: impl FnOnce(TaskHandle) -> Fut,
+) -> u64
+where
+    Fut: Future<Output = std::result::Result<Ret, Err>> + Send + 'static,
+    Ret: Serialize + Clone,
+    Err: Serialize + Clone,
+    R: Runtime,
+{
+    let task_manager = app_handle.state::<TaskManagerType>();
+    let task = TaskManager::add_task((*task_manager).clone());
+    let task_id = task.id;
+    let future = func(task);
+
+    tauri::async_runtime::spawn(async move {
+        match future.await {
+            Ok(data) => emit_event(
+                &app_handle,
+                "task_finished",
+                &TaskResult { task_id, data },
+            ),
+            Err(data) => emit_event(
+                &app_handle,
+                "task_failed",
+                &TaskResult { task_id, data },
+            ),
+        }
+    });
+
+    task_id
 }
