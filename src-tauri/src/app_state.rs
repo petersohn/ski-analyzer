@@ -30,7 +30,6 @@ pub struct AppState {
     window_saver: DelayedAction,
     ski_area: Option<Arc<(Uuid, SkiArea)>>,
     analyzed_route: Option<AnalyzedRoute>,
-    task_id: u64,
 }
 
 fn remove_file(path: &Path) {
@@ -382,7 +381,6 @@ impl Default for AppState {
             window_saver: DelayedAction::new(Duration::from_secs(2)),
             ski_area: None,
             analyzed_route: None,
-            task_id: 0,
         }
     }
 }
