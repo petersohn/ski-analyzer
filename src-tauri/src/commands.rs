@@ -1,4 +1,4 @@
-use crate::app_state::{AppState, AppStateType};
+use crate::app_state::AppStateType;
 use crate::config::{CachedSkiArea, MapConfig};
 use crate::task_manager::{TaskManager, TaskManagerType};
 
@@ -98,12 +98,14 @@ pub fn save_current_ski_area_to_file(
 
 async fn find_ski_areas_by_name_inner(
     name: String,
-    app_handle: tauri::AppHandle,
+    task_manager: tauri::State<'_, TaskManagerType>,
 ) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
-    let json = TaskManager::add_async_task(&app_handle, async move {
-        query_ski_areas_by_name(name.as_str()).await
-    })
-    .await?;
+    let task = TaskManager::add_task((*task_manager).clone());
+    let json = task
+        .add_async_task(
+            async move { query_ski_areas_by_name(name.as_str()).await },
+        )
+        .await?;
     let doc = Document::parse(&json)?;
     Ok(SkiAreaMetadata::find(&doc)?)
 }
@@ -111,22 +113,19 @@ async fn find_ski_areas_by_name_inner(
 #[tauri::command]
 pub async fn find_ski_areas_by_name(
     name: String,
-    app_handle: tauri::AppHandle,
+    task_manager: tauri::State<'_, TaskManagerType>,
 ) -> Result<Vec<SkiAreaMetadata>, String> {
-    find_ski_areas_by_name_inner(name, app_handle)
+    find_ski_areas_by_name_inner(name, task_manager)
         .await
         .map_err(|e| e.to_string())
 }
 
 async fn find_ski_areas_by_coords_inner(
     rect: Rect,
-    app_handle: tauri::AppHandle,
+    task_manager: tauri::State<'_, TaskManagerType>,
 ) -> Result<Vec<SkiAreaMetadata>, Box<dyn Error>> {
-    let json = TaskManager::add_async_task(
-        &app_handle,
-        query_ski_areas_by_coords(rect),
-    )
-    .await?;
+    let task = TaskManager::add_task((*task_manager).clone());
+    let json = task.add_async_task(query_ski_areas_by_coords(rect)).await?;
     let doc = Document::parse(&json)?;
     Ok(SkiAreaMetadata::find(&doc)?)
 }
@@ -134,27 +133,25 @@ async fn find_ski_areas_by_coords_inner(
 #[tauri::command]
 pub async fn find_ski_areas_by_coords(
     rect: Rect,
-    app_handle: tauri::AppHandle,
+    task_manager: tauri::State<'_, TaskManagerType>,
 ) -> Result<Vec<SkiAreaMetadata>, String> {
-    find_ski_areas_by_coords_inner(rect, app_handle)
+    find_ski_areas_by_coords_inner(rect, task_manager)
         .await
         .map_err(|e| e.to_string())
 }
 
-async fn load_ski_area_from_id_inner<'a>(
+async fn load_ski_area_from_id_inner(
     id: u64,
-    state: tauri::State<'a, AppStateType>,
+    state: tauri::State<'_, AppStateType>,
+    task_manager: tauri::State<'_, TaskManagerType>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn Error>> {
-    let json = TaskManager::add_async_task(
-        &app_handle,
-        query_ski_area_details_by_id(id),
-    )
-    .await?;
+    let task = TaskManager::add_task((*task_manager).clone());
+    let json = task
+        .add_async_task(query_ski_area_details_by_id(id))
+        .await?;
     let doc = Document::parse(&json)?;
-    let ski_area = TaskManager::add_sync_task(&app_handle, |cancel| {
-        SkiArea::parse(cancel, &doc)
-    })?;
+    let ski_area = task.add_sync_task(|cancel| SkiArea::parse(cancel, &doc))?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
 
     app_state.set_ski_area(&app_handle, ski_area);
@@ -162,12 +159,13 @@ async fn load_ski_area_from_id_inner<'a>(
 }
 
 #[tauri::command]
-pub async fn load_ski_area_from_id<'a>(
+pub async fn load_ski_area_from_id(
     id: u64,
-    state: tauri::State<'a, AppStateType>,
+    state: tauri::State<'_, AppStateType>,
+    task_manager: tauri::State<'_, TaskManagerType>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
-    load_ski_area_from_id_inner(id, state, app_handle)
+    load_ski_area_from_id_inner(id, state, task_manager, app_handle)
         .await
         .map_err(|e| e.to_string())
 }
@@ -196,6 +194,7 @@ pub fn load_cached_ski_area(
 pub fn load_gpx(
     path: String,
     state: tauri::State<AppStateType>,
+    task_manager: tauri::State<'_, TaskManagerType>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), ski_analyzer_lib::error::Error> {
     let file = convert_err(
@@ -227,9 +226,9 @@ pub fn load_gpx(
         lock.get_clipped_ski_area().unwrap().clone()
     };
 
-    let route = TaskManager::add_sync_task(&app_handle, |cancel| {
-        analyze_route(cancel, &ski_area, gpx)
-    })?;
+    let task = TaskManager::add_task((*task_manager).clone());
+    let route =
+        task.add_sync_task(|cancel| analyze_route(cancel, &ski_area, gpx))?;
 
     let mut lock = state.inner().lock().unwrap();
     if !lock.get_ski_area().map_or(false, |(u, _)| *u == uuid) {
