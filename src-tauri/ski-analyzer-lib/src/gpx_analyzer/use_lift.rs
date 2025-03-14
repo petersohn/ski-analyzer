@@ -137,11 +137,11 @@ impl<'s> LiftCandidate<'s> {
     }
 
     fn leave(&mut self, coordinate: SegmentCoordinate) -> LiftResult {
-        if coordinate.1 == 0 // We might have lost some data
+        if !self.possible_ends.is_empty()
+            && (coordinate.1 == 0 // We might have lost some data
                     // You fell out of a draglift
-                    || (self.lift.can_disembark
-                        && !self.possible_ends.is_empty())
-                    || self.data.end_station.is_some()
+                    || self.lift.can_disembark
+                    || self.data.end_station.is_some())
         {
             self.transition(LiftResult::Finished)
         } else {
@@ -184,6 +184,9 @@ impl<'s> LiftCandidate<'s> {
                 if self.data.begin_station == Some(s) {
                     self.possible_begins.push(coordinate);
                 } else {
+                    if self.data.end_station.is_none() {
+                        self.possible_ends.clear();
+                    }
                     self.data.end_station = station;
                     self.possible_ends.push(coordinate);
                 }
@@ -191,9 +194,7 @@ impl<'s> LiftCandidate<'s> {
             None => {
                 self.data.end_station = None;
                 self.possible_ends.clear();
-                if self.lift.can_disembark {
-                    self.possible_ends.push(coordinate);
-                }
+                self.possible_ends.push(coordinate);
             }
         }
         LiftResult::NotFinished
