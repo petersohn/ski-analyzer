@@ -30,7 +30,7 @@ impl TaskState {
                 Ok(())
             }
             TaskState::Active(_) => {
-                panic!("Cannot have multiple tasks active at a time.")
+                panic!("Task is already active.")
             }
             TaskState::Cancelled => {
                 Err(Error::new_s(ErrorType::Cancelled, "cancelled"))
@@ -54,36 +54,36 @@ impl TaskState {
 
 #[derive(Default)]
 pub struct TaskManager {
-    task_id: u64,
-    active_tasks: HashMap<u64, TaskState>,
+    latest_task_id: u64,
+    tasks: HashMap<u64, TaskState>,
 }
 
 impl TaskManager {
     pub fn add_task(manager: TaskManagerType) -> TaskHandle {
         let id = {
             let mut lock = manager.lock().unwrap();
-            lock.task_id += 1;
-            let id = lock.task_id;
-            lock.active_tasks.insert(id, TaskState::Passive);
+            lock.latest_task_id += 1;
+            let id = lock.latest_task_id;
+            lock.tasks.insert(id, TaskState::Passive);
             id
         };
         TaskHandle { manager, id }
     }
 
     pub fn cancel_all_tasks(&mut self) {
-        for (_, task) in &mut self.active_tasks {
+        for (_, task) in &mut self.tasks {
             task.cancel();
         }
     }
 
     pub fn cancel_task(&mut self, task_id: u64) {
-        if let Some(task) = self.active_tasks.get_mut(&task_id) {
+        if let Some(task) = self.tasks.get_mut(&task_id) {
             task.cancel();
         }
     }
 
     fn get_task(&mut self, id: u64) -> &mut TaskState {
-        self.active_tasks.get_mut(&id).unwrap()
+        self.tasks.get_mut(&id).unwrap()
     }
 }
 
@@ -127,7 +127,7 @@ impl TaskHandle {
 
 impl Drop for TaskHandle {
     fn drop(&mut self) {
-        self.manager.lock().unwrap().active_tasks.remove(&self.id);
+        self.manager.lock().unwrap().tasks.remove(&self.id);
     }
 }
 
