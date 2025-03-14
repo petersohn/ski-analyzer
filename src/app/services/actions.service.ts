@@ -43,30 +43,34 @@ export class ActionsService {
 
   public async findSkiAreasByName(name: string): Promise<void> {
     const cached = this.getCachedSkiAreasByName(name);
+    const loadedTaskId = (await invoke("find_ski_areas_by_name", {
+      name,
+    })) as number;
     const loaded = this.doJob<SkiAreaMetadata[]>(
-      (async () =>
-        this.tasksService.addTask(
-          await invoke("find_ski_areas_by_name", { name }),
-        ))(),
+      this.tasksService.addTask(loadedTaskId),
     );
-    await this.skiAreaChooserService.selectSkiAreas(cached, loaded);
+    await this.skiAreaChooserService.selectSkiAreas(cached, loaded, () =>
+      this.cancelTask(loadedTaskId),
+    );
   }
 
   public async findSkiAreasByCoords(rect: Rect): Promise<void> {
     const cached = this.getCachedSkiAreasForArea(rect);
+    const loadedTaskId = (await invoke("find_ski_areas_by_coords", {
+      rect,
+    })) as number;
     const loaded = this.doJob<SkiAreaMetadata[]>(
-      (async () =>
-        this.tasksService.addTask(
-          await invoke("find_ski_areas_by_coords", { rect }),
-        ))(),
+      this.tasksService.addTask(loadedTaskId),
     );
-    await this.skiAreaChooserService.selectSkiAreas(cached, loaded);
+    await this.skiAreaChooserService.selectSkiAreas(cached, loaded, () =>
+      this.cancelTask(loadedTaskId),
+    );
   }
 
   public async findCachedSkiAreas(): Promise<void> {
     const cached = this.getAllCachedSkiAreas();
     const loaded = Promise.resolve(undefined);
-    await this.skiAreaChooserService.selectSkiAreas(cached, loaded);
+    await this.skiAreaChooserService.selectSkiAreas(cached, loaded, undefined);
   }
 
   public async loadGpx(path: string): Promise<void> {
@@ -125,6 +129,10 @@ export class ActionsService {
 
   public async cancelAllTasks(): Promise<void> {
     await invoke("cancel_all_tasks", {});
+  }
+
+  public async cancelTask(taskId: number): Promise<void> {
+    await invoke("cancel_task", { taskId });
   }
 
   public async getUiConfig(): Promise<UiConfig | undefined> {

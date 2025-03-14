@@ -457,6 +457,16 @@ pub fn cancel_all_tasks(
 }
 
 #[tauri::command]
+pub fn cancel_task(
+    task_id: u64,
+    task_manager: tauri::State<TaskManagerType>,
+) -> Result<(), String> {
+    let mut lock = task_manager.inner().lock().map_err(|e| e.to_string())?;
+    lock.cancel_task(task_id);
+    Ok(())
+}
+
+#[tauri::command]
 pub fn get_ui_config(
     state: tauri::State<AppStateType>,
 ) -> Result<String, String> {

@@ -76,6 +76,12 @@ impl TaskManager {
         }
     }
 
+    pub fn cancel_task(&mut self, task_id: u64) {
+        if let Some(task) = self.active_tasks.get_mut(&task_id) {
+            task.cancel();
+        }
+    }
+
     fn get_task(&mut self, id: u64) -> &mut TaskState {
         self.active_tasks.get_mut(&id).unwrap()
     }
