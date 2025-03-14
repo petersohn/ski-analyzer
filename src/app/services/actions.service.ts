@@ -46,19 +46,33 @@ export class ActionsService {
     const loadedTaskId = (await invoke("find_ski_areas_by_name", {
       name,
     })) as number;
-    const loaded = this.doJob<SkiAreaMetadata[]>(
-      this.tasksService.addTask(loadedTaskId),
-    );
-    await this.skiAreaChooserService.selectSkiAreas(cached, loaded, () =>
-      this.cancelTask(loadedTaskId),
-    );
+    await this.findSkiAreas(cached, loadedTaskId);
   }
 
-  public async findSkiAreasByCoords(rect: Rect): Promise<void> {
-    const cached = this.getCachedSkiAreasForArea(rect);
+  public async findSkiAreasByCoords(
+    rect: Rect,
+    autoLoad = false,
+  ): Promise<boolean> {
+    let cachedP = this.getCachedSkiAreasForArea(rect);
+    if (autoLoad) {
+      const cached = await cachedP;
+      if (cached.length === 1) {
+        await this.loadCachedSkiArea(cached[0].uuid);
+        return true;
+      }
+      cachedP = Promise.resolve(cached);
+    }
     const loadedTaskId = (await invoke("find_ski_areas_by_coords", {
       rect,
     })) as number;
+    await this.findSkiAreas(cachedP, loadedTaskId);
+    return false;
+  }
+
+  private async findSkiAreas(
+    cached: Promise<CachedSkiArea[]>,
+    loadedTaskId: number,
+  ) {
     const loaded = this.doJob<SkiAreaMetadata[]>(
       this.tasksService.addTask(loadedTaskId),
     );
@@ -85,7 +99,11 @@ export class ActionsService {
         this.skiAreaChooserService.actionOnSelect = () => {
           return this.loadGpx(path);
         };
-        await this.findSkiAreasByCoords(err.details!);
+
+        if (await this.findSkiAreasByCoords(err.details!, true)) {
+          this.skiAreaChooserService.actionOnSelect = null;
+          return this.loadGpx(path);
+        }
       }
     }
   }
