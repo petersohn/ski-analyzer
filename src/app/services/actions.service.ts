@@ -1,4 +1,4 @@
-import { Injectable, signal } from "@angular/core";
+import { Injectable, signal, computed } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
 import { SkiAreaChooserService } from "./ski-area-chooser.service";
 import { RawSkiArea, SkiAreaMetadata } from "@/types/skiArea";
@@ -16,7 +16,8 @@ import { TasksService } from "./tasks.service";
 
 @Injectable({ providedIn: "root" })
 export class ActionsService {
-  public loading = signal(false);
+  private loadingNum = signal(0);
+  public loading = computed(() => this.loadingNum() !== 0);
 
   constructor(
     private readonly skiAreaChooserService: SkiAreaChooserService,
@@ -32,7 +33,12 @@ export class ActionsService {
   }
 
   public async loadSkiAreaFromId(id: number): Promise<void> {
-    await this.doJob(invoke("load_ski_area_from_id", { id }));
+    await this.doJob(
+      (async () =>
+        this.tasksService.addTask(
+          await invoke("load_ski_area_from_id", { id }),
+        ))(),
+    );
   }
 
   public async findSkiAreasByName(name: string): Promise<void> {
@@ -49,7 +55,10 @@ export class ActionsService {
   public async findSkiAreasByCoords(rect: Rect): Promise<void> {
     const cached = this.getCachedSkiAreasForArea(rect);
     const loaded = this.doJob<SkiAreaMetadata[]>(
-      invoke("find_ski_areas_by_coords", { rect }),
+      (async () =>
+        this.tasksService.addTask(
+          await invoke("find_ski_areas_by_coords", { rect }),
+        ))(),
     );
     await this.skiAreaChooserService.selectSkiAreas(cached, loaded);
   }
@@ -62,7 +71,10 @@ export class ActionsService {
 
   public async loadGpx(path: string): Promise<void> {
     try {
-      await this.doJob(invoke("load_gpx", { path }));
+      await this.doJob(
+        (async () =>
+          this.tasksService.addTask(await invoke("load_gpx", { path })))(),
+      );
     } catch (e) {
       const err = e as Error;
       if (err.type === "NoSkiAreaAtLocation") {
@@ -142,11 +154,11 @@ export class ActionsService {
   }
 
   private async doJob<T>(job: Promise<T>): Promise<T> {
-    this.loading.set(true);
+    this.loadingNum.update((n) => n + 1);
     try {
       return await job;
     } finally {
-      this.loading.set(false);
+      this.loadingNum.update((n) => Math.max(n - 1, 0));
     }
   }
 }
