@@ -12,7 +12,7 @@ import { MainMenuComponent } from "@/components/main-menu.component";
 import { MapComponent } from "@/components/map.component";
 import { SkiAreaSelectorComponent } from "@/components/ski-area-selector.component";
 import { SelectionInfoComponent } from "@/components/selection-info.component";
-import { ActionsService } from "@/services/actions.service";
+import { TasksService } from "@/services/tasks.service";
 import { SkiAreaChooserService } from "@/services/ski-area-chooser.service";
 import { EventsService } from "@/services/events.service";
 import { MatIconRegistry } from "@angular/material/icon";
@@ -36,13 +36,13 @@ export class AppComponent implements OnInit, OnDestroy {
   public hasSelectableSkiArea: Signal<boolean>;
 
   constructor(
-    private readonly actionsService: ActionsService,
+    private readonly tasksService: TasksService,
     private readonly eventsService: EventsService,
     private readonly skiAreaChooserService: SkiAreaChooserService,
     private readonly matIconRegistry: MatIconRegistry,
     private readonly domSanitizer: DomSanitizer,
   ) {
-    this.loading = this.actionsService.loading;
+    this.loading = this.tasksService.hasTask;
     this.hasSelectableSkiArea = this.skiAreaChooserService.hasChoosableSkiArea;
     this.initIcons();
   }

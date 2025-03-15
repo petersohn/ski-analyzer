@@ -11,6 +11,7 @@ import { MatDividerModule } from "@angular/material/divider";
 import { MatIconModule } from "@angular/material/icon";
 import { lastValueFrom } from "rxjs";
 import { ActionsService } from "@/services/actions.service";
+import { TasksService } from "@/services/tasks.service";
 import { MapService } from "@/services/map.service";
 import { SkiAreaChooserService } from "@/services/ski-area-chooser.service";
 import { ConfigService } from "@/services/config.service";
@@ -35,10 +36,11 @@ export class MainMenuComponent {
     private readonly dialog: MatDialog,
     public readonly mapService: MapService,
     public readonly actionsService: ActionsService,
+    public readonly tasksService: TasksService,
     private readonly skiAreaChooserService: SkiAreaChooserService,
     private readonly configService: ConfigService,
   ) {
-    this.loading = this.actionsService.loading;
+    this.loading = this.tasksService.hasTask;
     this.hasSelectableSkiArea = this.skiAreaChooserService.hasChoosableSkiArea;
   }
 

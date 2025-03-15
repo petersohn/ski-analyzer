@@ -1,13 +1,15 @@
+import { Injectable, signal } from "@angular/core";
 import { Deferred } from "@/utils/deferred";
-import { Injectable } from "@angular/core";
 
 @Injectable({ providedIn: "root" })
 export class TasksService {
   private tasks: Map<number, Deferred<any>> = new Map();
+  public hasTask = signal(false);
 
   public addTask(id: number): Promise<any> {
     const deferred = new Deferred();
     this.tasks.set(id, deferred);
+    this.calculateHasTask();
     return deferred.promise;
   }
 
@@ -19,6 +21,7 @@ export class TasksService {
     }
     deferred.accept(value);
     this.tasks.delete(id);
+    this.calculateHasTask();
   }
 
   public rejectTask(id: number, value: any): void {
@@ -29,5 +32,10 @@ export class TasksService {
     }
     deferred.reject(value);
     this.tasks.delete(id);
+    this.calculateHasTask();
+  }
+
+  private calculateHasTask() {
+    this.hasTask.set(this.tasks.size !== 0);
   }
 }

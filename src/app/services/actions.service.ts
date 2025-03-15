@@ -16,9 +16,6 @@ import { TasksService } from "./tasks.service";
 
 @Injectable({ providedIn: "root" })
 export class ActionsService {
-  private loadingNum = signal(0);
-  public loading = computed(() => this.loadingNum() !== 0);
-
   constructor(
     private readonly skiAreaChooserService: SkiAreaChooserService,
     private readonly tasksService: TasksService,
@@ -33,11 +30,8 @@ export class ActionsService {
   }
 
   public async loadSkiAreaFromId(id: number): Promise<void> {
-    await this.doJob(
-      (async () =>
-        this.tasksService.addTask(
-          await invoke("load_ski_area_from_id", { id }),
-        ))(),
+    await this.tasksService.addTask(
+      await invoke("load_ski_area_from_id", { id }),
     );
   }
 
@@ -73,9 +67,7 @@ export class ActionsService {
     cached: Promise<CachedSkiArea[]>,
     loadedTaskId: number,
   ) {
-    const loaded = this.doJob<SkiAreaMetadata[]>(
-      this.tasksService.addTask(loadedTaskId),
-    );
+    const loaded = this.tasksService.addTask(loadedTaskId);
     await this.skiAreaChooserService.selectSkiAreas(cached, loaded, () =>
       this.cancelTask(loadedTaskId),
     );
@@ -89,10 +81,7 @@ export class ActionsService {
 
   public async loadGpx(path: string): Promise<void> {
     try {
-      await this.doJob(
-        (async () =>
-          this.tasksService.addTask(await invoke("load_gpx", { path })))(),
-      );
+      await this.tasksService.addTask(await invoke("load_gpx", { path }));
     } catch (e) {
       const err = e as Error;
       if (err.type === "NoSkiAreaAtLocation") {
@@ -177,14 +166,5 @@ export class ActionsService {
   ): Promise<CachedSkiArea[]> {
     const skiAreas = await invoke("get_cached_ski_areas_by_name", { name });
     return convertCachedSkiAreas(skiAreas as RawCachedSkiArea[]);
-  }
-
-  private async doJob<T>(job: Promise<T>): Promise<T> {
-    this.loadingNum.update((n) => n + 1);
-    try {
-      return await job;
-    } finally {
-      this.loadingNum.update((n) => Math.max(n - 1, 0));
-    }
   }
 }
