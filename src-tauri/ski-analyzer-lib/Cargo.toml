@@ -28,7 +28,6 @@ clap = { version = "4.5.3", features = ["derive"] }
 topological-sort = "0.2.2"
 gpx = { version = "0.10.0", features = ["use-serde"] }
 time = { version = "0.3.36", features = ["formatting"] }
-num = "0.4.3"
 num-traits = "0.2.19"
 reqwest = "0.12.12"
 tokio = { version = "1.43.0", features = ["rt", "macros", "test-util"] }
