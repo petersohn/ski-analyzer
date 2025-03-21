@@ -1557,7 +1557,6 @@ dependencies = [
  "futures",
  "geo",
  "gpx",
- "log",
  "num",
  "num-traits",
  "reqwest",
