@@ -5,7 +5,6 @@ use crate::task_manager::{do_with_task, TaskHandle, TaskManagerType};
 use geo::{Intersects, Point, Rect};
 use gpx::Waypoint;
 use serde::{Deserialize, Deserializer, Serialize};
-use ski_analyzer_lib::error::ErrorType;
 use ski_analyzer_lib::gpx_analyzer::{analyze_route, get_lines, DerivedData};
 use ski_analyzer_lib::osm_query::{
     query_ski_area_details_by_id, query_ski_areas_by_coords,
