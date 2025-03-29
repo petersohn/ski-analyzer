@@ -1,9 +1,9 @@
 use crate::config::get_config;
-use crate::error::{Error, ErrorType, Result};
+use crate::error::Result;
 use geo::Rect;
 use url::form_urlencoded;
 
-async fn query_inner(query: &str) -> reqwest::Result<Vec<u8>> {
+async fn query(query: &str) -> Result<Vec<u8>> {
     let mut input: String =
         form_urlencoded::byte_serialize(&query.as_bytes()).collect();
     input.insert_str(0, "data=");
@@ -21,16 +21,6 @@ async fn query_inner(query: &str) -> reqwest::Result<Vec<u8>> {
         .bytes()
         .await?
         .into())
-}
-
-pub async fn query(query: &str) -> Result<Vec<u8>> {
-    Ok(query_inner(&query).await.or_else(|err| {
-        Err(Error::convert(
-            ErrorType::ExternalError,
-            "query error",
-            &err,
-        ))
-    })?)
 }
 
 pub async fn query_ski_area_details_by_id(id: u64) -> Result<Vec<u8>> {

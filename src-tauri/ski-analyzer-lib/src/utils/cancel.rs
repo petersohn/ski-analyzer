@@ -61,7 +61,7 @@ impl CancellableTask {
                 if e.is_cancelled() {
                     Err(Error::new_s(ErrorType::Cancelled, "cancelled"))
                 } else {
-                    Err(Error::new(ErrorType::ExternalError, e.to_string()))
+                    Err(Error::new(ErrorType::UnknownError, e.to_string()))
                 }
             }
         });

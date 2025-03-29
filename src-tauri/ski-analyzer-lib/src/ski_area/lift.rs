@@ -187,11 +187,14 @@ pub fn parse_lift<'d>(
     let config = get_config();
 
     station_infos.add(0, begin_node);
-    doc.elements
+    for (i, n) in doc
+        .elements
         .iterate_nodes(midpoints.iter())
         .enumerate()
         .filter(|(_, r)| r.as_ref().map_or(true, |n| is_station(n)))
-        .try_for_each(|(i, n)| Ok(station_infos.add(i + 1, n?)))?;
+    {
+        station_infos.add(i + 1, n?);
+    }
     station_infos.add(way.nodes.len() - 1, end_node);
 
     let mut name = get_tag(&way.tags, "name").to_string();

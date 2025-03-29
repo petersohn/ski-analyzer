@@ -8,9 +8,12 @@ pub enum ErrorType {
     InputError,
     OSMError,
     LogicError,
-    ExternalError,
     NoSkiAreaAtLocation(Rect),
+    IoError,
+    NetworkError,
+    FormatError,
     Cancelled,
+    UnknownError,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -53,6 +56,34 @@ impl fmt::Display for Error {
 impl std::error::Error for Error {}
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Error::new(ErrorType::IoError, value.to_string())
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(value: serde_json::Error) -> Self {
+        let error_type = match value.classify() {
+            serde_json::error::Category::Io => ErrorType::IoError,
+            _ => ErrorType::FormatError,
+        };
+        Error::new(error_type, value.to_string())
+    }
+}
+
+impl From<gpx::errors::GpxError> for Error {
+    fn from(value: gpx::errors::GpxError) -> Self {
+        Error::new(ErrorType::FormatError, value.to_string())
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(value: reqwest::Error) -> Self {
+        Error::new(ErrorType::NetworkError, value.to_string())
+    }
+}
 
 pub fn convert_err<T, Err>(
     result: std::result::Result<T, Err>,

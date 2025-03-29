@@ -4,9 +4,12 @@ export type ErrorType =
   | "InputError"
   | "OSMError"
   | "LogicError"
-  | "ExternalError"
   | "NoSkiAreaAtLocation"
-  | "Cancelled";
+  | "IoError"
+  | "NetworkError"
+  | "FormatError"
+  | "Cancelled"
+  | "UnknownError";
 
 export type ErrorDetails = Rect;
 

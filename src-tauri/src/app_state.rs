@@ -206,7 +206,7 @@ impl AppState {
                 None => {
                     self.remove_cached_ski_area(app_handle, uuid);
                     return Err(Error::new_s(
-                        ErrorType::ExternalError,
+                        ErrorType::IoError,
                         "Ski area file not found",
                     ));
                 }
