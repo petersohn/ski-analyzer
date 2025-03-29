@@ -8,6 +8,7 @@ use process::process_moves;
 
 use serde::{Deserialize, Serialize};
 
+mod find_pistes;
 mod move_type;
 mod process;
 mod simple_candidate;
@@ -31,10 +32,11 @@ pub fn find_moves<'s>(
     _ski_area: &'s SkiArea,
     mut segments: Segments,
 ) -> Result<Vec<Activity>> {
-    let moves = process_moves(cancel, &mut segments, &get_move_candidates())?;
+    let move_coords =
+        process_moves(cancel, &mut segments, &get_move_candidates())?;
 
-    let result = segments.commit(None, |_segments| {
-        moves.into_iter().map(|(move_type, coord)| {
+    let moves = segments.commit(None, |_segments| {
+        move_coords.into_iter().map(|(move_type, coord)| {
             let activity_type =
                 move_type.map_or_else(ActivityType::default, |mt| {
                     ActivityType::Moving(Moving {
@@ -45,5 +47,5 @@ pub fn find_moves<'s>(
             (activity_type, coord)
         })
     });
-    Ok(result)
+    Ok(moves)
 }
