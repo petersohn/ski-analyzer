@@ -224,17 +224,6 @@ impl<'s> LiftCandidate<'s> {
         end: SegmentCoordinate,
         result: &mut Vec<(ActivityType, SegmentCoordinate)>,
     ) {
-        if get_config().is_v() {
-            let get_time = |coord| match route.get(coord) {
-                Some(wp) => match wp.time {
-                    None => "?".to_string(),
-                    Some(t) => t.format().unwrap_or_else(|_| "???".to_string()),
-                },
-                None => "????".to_string(),
-            };
-            let begin_time = get_time(begin);
-            let end_time = get_time(route.prev_coord(end));
-        }
         let lift_id = self.data.lift_id.clone();
 
         if let Some((_, (coord, _))) = route

@@ -3,9 +3,9 @@ use std::collections::HashMap;
 
 use super::{
     process::{Candidate, CandidateFactory},
-    simple_candidate::{
-        Constraint, ConstraintLimit, ConstraintType, SimpleCandidateFactory,
-    },
+    //simple_candidate::{
+    //    Constraint, ConstraintLimit, ConstraintType, SimpleCandidateFactory,
+    //},
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Hash, PartialEq, Eq)]
