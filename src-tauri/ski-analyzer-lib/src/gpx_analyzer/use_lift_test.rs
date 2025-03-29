@@ -353,7 +353,7 @@ fn add_speed(segment: &mut TrackSegment, speeds: &[(f64, usize)]) {
 }
 
 fn run(s: &SkiArea, segments: Segments, expected: Vec<Activity>, name: &str) {
-    let dir = format!("test_output/use_lift_test/{}", name);
+    let dir = format!("test_output/use_lift_test/{name}");
     fs::create_dir_all(&dir).unwrap();
     save_ski_area(s, &format!("{}/ski_area.json", dir));
 
@@ -369,7 +369,7 @@ fn run(s: &SkiArea, segments: Segments, expected: Vec<Activity>, name: &str) {
         item: expected,
         bounding_rect,
     };
-    save_analyzed_route(&expected_route, &format!("{}/expected.json", dir));
+    save_analyzed_route(&expected_route, &format!("{dir}/expected.json"));
 
     let actual =
         find_lift_usage(&CancellationToken::new(), s, segments).unwrap();
@@ -377,7 +377,7 @@ fn run(s: &SkiArea, segments: Segments, expected: Vec<Activity>, name: &str) {
         item: actual,
         bounding_rect,
     };
-    save_analyzed_route(&actual_route, &format!("{}/actual.json", dir));
+    save_analyzed_route(&actual_route, &format!("{dir}/actual.json"));
 
     assert_eq_pretty!(actual_route.item, expected_route.item);
 }
