@@ -15,6 +15,7 @@ use crate::utils::rect::expand_rect;
 
 const MAX_DISTANCE_NORMAL: f64 = 15.0;
 const MAX_DISTANCE_FREERIDE: f64 = 100.0;
+const MAX_OUTSIDE_LENGTH: f64 = 50.0;
 
 fn get_min_distance(piste: &Piste) -> f64 {
     match piste.metadata.difficulty {
@@ -59,12 +60,18 @@ fn check_distance(piste: &Piste, point: &Point) -> (bool, f64) {
     return (false, d);
 }
 
+struct BadRun {
+    count: usize,
+    length: f64,
+    last_point: Point,
+}
+
 struct Candidate<'a> {
     piste: &'a Piste,
     begin_coord: SegmentCoordinate,
     end_coord: Option<SegmentCoordinate>,
     distances: Vec<f64>,
-    last_ok: bool,
+    bad_run: Option<BadRun>,
 }
 
 impl<'a> Candidate<'a> {
@@ -78,21 +85,45 @@ impl<'a> Candidate<'a> {
             begin_coord,
             end_coord: None,
             distances: vec![distance],
-            last_ok: true,
+            bad_run: None,
         }
+    }
+
+    fn finish(&mut self, coord: SegmentCoordinate) {
+        let end = match &self.bad_run {
+            None => coord,
+            Some(run) => {
+                let e = (coord.0, coord.1 - (self.distances.len() - run.count));
+                self.distances.truncate(run.count);
+                e
+            }
+        };
+        self.end_coord = Some(end);
     }
 
     fn add_point(&mut self, coord: SegmentCoordinate, point: &Point) {
         let (is_ok, d) = check_distance(&self.piste, point);
-        if is_ok || (self.last_ok && d != 0.0) {
+        if is_ok {
             self.distances.push(d);
-        } else if !self.last_ok {
-            self.distances.pop();
-            self.end_coord = Some((coord.0, coord.1 - 1));
-        } else {
-            self.end_coord = Some(coord);
+            self.bad_run = None;
+            return;
         }
-        self.last_ok = is_ok;
+
+        if d == 0.0 || d > MAX_OUTSIDE_LENGTH {
+            self.finish(coord);
+            return;
+        }
+
+        if let Some(mut run) = self.bad_run.as_mut() {
+        } else {
+        }
+
+        //} else if !self.last_ok {
+        //    self.distances.pop();
+        //    self.end_coord = Some((coord.0, coord.1 - 1));
+        //} else {
+        //    self.end_coord = Some(coord);
+        //}
     }
 
     fn is_finished(&self) -> bool {
@@ -167,7 +198,7 @@ impl<'a> Candidates<'a> {
             possible_next.sort_by_key(|(_, c)| c.end_coord.unwrap());
             let next = possible_next.last();
 
-            if next.map_or(true, |(_, c)| c.end_coord.unwrap() < begin) {
+            if next.map_or(true, |(_, c)| c.end_coord.unwrap() < end) {
                 result.push((moving, begin));
                 previous_begin = None;
                 current = candidates.pop();
