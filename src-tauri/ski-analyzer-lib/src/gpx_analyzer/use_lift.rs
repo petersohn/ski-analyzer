@@ -121,7 +121,7 @@ impl<'s> LiftCandidate<'s> {
     }
 
     fn find<It>(
-        bouning_rects: &HashMap<String, Rect>,
+        bounding_rects: &HashMap<String, Rect>,
         it: It,
         coordinate: SegmentCoordinate,
         point: &Waypoint,
@@ -129,7 +129,7 @@ impl<'s> LiftCandidate<'s> {
     where
         It: Iterator<Item = (&'s String, &'s Lift)>,
     {
-        it.filter(|(id, _)| bouning_rects[*id].intersects(&point.point()))
+        it.filter(|(id, _)| bounding_rects[*id].intersects(&point.point()))
             .filter_map(|(id, l)| {
                 LiftCandidate::create(id.clone(), l, coordinate, point)
             })

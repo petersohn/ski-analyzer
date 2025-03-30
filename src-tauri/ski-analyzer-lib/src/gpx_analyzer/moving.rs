@@ -3,6 +3,7 @@ use crate::error::Result;
 use crate::ski_area::SkiArea;
 use crate::utils::cancel::CancellationToken;
 
+use find_pistes::find_pistes;
 use move_type::get_move_candidates;
 use process::process_moves;
 
@@ -29,18 +30,17 @@ pub struct Moving {
 
 pub fn find_moves<'s>(
     cancel: &CancellationToken,
-    _ski_area: &'s SkiArea,
+    ski_area: &'s SkiArea,
     mut segments: Segments,
 ) -> Result<Vec<Activity>> {
     let move_coords =
         process_moves(cancel, &mut segments, &get_move_candidates())?;
+    let coords_with_pistes =
+        find_pistes(cancel, ski_area, &segments, move_coords)?;
 
     let moves = segments.commit(None, |_segments| {
-        move_coords.into_iter().map(|(move_type, coord)| {
-            let activity_type = ActivityType::Moving(Moving {
-                move_type,
-                piste_id: "".to_string(),
-            });
+        coords_with_pistes.into_iter().map(|(moving, coord)| {
+            let activity_type = ActivityType::Moving(moving);
             (activity_type, coord)
         })
     });

@@ -1,12 +1,258 @@
-use super::{Activity, ActivityType, Segments};
+use std::collections::HashMap;
+use std::mem::take;
+
+use geo::{
+    Closest, Distance, Haversine, HaversineClosestPoint, Intersects, Point,
+    Rect,
+};
+
+use super::{MoveType, Moving, Segments};
 use crate::error::Result;
+use crate::gpx_analyzer::SegmentCoordinate;
+use crate::ski_area::{Difficulty, Piste, SkiArea};
 use crate::utils::cancel::CancellationToken;
+use crate::utils::rect::expand_rect;
 
-fn find_pistes(
+const MAX_DISTANCE_NORMAL: f64 = 15.0;
+const MAX_DISTANCE_FREERIDE: f64 = 100.0;
+
+fn get_min_distance(piste: &Piste) -> f64 {
+    match piste.metadata.difficulty {
+        Difficulty::Freeride => MAX_DISTANCE_FREERIDE,
+        _ => MAX_DISTANCE_NORMAL,
+    }
+}
+
+fn distance_to_geometry<G: HaversineClosestPoint<f64>>(
+    g: &G,
+    p: &Point,
+) -> Option<f64> {
+    let closest = match g.haversine_closest_point(p) {
+        Closest::Intersection(p) => Some(p),
+        Closest::SinglePoint(p) => Some(p),
+        Closest::Indeterminate => None,
+    };
+    closest.map(|p2| Haversine::distance(*p, p2))
+}
+
+fn check_distance(piste: &Piste, point: &Point) -> (bool, f64) {
+    let da = distance_to_geometry(&piste.data.areas, point);
+    if da == Some(0.0) {
+        return (true, 0.0);
+    }
+
+    let dl = distance_to_geometry(&piste.data.lines, point);
+
+    if let Some(d) = dl {
+        if d < get_min_distance(piste) {
+            return (true, d);
+        }
+    }
+
+    let d = match (da, dl) {
+        (Some(d1), Some(d2)) => f64::min(d1, d2),
+        (Some(d), None) => d,
+        (None, Some(d)) => d,
+        (None, None) => 0.0,
+    };
+
+    return (false, d);
+}
+
+struct Candidate<'a> {
+    piste: &'a Piste,
+    begin_coord: SegmentCoordinate,
+    end_coord: Option<SegmentCoordinate>,
+    distances: Vec<f64>,
+    last_ok: bool,
+}
+
+impl<'a> Candidate<'a> {
+    fn new(
+        piste: &'a Piste,
+        begin_coord: SegmentCoordinate,
+        distance: f64,
+    ) -> Self {
+        Self {
+            piste,
+            begin_coord,
+            end_coord: None,
+            distances: vec![distance],
+            last_ok: true,
+        }
+    }
+
+    fn add_point(&mut self, coord: SegmentCoordinate, point: &Point) {
+        let (is_ok, d) = check_distance(&self.piste, point);
+        if is_ok || (self.last_ok && d != 0.0) {
+            self.distances.push(d);
+        } else if !self.last_ok {
+            self.distances.pop();
+            self.end_coord = Some((coord.0, coord.1 - 1));
+        } else {
+            self.end_coord = Some(coord);
+        }
+        self.last_ok = is_ok;
+    }
+
+    fn is_finished(&self) -> bool {
+        self.end_coord.is_some()
+    }
+}
+
+struct Candidates<'a> {
+    ski_area: &'a SkiArea,
+    candidates: HashMap<String, Candidate<'a>>,
+    bounding_rects: HashMap<String, Rect>,
+}
+
+impl<'a> Candidates<'a> {
+    fn new(ski_area: &'a SkiArea) -> Self {
+        Self {
+            ski_area,
+            candidates: HashMap::new(),
+            bounding_rects: ski_area
+                .pistes
+                .iter()
+                .map(|(id, p)| {
+                    let mut r = p.data.bounding_rect;
+                    expand_rect(&mut r, get_min_distance(p));
+                    (id.clone(), r)
+                })
+                .collect(),
+        }
+    }
+
+    fn commit(
+        &mut self,
+        move_type: MoveType,
+        coord: SegmentCoordinate,
+    ) -> Vec<(Moving, SegmentCoordinate)> {
+        let mut candidates: Vec<(String, Candidate<'a>)> =
+            take(&mut self.candidates).into_iter().collect();
+
+        for (_, c) in &mut candidates {
+            if c.end_coord.is_none() {
+                c.end_coord = Some(coord);
+            }
+        }
+
+        candidates.sort_by(|(_, c1), (_, c2)| {
+            c1.begin_coord
+                .cmp(&c2.begin_coord)
+                .then_with(|| c2.end_coord.unwrap().cmp(&c1.end_coord.unwrap()))
+                .reverse()
+        });
+
+        let mut result = Vec::new();
+
+        let mut previous_begin: Option<SegmentCoordinate> = None;
+        let mut current = candidates.pop();
+        while let Some((piste_id, candidate)) = take(&mut current) {
+            let begin = previous_begin.unwrap_or(candidate.begin_coord);
+            let end = candidate.end_coord.unwrap();
+            let moving = Moving {
+                move_type,
+                piste_id,
+            };
+
+            let mut possible_next = Vec::new();
+            while candidates
+                .last()
+                .map_or(false, |(_, c)| c.begin_coord < end)
+            {
+                possible_next.push(candidates.pop().unwrap());
+            }
+
+            possible_next.sort_by_key(|(_, c)| c.end_coord.unwrap());
+            let next = possible_next.last();
+
+            if next.map_or(true, |(_, c)| c.end_coord.unwrap() < begin) {
+                result.push((moving, begin));
+                previous_begin = None;
+                current = candidates.pop();
+                continue;
+            }
+
+            let candidate2 = &next.as_ref().unwrap().1;
+            let mut next_begin = None;
+            for (i, (d_next, d_current)) in
+                candidate2
+                    .distances
+                    .iter()
+                    .zip(candidate.distances.iter().skip(
+                        candidate2.begin_coord.1 - candidate.begin_coord.1,
+                    ))
+                    .enumerate()
+            {
+                if d_current > d_next {
+                    next_begin = Some((
+                        candidate2.begin_coord.0,
+                        candidate2.begin_coord.1 + i,
+                    ));
+                    break;
+                }
+            }
+
+            previous_begin = Some(next_begin.unwrap_or(end));
+        }
+
+        result
+    }
+
+    fn add_point(&mut self, coord: SegmentCoordinate, point: &Point) {
+        for candidate in self.candidates.values_mut() {
+            candidate.add_point(coord, point);
+        }
+        for (id, piste) in &self.ski_area.pistes {
+            if self.candidates.get(id).is_some()
+                || !self.bounding_rects[id].intersects(point)
+            {
+                continue;
+            }
+
+            let (is_ok, d) = check_distance(piste, point);
+            if is_ok {
+                self.candidates
+                    .insert(id.clone(), Candidate::new(piste, coord, d));
+            }
+        }
+    }
+
+    fn is_all_finished(&self) -> bool {
+        self.candidates.values().all(|c| c.is_finished())
+    }
+}
+
+pub fn find_pistes(
     cancel: &CancellationToken,
-    segments: Segments,
-) -> Result<Segments> {
-    let result = Vec::new();
+    ski_area: &SkiArea,
+    segments: &Segments,
+    input: Vec<(MoveType, SegmentCoordinate)>,
+) -> Result<Vec<(Moving, SegmentCoordinate)>> {
+    let mut result = Vec::new();
+    result.reserve(input.len());
 
-    Ok(Segments::new(result))
+    let mut candidates = Candidates::new(ski_area);
+
+    for i in 0..input.len() {
+        let (move_type, begin_coord) = input[i];
+
+        let end_coord = input
+            .get(i + 1)
+            .map(|m| m.1)
+            .unwrap_or_else(|| segments.end_coord());
+        for (coord, point) in segments.iter_between(begin_coord, end_coord) {
+            cancel.check()?;
+            if coord.1 == 0 || candidates.is_all_finished() {
+                result.append(&mut candidates.commit(move_type, coord));
+            }
+
+            candidates.add_point(coord, &point.point());
+        }
+
+        result.append(&mut candidates.commit(move_type, end_coord));
+    }
+
+    Ok(result)
 }
