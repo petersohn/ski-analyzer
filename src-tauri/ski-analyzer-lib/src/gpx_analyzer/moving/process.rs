@@ -31,7 +31,7 @@ struct Process<'a> {
     candidates: HashMap<MoveType, (SegmentCoordinate, Box<dyn Candidate>)>,
     can_finish: HashMap<MoveType, SegmentCoordinate>,
     finished_candidates: Vec<FinishedCandidate>,
-    result: Vec<(Option<MoveType>, SegmentCoordinate)>,
+    result: Vec<(MoveType, SegmentCoordinate)>,
     last_commit: SegmentCoordinate,
     comment: String,
 }
@@ -138,9 +138,9 @@ impl<'a> Process<'a> {
                 .max_by_key(|c| c.max)
                 .unwrap();
             if to_commit.min != self.last_commit {
-                push(None, self.last_commit);
+                push(MoveType::Unknown, self.last_commit);
             }
-            push(Some(to_commit.move_type), to_commit.min);
+            push(to_commit.move_type, to_commit.min);
             self.last_commit = to_commit.max;
             finished_candidates = finished_candidates
                 .into_iter()
@@ -163,7 +163,7 @@ pub fn process_moves(
     cancel: &CancellationToken,
     segments: &mut Segments,
     move_types: &HashMap<MoveType, Box<dyn CandidateFactory>>,
-) -> Result<Vec<(Option<MoveType>, SegmentCoordinate)>> {
+) -> Result<Vec<(MoveType, SegmentCoordinate)>> {
     let mut process = Process::new(move_types);
     let mut prev: Option<&Waypoint> = None;
     let mut comments: HashMap<SegmentCoordinate, String> = HashMap::new();
@@ -199,7 +199,9 @@ pub fn process_moves(
     process.commit();
     comments.insert(end, take(&mut process.comment));
     if process.last_commit != end {
-        process.result.push((None, process.last_commit));
+        process
+            .result
+            .push((MoveType::Unknown, process.last_commit));
     }
 
     let mut coordinate = segments.begin_coord();

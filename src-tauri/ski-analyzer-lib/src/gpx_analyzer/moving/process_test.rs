@@ -103,9 +103,9 @@ fn single_candidate() {
         process_moves(&CancellationToken::new(), &mut segments, &move_types)
             .unwrap();
     let expected = vec![
-        (Some(MoveType::Ski), (0, 0)),
-        (Some(MoveType::Wait), (0, 4)),
-        (Some(MoveType::Climb), (0, 5)),
+        (MoveType::Ski, (0, 0)),
+        (MoveType::Wait, (0, 4)),
+        (MoveType::Climb, (0, 5)),
     ];
     assert_eq!(actual, expected);
 }
@@ -131,10 +131,7 @@ fn multiple_candidate() {
     let actual =
         process_moves(&CancellationToken::new(), &mut segments, &move_types)
             .unwrap();
-    let expected = vec![
-        (Some(MoveType::Wait), (0, 0)),
-        (Some(MoveType::Climb), (0, 5)),
-    ];
+    let expected = vec![(MoveType::Wait, (0, 0)), (MoveType::Climb, (0, 5))];
     assert_eq!(actual, expected);
 }
 
@@ -155,7 +152,7 @@ fn bad_begin() {
     let actual =
         process_moves(&CancellationToken::new(), &mut segments, &move_types)
             .unwrap();
-    let expected = vec![(None, (0, 0)), (Some(MoveType::Ski), (0, 4))];
+    let expected = vec![(MoveType::Unknown, (0, 0)), (MoveType::Ski, (0, 4))];
     assert_eq!(actual, expected);
 }
 
@@ -176,7 +173,7 @@ fn bad_end() {
     let actual =
         process_moves(&CancellationToken::new(), &mut segments, &move_types)
             .unwrap();
-    let expected = vec![(Some(MoveType::Ski), (0, 0)), (None, (0, 4))];
+    let expected = vec![(MoveType::Ski, (0, 0)), (MoveType::Unknown, (0, 4))];
     assert_eq!(actual, expected);
 }
 
@@ -199,9 +196,9 @@ fn bad_middle() {
         process_moves(&CancellationToken::new(), &mut segments, &move_types)
             .unwrap();
     let expected = vec![
-        (Some(MoveType::Ski), (0, 0)),
-        (None, (0, 4)),
-        (Some(MoveType::Climb), (0, 6)),
+        (MoveType::Ski, (0, 0)),
+        (MoveType::Unknown, (0, 4)),
+        (MoveType::Climb, (0, 6)),
     ];
     assert_eq!(actual, expected);
 }
@@ -226,7 +223,7 @@ fn unknown_then_good() {
     let actual =
         process_moves(&CancellationToken::new(), &mut segments, &move_types)
             .unwrap();
-    let expected = vec![(Some(MoveType::Ski), (0, 0))];
+    let expected = vec![(MoveType::Ski, (0, 0))];
     assert_eq!(actual, expected);
 }
 
@@ -252,9 +249,9 @@ fn unknown_then_bad() {
         process_moves(&CancellationToken::new(), &mut segments, &move_types)
             .unwrap();
     let expected = vec![
-        (Some(MoveType::Traverse), (0, 0)),
-        (None, (0, 2)),
-        (Some(MoveType::Climb), (0, 3)),
+        (MoveType::Traverse, (0, 0)),
+        (MoveType::Unknown, (0, 2)),
+        (MoveType::Climb, (0, 3)),
     ];
     assert_eq!(actual, expected);
 }
@@ -280,7 +277,6 @@ fn multiple_segments() {
     let actual =
         process_moves(&CancellationToken::new(), &mut segments, &move_types)
             .unwrap();
-    let expected =
-        vec![(Some(MoveType::Ski), (0, 0)), (Some(MoveType::Ski), (1, 0))];
+    let expected = vec![(MoveType::Ski, (0, 0)), (MoveType::Ski, (1, 0))];
     assert_eq!(actual, expected);
 }

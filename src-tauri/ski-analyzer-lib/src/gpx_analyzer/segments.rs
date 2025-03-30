@@ -197,13 +197,12 @@ impl Segments {
         Ok(current_route)
     }
 
-    pub fn commit<F, Ret>(
+    pub fn commit<Ret>(
         &mut self,
         mut route_segment: Option<&mut Segment>,
-        func: F,
+        func: impl FnOnce(&Segments) -> Ret,
     ) -> Vec<Activity>
     where
-        F: FnOnce(&Segments) -> Ret,
         Ret: DoubleEndedIterator<Item = (ActivityType, SegmentCoordinate)>,
     {
         let mut result = Vec::new();

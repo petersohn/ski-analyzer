@@ -14,6 +14,7 @@ pub enum MoveType {
     Wait,
     Climb,
     Traverse,
+    Unknown,
 }
 
 struct DummyCandidate {}

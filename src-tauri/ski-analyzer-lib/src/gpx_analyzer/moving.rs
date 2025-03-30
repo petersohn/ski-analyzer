@@ -37,13 +37,10 @@ pub fn find_moves<'s>(
 
     let moves = segments.commit(None, |_segments| {
         move_coords.into_iter().map(|(move_type, coord)| {
-            let activity_type =
-                move_type.map_or_else(ActivityType::default, |mt| {
-                    ActivityType::Moving(Moving {
-                        move_type: mt,
-                        piste_id: "".to_string(),
-                    })
-                });
+            let activity_type = ActivityType::Moving(Moving {
+                move_type,
+                piste_id: "".to_string(),
+            });
             (activity_type, coord)
         })
     });
