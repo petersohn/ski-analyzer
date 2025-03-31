@@ -212,9 +212,12 @@ impl<'a> Candidates<'a> {
             }
 
             possible_next.sort_by_key(|(_, c)| c.end_coord.unwrap());
-            let next = possible_next.last();
+            let next = possible_next.pop();
 
-            if next.map_or(true, |(_, c)| c.end_coord.unwrap() < end) {
+            if next
+                .as_ref()
+                .map_or(true, |(_, c)| c.end_coord.unwrap() < end)
+            {
                 result.push((moving, begin));
                 previous_begin = None;
                 current = candidates.pop();
@@ -242,6 +245,7 @@ impl<'a> Candidates<'a> {
             }
 
             previous_begin = Some(next_begin.unwrap_or(end));
+            current = next;
         }
 
         result
