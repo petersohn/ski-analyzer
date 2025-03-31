@@ -102,6 +102,10 @@ impl<'a> Candidate<'a> {
     }
 
     fn add_point(&mut self, coord: SegmentCoordinate, point: &Point) {
+        if self.is_finished() {
+            return;
+        }
+
         let (is_ok, d) = check_distance(&self.piste, point);
         if is_ok {
             self.distances.push(d);
@@ -114,18 +118,21 @@ impl<'a> Candidate<'a> {
             return;
         }
 
-        let can_continue = if let Some(run) = self.bad_run.as_mut() {
-            let line = Line::new(run.last_point, *point);
-            run.length += line.length::<Haversine>();
-            run.last_point = *point;
-            run.length <= MAX_OUTSIDE_LENGTH
-        } else {
-            self.bad_run = Some(BadRun {
-                count: self.distances.len(),
-                length: d,
-                last_point: *point,
-            });
-            true
+        let can_continue = match self.bad_run.as_mut() {
+            Some(run) => {
+                let line = Line::new(run.last_point, *point);
+                run.length += line.length::<Haversine>();
+                run.last_point = *point;
+                run.length <= MAX_OUTSIDE_LENGTH
+            }
+            None => {
+                self.bad_run = Some(BadRun {
+                    count: self.distances.len(),
+                    length: d,
+                    last_point: *point,
+                });
+                true
+            }
         };
 
         if can_continue {
@@ -245,8 +252,8 @@ impl<'a> Candidates<'a> {
             candidate.add_point(coord, point);
         }
         for (id, piste) in &self.ski_area.pistes {
-            if self.candidates.get(id).is_some()
-                || !self.bounding_rects[id].intersects(point)
+            if !self.bounding_rects[id].intersects(point)
+                || self.candidates.get(id).is_some()
             {
                 continue;
             }
