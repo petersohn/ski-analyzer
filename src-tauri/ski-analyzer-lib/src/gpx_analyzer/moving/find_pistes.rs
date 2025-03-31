@@ -29,11 +29,11 @@ fn distance_to_geometry<G: HaversineClosestPoint<f64>>(
     p: &Point,
 ) -> Option<f64> {
     let closest = match g.haversine_closest_point(p) {
-        Closest::Intersection(p) => Some(p),
-        Closest::SinglePoint(p) => Some(p),
-        Closest::Indeterminate => None,
+        Closest::Intersection(p) => p,
+        Closest::SinglePoint(p) => p,
+        Closest::Indeterminate => return None,
     };
-    closest.map(|p2| Haversine::distance(*p, p2))
+    Some(Haversine::distance(*p, closest))
 }
 
 fn check_distance(piste: &Piste, point: &Point) -> (bool, f64) {
