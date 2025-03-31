@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::mem::take;
 
 use geo::{
-    Closest, Distance, Haversine, HaversineClosestPoint, Intersects, Point,
-    Rect,
+    Closest, Distance, Haversine, HaversineClosestPoint, Intersects, Length,
+    Line, Point, Rect,
 };
 
 use super::{MoveType, Moving, Segments};
@@ -114,16 +114,25 @@ impl<'a> Candidate<'a> {
             return;
         }
 
-        if let Some(mut run) = self.bad_run.as_mut() {
+        let can_continue = if let Some(run) = self.bad_run.as_mut() {
+            let line = Line::new(run.last_point, *point);
+            run.length += line.length::<Haversine>();
+            run.last_point = *point;
+            run.length <= MAX_OUTSIDE_LENGTH
         } else {
-        }
+            self.bad_run = Some(BadRun {
+                count: self.distances.len(),
+                length: d,
+                last_point: *point,
+            });
+            true
+        };
 
-        //} else if !self.last_ok {
-        //    self.distances.pop();
-        //    self.end_coord = Some((coord.0, coord.1 - 1));
-        //} else {
-        //    self.end_coord = Some(coord);
-        //}
+        if can_continue {
+            self.distances.push(d);
+        } else {
+            self.finish(coord);
+        }
     }
 
     fn is_finished(&self) -> bool {
