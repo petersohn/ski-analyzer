@@ -41,8 +41,7 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
         push(*lines[i].last().unwrap(), (i, true));
     }
 
-    while !endpoints.is_empty() {
-        let (key, value) = endpoints.iter_mut().next().unwrap();
+    while let Some((key, value)) = endpoints.iter_mut().next() {
         if value.len() < 2 {
             return Err(Error::new(
                 ErrorType::OSMError,
