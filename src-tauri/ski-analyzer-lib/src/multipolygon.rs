@@ -42,26 +42,24 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
     }
 
     while !endpoints.is_empty() {
-        let (key, first, second, should_pop) = {
-            let (key, value) = endpoints.iter_mut().next().unwrap();
-            if value.len() < 2 {
-                return Err(Error::new(
-                    ErrorType::OSMError,
-                    format!(
-                        "Unmatched endpoints in multipolygon: {:?}",
-                        value
-                            .iter()
-                            .map(|i| &lines[i.0])
-                            .collect::<Vec<&Vec<u64>>>()
-                    ),
-                ));
-            }
-            let first = value.pop().unwrap();
-            let second = value.pop().unwrap();
-            (*key, first, second, value.is_empty())
-        };
-        if should_pop {
-            endpoints.remove(&key);
+        let (key, value) = endpoints.iter_mut().next().unwrap();
+        if value.len() < 2 {
+            return Err(Error::new(
+                ErrorType::OSMError,
+                format!(
+                    "Unmatched endpoints in multipolygon: {:?}",
+                    value
+                        .iter()
+                        .map(|i| &lines[i.0])
+                        .collect::<Vec<&Vec<u64>>>()
+                ),
+            ));
+        }
+        let first = value.pop().unwrap();
+        let second = value.pop().unwrap();
+        if value.is_empty() {
+            let key2 = *key;
+            endpoints.remove(&key2);
         }
 
         let reverse = first.1 == second.1;
