@@ -4,7 +4,7 @@ use topological_sort::TopologicalSort;
 use super::osm_reader::{parse_way, Document, Relation};
 use crate::error::{Error, ErrorType, Result};
 
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 
 type Line = Vec<u64>;
 
@@ -81,12 +81,14 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
         let last_id = *head.last().unwrap();
         if first_id == last_id {
             result.push(create_polygon(&doc, &head)?);
-            if {
-                let v = endpoints.get_mut(&first_id).unwrap();
-                v.retain(|x| x.0 != idx1 && x.0 != idx2);
-                v.is_empty()
-            } {
-                endpoints.remove(&first_id);
+            let mut entry = match endpoints.entry(first_id) {
+                Entry::Occupied(v) => v,
+                _ => panic!("Map should contain entry."),
+            };
+            let v = entry.get_mut();
+            v.retain(|x| x.0 != idx1 && x.0 != idx2);
+            if v.is_empty() {
+                entry.remove();
             }
             head.clear();
         } else {
