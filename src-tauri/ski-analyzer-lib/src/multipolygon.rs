@@ -97,8 +97,7 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
                     .get_mut(id)
                     .unwrap()
                     .iter_mut()
-                    .filter(|i| i.0 == idx)
-                    .next()
+                    .find(|i| i.0 == idx)
                 {
                     *i = value;
                 }
