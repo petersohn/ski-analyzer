@@ -93,11 +93,14 @@ fn find_rings(doc: &Document, ways: Vec<Line>) -> Result<Vec<Polygon>> {
             head.clear();
         } else {
             let mut replace = |id, idx, value| {
-                for i in endpoints.get_mut(id).unwrap().iter_mut() {
-                    if i.0 == idx {
-                        *i = value;
-                        break;
-                    }
+                if let Some(i) = endpoints
+                    .get_mut(id)
+                    .unwrap()
+                    .iter_mut()
+                    .filter(|i| i.0 == idx)
+                    .next()
+                {
+                    *i = value;
                 }
             };
             replace(&last_id, idx2, (idx1, true));
