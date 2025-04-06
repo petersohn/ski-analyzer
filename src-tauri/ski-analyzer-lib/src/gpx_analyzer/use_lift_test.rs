@@ -6,14 +6,13 @@ use crate::assert_eq_pretty;
 use crate::ski_area::{Lift, PointWithElevation, SkiArea};
 use crate::utils::bounded_geometry::BoundedGeometry;
 use crate::utils::cancel::CancellationToken;
-use crate::utils::rect::union_rects_all;
 use crate::utils::test_util::{
     create_ski_area_metadata, get_segments, init, line, make_gpx,
     save_ski_area, segment, Init,
 };
 
 use ::function_name::named;
-use geo::{Distance, Haversine, LineString, Rect};
+use geo::{Distance, Haversine, LineString};
 use gpx::TrackSegment;
 use rstest::{fixture, rstest};
 use std::collections::HashMap;
@@ -351,29 +350,13 @@ fn run(s: &SkiArea, segments: Segments, expected: Vec<Activity>, name: &str) {
     fs::create_dir_all(&dir).unwrap();
     save_ski_area(s, &format!("{}/ski_area.json", dir));
 
-    let bounding_rect = union_rects_all(
-        segments
-            .0
-            .iter()
-            .flatten()
-            .map(|wp| Rect::new(wp.point(), wp.point())),
-    )
-    .unwrap();
-    let expected_route = BoundedGeometry {
-        item: expected,
-        bounding_rect,
-    };
-    save_analyzed_route(&expected_route, &format!("{dir}/expected.json"));
+    save_analyzed_route(&expected, &format!("{dir}/expected.json"));
 
     let actual =
         find_lift_usage(&CancellationToken::new(), s, segments).unwrap();
-    let actual_route = BoundedGeometry {
-        item: actual,
-        bounding_rect,
-    };
-    save_analyzed_route(&actual_route, &format!("{dir}/actual.json"));
+    save_analyzed_route(&actual, &format!("{dir}/actual.json"));
 
-    assert_eq_pretty!(actual_route.item, expected_route.item);
+    assert_eq_pretty!(actual, expected);
 }
 
 #[rstest]

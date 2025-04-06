@@ -1,4 +1,4 @@
-use super::{Activity, ActivityType, Segments};
+use super::{Activity, ActivityType, SegmentCoordinate, Segments};
 use crate::error::Result;
 use crate::ski_area::SkiArea;
 use crate::utils::cancel::CancellationToken;
@@ -30,6 +30,18 @@ pub struct Moving {
     pub piste_id: String,
 }
 
+fn commit_moves(
+    segments: &mut Segments,
+    coords_with_pistes: Vec<(Moving, SegmentCoordinate)>,
+) -> Vec<Activity> {
+    segments.commit(None, |_segments| {
+        coords_with_pistes.into_iter().map(|(moving, coord)| {
+            let activity_type = ActivityType::Moving(moving);
+            (activity_type, coord)
+        })
+    })
+}
+
 pub fn find_moves<'s>(
     cancel: &CancellationToken,
     ski_area: &'s SkiArea,
@@ -40,11 +52,6 @@ pub fn find_moves<'s>(
     let coords_with_pistes =
         find_pistes(cancel, ski_area, &segments, move_coords)?;
 
-    let moves = segments.commit(None, |_segments| {
-        coords_with_pistes.into_iter().map(|(moving, coord)| {
-            let activity_type = ActivityType::Moving(moving);
-            (activity_type, coord)
-        })
-    });
+    let moves = commit_moves(&mut segments, coords_with_pistes);
     Ok(moves)
 }

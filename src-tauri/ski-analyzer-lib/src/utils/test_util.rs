@@ -1,11 +1,17 @@
+use super::rect::union_rects_if;
 use crate::config::{set_config, Config};
 use crate::gpx_analyzer::Segments;
 use crate::osm_reader as r;
-use crate::ski_area::{SkiArea, SkiAreaMetadata};
+use crate::ski_area::{
+    Difficulty, Piste, PisteData, PisteMetadata, SkiArea, SkiAreaMetadata,
+};
 use crate::utils::bounded_geometry::BoundedGeometry;
 use crate::utils::json::save_to_file;
 
-use geo::{coord, point, LineString, Polygon, Rect};
+use geo::{
+    coord, point, BoundingRect, LineString, MultiLineString, MultiPolygon,
+    Polygon, Rect,
+};
 use gpx::{Gpx, Track, TrackSegment, Waypoint};
 use rstest::fixture;
 
@@ -49,7 +55,9 @@ pub fn way_tags(ids: &[u64], tags: &[(&str, &str)]) -> r::Way {
     }
 }
 
-pub fn line(points: &[(f64, f64)]) -> LineString {
+pub type Coord = (f64, f64);
+
+pub fn line(points: &[Coord]) -> LineString {
     LineString::new(
         points
             .iter()
@@ -58,7 +66,7 @@ pub fn line(points: &[(f64, f64)]) -> LineString {
     )
 }
 
-pub fn polygon(points: &[(f64, f64)]) -> Polygon {
+pub fn polygon(points: &[Coord]) -> Polygon {
     Polygon::new(line(points), vec![])
 }
 
@@ -80,13 +88,33 @@ pub fn create_ski_area_metadata(name: String) -> SkiAreaMetadata {
     }
 }
 
-pub fn segment(input: &[(f64, f64)]) -> TrackSegment {
+pub fn segment(input: &[Coord]) -> TrackSegment {
     let mut result = TrackSegment::new();
     result.points = input
         .iter()
         .map(|(x, y)| Waypoint::new(point! { x: *x, y: *y }))
         .collect();
     result
+}
+
+pub fn piste(name: &str, lines: Vec<LineString>, areas: Vec<Polygon>) -> Piste {
+    let lines = MultiLineString::new(lines);
+    let areas = MultiPolygon::new(areas);
+    let bounding_rect =
+        union_rects_if(lines.bounding_rect(), areas.bounding_rect()).unwrap();
+
+    Piste {
+        metadata: PisteMetadata {
+            name: name.to_string(),
+            ref_: String::new(),
+            difficulty: Difficulty::Easy,
+        },
+        data: PisteData {
+            lines,
+            areas,
+            bounding_rect,
+        },
+    }
 }
 
 pub fn make_gpx(input: Vec<TrackSegment>) -> Gpx {

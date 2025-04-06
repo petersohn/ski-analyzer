@@ -11,7 +11,7 @@ async fn run(id: u64) -> Result<()> {
     let document = Document::parse(&query_result)?;
     let way = document.elements.get_way(&id)?;
     for g in &way.geometry {
-        println!("[{}, {}],", g.lon, g.lat);
+        println!("({}, {}),", g.lon, g.lat);
     }
 
     Ok(())

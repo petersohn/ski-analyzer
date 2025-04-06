@@ -17,7 +17,7 @@ pub struct Segments(pub Vec<Segment>);
 
 impl Segments {
     pub fn new(segments: Vec<Segment>) -> Self {
-        Self { 0: segments }
+        Self(segments)
     }
 
     pub fn split_end(&mut self, mut coord: SegmentCoordinate) -> Self {

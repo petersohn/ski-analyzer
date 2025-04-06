@@ -12,7 +12,7 @@ fn main() -> Result<()> {
             println!("segment(&[");
             for wp in segment.points {
                 let p = wp.point();
-                println!("  [({}, {})],", p.x(), p.y());
+                println!("  ({}, {}),", p.x(), p.y());
             }
             println!("]),");
         }
