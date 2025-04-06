@@ -8,7 +8,6 @@ use crate::utils::json::save_to_file;
 use geo::{coord, point, LineString, Polygon, Rect};
 use gpx::{Gpx, Track, TrackSegment, Waypoint};
 use rstest::fixture;
-use time::OffsetDateTime;
 
 use std::collections::HashMap;
 
@@ -51,12 +50,16 @@ pub fn way_tags(ids: &[u64], tags: &[(&str, &str)]) -> r::Way {
 }
 
 pub fn line(points: &[(f64, f64)]) -> LineString {
-    LineString(
+    LineString::new(
         points
             .iter()
             .map(|(x, y)| coord! { x: *x, y: *y })
             .collect(),
     )
+}
+
+pub fn polygon(points: &[(f64, f64)]) -> Polygon {
+    Polygon::new(line(points), vec![])
 }
 
 pub fn save_ski_area(piste: &SkiArea, filename: &str) {

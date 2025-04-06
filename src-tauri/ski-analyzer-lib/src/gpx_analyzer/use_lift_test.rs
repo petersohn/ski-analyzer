@@ -8,23 +8,17 @@ use crate::utils::bounded_geometry::BoundedGeometry;
 use crate::utils::cancel::CancellationToken;
 use crate::utils::rect::union_rects_all;
 use crate::utils::test_util::{
-    create_ski_area_metadata, get_segments, init, make_gpx, save_ski_area,
-    segment, Init,
+    create_ski_area_metadata, get_segments, init, line, make_gpx,
+    save_ski_area, segment, Init,
 };
 
 use ::function_name::named;
-use geo::{coord, Distance, Haversine, LineString, Rect};
+use geo::{Distance, Haversine, LineString, Rect};
 use gpx::TrackSegment;
 use rstest::{fixture, rstest};
 use std::collections::HashMap;
 use std::fs;
 use time::{Duration, OffsetDateTime};
-
-fn line(input: &[(f64, f64)]) -> LineString {
-    LineString::new(
-        input.iter().map(|(x, y)| coord! { x: *x, y: *y }).collect(),
-    )
-}
 
 fn lift(
     name: String,

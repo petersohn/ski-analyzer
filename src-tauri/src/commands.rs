@@ -13,6 +13,7 @@ use ski_analyzer_lib::osm_query::{
 use ski_analyzer_lib::osm_reader::Document;
 use ski_analyzer_lib::ski_area::{SkiArea, SkiAreaMetadata};
 use ski_analyzer_lib::utils::bounded_geometry::BoundedGeometry;
+use ski_analyzer_lib::utils::gpx::load_from_file as load_gpx_from_file;
 use ski_analyzer_lib::utils::json::{load_from_file, save_to_file};
 use tauri::Manager;
 use time::format_description::well_known::Rfc3339;
@@ -21,8 +22,6 @@ use uuid::Uuid;
 
 use core::str;
 use std::error::Error;
-use std::fs::OpenOptions;
-use std::io::BufReader;
 
 #[derive(Serialize)]
 pub struct CachedSkiAreaWithUuid {
@@ -193,9 +192,7 @@ fn load_gpx_inner(
     path: String,
     app_handle: tauri::AppHandle,
 ) -> Result<(), ski_analyzer_lib::error::Error> {
-    let file = OpenOptions::new().read(true).open(path)?;
-    let reader = BufReader::new(file);
-    let gpx = gpx::read(reader)?;
+    let gpx = load_gpx_from_file(path)?;
 
     let state = app_handle.state::<AppStateType>();
 

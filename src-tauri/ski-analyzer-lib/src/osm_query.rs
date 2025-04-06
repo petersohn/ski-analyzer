@@ -3,7 +3,7 @@ use crate::error::Result;
 use geo::Rect;
 use url::form_urlencoded;
 
-async fn query(query: &str) -> Result<Vec<u8>> {
+pub async fn query(query: &str) -> Result<Vec<u8>> {
     let mut input: String =
         form_urlencoded::byte_serialize(&query.as_bytes()).collect();
     input.insert_str(0, "data=");

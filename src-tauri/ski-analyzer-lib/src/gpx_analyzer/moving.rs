@@ -15,6 +15,8 @@ mod process;
 mod simple_candidate;
 
 #[cfg(test)]
+mod find_pistes_test;
+#[cfg(test)]
 mod process_test;
 #[cfg(test)]
 mod simple_candidate_test;

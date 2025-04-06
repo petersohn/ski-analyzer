@@ -7,12 +7,12 @@ use ski_analyzer_lib::osm_query::{
 use ski_analyzer_lib::osm_reader::Document;
 use ski_analyzer_lib::ski_area::{SkiArea, SkiAreaMetadata};
 use ski_analyzer_lib::utils::cancel::CancellationToken;
+use ski_analyzer_lib::utils::gpx::load_from_file as load_gpx;
 use ski_analyzer_lib::utils::json::{
     load_from_file, save_to_file, save_to_file_pretty,
 };
 
 use clap::{Args, Parser, Subcommand};
-use gpx;
 use serde::Serialize;
 
 #[derive(Parser)]
@@ -112,7 +112,7 @@ async fn main() -> Result<()> {
             area,
             output,
         } => {
-            let gpx: gpx::Gpx = load_from_file(input)?;
+            let gpx = load_gpx(input)?;
 
             // println!("{:#?}", gpx);
 

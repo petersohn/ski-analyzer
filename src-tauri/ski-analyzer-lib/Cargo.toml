@@ -15,7 +15,10 @@ name = "ski_analyzer_lib"
 crate-type = ["cdylib", "lib", "staticlib"]
 
 [[bin]]
-name = "ski-analyzer-cli"
+name = "gpx2test"
+
+[[bin]]
+name = "way2test"
 
 [dependencies]
 url = "2.5.0"
