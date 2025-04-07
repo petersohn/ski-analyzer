@@ -310,3 +310,48 @@ fn enter_and_leave_piste_with_area() {
         expected,
     );
 }
+
+#[test]
+#[named]
+fn enter_and_leave_piste_with_line() {
+    let ski_area =
+        ski_area(function_name!(), &[piste("1", vec![line0()], vec![])]);
+    let segments = segments_enter_leave();
+    let expected = vec![
+        (
+            Moving {
+                piste_id: String::new(),
+                move_type: MoveType::Ski,
+            },
+            (0, 0),
+        ),
+        (
+            Moving {
+                piste_id: "1".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 3),
+        ),
+        (
+            Moving {
+                piste_id: String::new(),
+                move_type: MoveType::Ski,
+            },
+            (0, 13),
+        ),
+        (
+            Moving {
+                piste_id: "1".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 17),
+        ),
+    ];
+    run_test(
+        function_name!(),
+        ski_area,
+        segments,
+        vec![(MoveType::Ski, (0, 0))],
+        expected,
+    );
+}
