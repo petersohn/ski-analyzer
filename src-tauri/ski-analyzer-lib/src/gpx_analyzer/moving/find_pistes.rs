@@ -98,6 +98,7 @@ impl<'a> Candidate<'a> {
                 e
             }
         };
+        eprintln!("finish {:?} - {end:?}", self.begin_coord);
         self.end_coord = Some(end);
     }
 
@@ -107,6 +108,7 @@ impl<'a> Candidate<'a> {
         }
 
         let (is_ok, d) = check_distance(&self.piste, point);
+        eprintln!("* {coord:?} {}: {is_ok:?}, {d}", self.piste.metadata.name);
         if is_ok {
             self.distances.push(d);
             self.bad_run = None;
@@ -151,6 +153,7 @@ struct Candidates<'a> {
     ski_area: &'a SkiArea,
     candidates: HashMap<String, Candidate<'a>>,
     bounding_rects: HashMap<String, Rect>,
+    first_empty: Option<SegmentCoordinate>,
 }
 
 impl<'a> Candidates<'a> {
@@ -167,6 +170,7 @@ impl<'a> Candidates<'a> {
                     (id.clone(), r)
                 })
                 .collect(),
+            first_empty: None,
         }
     }
 
@@ -251,7 +255,11 @@ impl<'a> Candidates<'a> {
         result
     }
 
-    fn add_point(&mut self, coord: SegmentCoordinate, point: &Point) {
+    fn add_point(
+        &mut self,
+        coord: SegmentCoordinate,
+        point: &Point,
+    ) -> Option<SegmentCoordinate> {
         for candidate in self.candidates.values_mut() {
             candidate.add_point(coord, point);
         }
@@ -263,11 +271,23 @@ impl<'a> Candidates<'a> {
             }
 
             let (is_ok, d) = check_distance(piste, point);
+            eprintln!("+ {coord:?} {}: {is_ok:?}, {d}", piste.metadata.name);
             if is_ok {
                 self.candidates
                     .insert(id.clone(), Candidate::new(piste, coord, d));
             }
         }
+
+        match (self.first_empty, self.candidates.is_empty()) {
+            (None, false) => (),
+            (None, true) => self.first_empty = Some(coord),
+            (Some(c), false) => {
+                self.first_empty = None;
+                return Some(c);
+            }
+            (Some(_), true) => (),
+        };
+        None
     }
 
     fn is_all_finished(&self) -> bool {
@@ -299,7 +319,15 @@ pub fn find_pistes(
                 result.append(&mut candidates.commit(move_type, coord));
             }
 
-            candidates.add_point(coord, &point.point());
+            if let Some(c) = candidates.add_point(coord, &point.point()) {
+                result.push((
+                    Moving {
+                        move_type,
+                        piste_id: String::new(),
+                    },
+                    c,
+                ));
+            }
         }
 
         result.append(&mut candidates.commit(move_type, end_coord));
