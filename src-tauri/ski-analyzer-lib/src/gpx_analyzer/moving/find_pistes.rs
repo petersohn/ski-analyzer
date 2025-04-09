@@ -1,4 +1,4 @@
-use std::collections::hash_map::{Entry, OccupiedEntry};
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::mem::take;
 
@@ -99,7 +99,10 @@ impl<'a> Candidate<'a> {
                 e
             }
         };
-        eprintln!("finish {:?} - {end:?}", self.begin_coord);
+        eprintln!(
+            "finish {}: {:?} - {end:?}",
+            self.piste.metadata.name, self.begin_coord
+        );
         self.end_coord = Some(end);
     }
 

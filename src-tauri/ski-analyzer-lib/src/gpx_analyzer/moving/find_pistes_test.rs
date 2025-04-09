@@ -368,25 +368,49 @@ fn move_on_piste_with_area() {
 fn segments_enter_leave() -> Vec<TrackSegment> {
     vec![segment(&[
         (6.5233781, 45.3113157),
+        (6.5235761, 45.311424),
         (6.5237633, 45.3115298),
+        (6.5239088, 45.3116112),
         (6.5240496, 45.3117135),
+        (6.5243262, 45.3117365),
         (6.5244469, 45.3118339),
+        (6.5246273, 45.3119132),
+        (6.5247572, 45.3119803),
         (6.5249056, 45.3120383),
+        (6.5250872, 45.312071),
+        (6.5252607, 45.3120567),
         (6.5254726, 45.3121102),
+        (6.5256625, 45.3121874),
         (6.5258554, 45.3122888),
+        (6.5261287, 45.3123904),
         (6.5263775, 45.3125148),
+        (6.5264648, 45.3125818),
+        (6.5265656, 45.3126546),
         (6.5267541, 45.3128186),
+        (6.5268557, 45.3129231),
+        (6.5269511, 45.3130399),
+        (6.5270301, 45.3131337),
         (6.5271117, 45.3131904),
+        (6.5272457, 45.3132652),
+        (6.5273506, 45.3133451),
         (6.5275662, 45.3134669),
+        (6.5277001, 45.3134394),
         (6.5279491, 45.3133244),
         (6.5284426, 45.3131153),
         (6.5287251, 45.3128361),
         (6.5288191, 45.3130131),
         (6.5285631, 45.3133886),
         (6.528277, 45.3137732),
+        (6.5282089, 45.3139223),
         (6.5280927, 45.3141359),
+        (6.5281566, 45.3142624),
+        (6.5282446, 45.3144319),
         (6.5283465, 45.3145908),
+        (6.5284681, 45.3147511),
+        (6.5285968, 45.3148795),
         (6.528711, 45.3150084),
+        (6.5288402, 45.3151749),
+        (6.528908, 45.3153249),
         (6.5290303, 45.3154487),
     ])]
 }
@@ -410,21 +434,21 @@ fn enter_and_leave_piste_with_area() {
                 piste_id: "1".to_string(),
                 move_type: MoveType::Ski,
             },
-            (0, 3),
+            (0, 5),
         ),
         (
             Moving {
                 piste_id: String::new(),
                 move_type: MoveType::Ski,
             },
-            (0, 11),
+            (0, 27),
         ),
         (
             Moving {
                 piste_id: "1".to_string(),
                 move_type: MoveType::Ski,
             },
-            (0, 17),
+            (0, 35),
         ),
     ];
     run_test(
@@ -455,21 +479,21 @@ fn enter_and_leave_piste_with_line() {
                 piste_id: "1".to_string(),
                 move_type: MoveType::Ski,
             },
-            (0, 3),
+            (0, 5),
         ),
         (
             Moving {
                 piste_id: String::new(),
                 move_type: MoveType::Ski,
             },
-            (0, 11),
+            (0, 27),
         ),
         (
             Moving {
                 piste_id: "1".to_string(),
                 move_type: MoveType::Ski,
             },
-            (0, 17),
+            (0, 35),
         ),
     ];
     run_test(
@@ -505,21 +529,71 @@ fn enter_and_leave_another_piste_with_area() {
                 piste_id: "1".to_string(),
                 move_type: MoveType::Ski,
             },
-            (0, 3),
+            (0, 5),
         ),
         (
             Moving {
                 piste_id: "2".to_string(),
                 move_type: MoveType::Ski,
             },
-            (0, 11),
+            (0, 27),
         ),
         (
             Moving {
                 piste_id: "1".to_string(),
                 move_type: MoveType::Ski,
             },
-            (0, 17),
+            (0, 35),
+        ),
+    ];
+    run_test(
+        function_name!(),
+        ski_area,
+        segments,
+        vec![(MoveType::Ski, (0, 0))],
+        expected,
+    );
+}
+
+#[test]
+#[named]
+fn enter_and_leave_another_piste_with_line() {
+    let ski_area = ski_area(
+        function_name!(),
+        &[
+            piste("1", vec![line0()], vec![]),
+            piste("2", vec![line1()], vec![]),
+        ],
+    );
+    let segments = segments_enter_leave();
+    let expected = vec![
+        (
+            Moving {
+                piste_id: String::new(),
+                move_type: MoveType::Ski,
+            },
+            (0, 0),
+        ),
+        (
+            Moving {
+                piste_id: "1".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 5),
+        ),
+        (
+            Moving {
+                piste_id: "2".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 27),
+        ),
+        (
+            Moving {
+                piste_id: "1".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 35),
         ),
     ];
     run_test(
