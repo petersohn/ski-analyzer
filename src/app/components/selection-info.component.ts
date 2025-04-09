@@ -10,7 +10,7 @@ import { CommonModule } from "@angular/common";
 import { MatCardModule } from "@angular/material/card";
 import { MatIconModule } from "@angular/material/icon";
 import { MapService } from "@/services/map.service";
-import { Lift, Piste } from "@/types/skiArea";
+import { Lift, Piste, SkiArea } from "@/types/skiArea";
 import { Activity, Waypoint } from "@/types/track";
 import { NameValueComponent } from "./name-value.component";
 import { Dayjs } from "dayjs";
@@ -66,6 +66,7 @@ const activityTypes: { [type: string]: string } = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SelectionInfoComponent {
+  private skiArea: Signal<SkiArea | undefined>;
   public selectedPiste: Signal<Piste | undefined>;
   public selectedLift: Signal<Lift | undefined>;
   public selectedActivity: Signal<Activity | undefined>;
@@ -81,6 +82,7 @@ export class SelectionInfoComponent {
     private readonly mapService: MapService,
     private readonly elementRef: ElementRef<HTMLElement>,
   ) {
+    this.skiArea = this.mapService.skiArea;
     this.selectedPiste = this.mapService.selectedPiste;
     this.selectedLift = this.mapService.selectedLift;
     this.selectedActivity = this.mapService.selectedActivity;
@@ -185,6 +187,16 @@ export class SelectionInfoComponent {
   public closestLift = computed(() => {
     const lift = this.currentWaypointClosestLift();
     return !!lift ? `${lift.lift.name} (${this.meters(lift.distance)})` : "";
+  });
+
+  public activityPiste = computed(() => {
+    const pisteId = this.selectedActivity()?.moving?.piste_id;
+    if (!pisteId) {
+      return "";
+    }
+
+    const piste = this.skiArea()?.pistes.get(pisteId);
+    return piste?.name ?? "";
   });
 
   private meters(len: number) {

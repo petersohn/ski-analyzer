@@ -1,3 +1,4 @@
+use std::collections::hash_map::{Entry, OccupiedEntry};
 use std::collections::HashMap;
 use std::mem::take;
 
@@ -13,7 +14,7 @@ use crate::ski_area::{Difficulty, Piste, SkiArea};
 use crate::utils::cancel::CancellationToken;
 use crate::utils::rect::expand_rect;
 
-const MAX_DISTANCE_NORMAL: f64 = 15.0;
+const MAX_DISTANCE_NORMAL: f64 = 20.0;
 const MAX_DISTANCE_FREERIDE: f64 = 100.0;
 const MAX_OUTSIDE_LENGTH: f64 = 50.0;
 
@@ -151,7 +152,7 @@ impl<'a> Candidate<'a> {
 
 struct Candidates<'a> {
     ski_area: &'a SkiArea,
-    candidates: HashMap<String, Candidate<'a>>,
+    candidates: HashMap<String, Vec<Candidate<'a>>>,
     bounding_rects: HashMap<String, Rect>,
     first_empty: Option<SegmentCoordinate>,
 }
@@ -180,7 +181,13 @@ impl<'a> Candidates<'a> {
         coord: SegmentCoordinate,
     ) -> Vec<(Moving, SegmentCoordinate)> {
         let mut candidates: Vec<(String, Candidate<'a>)> =
-            take(&mut self.candidates).into_iter().collect();
+            take(&mut self.candidates)
+                .into_iter()
+                .map(|(id, cs)| -> Vec<(String, Candidate)> {
+                    cs.into_iter().map(|c| (id.clone(), c)).collect()
+                })
+                .flatten()
+                .collect();
 
         for (_, c) in &mut candidates {
             if c.end_coord.is_none() {
@@ -196,16 +203,23 @@ impl<'a> Candidates<'a> {
         });
 
         let mut result = Vec::new();
+        let mut push = |piste_id, begin| {
+            result.push((
+                Moving {
+                    move_type,
+                    piste_id,
+                },
+                begin,
+            ))
+        };
 
         let mut previous_begin: Option<SegmentCoordinate> = None;
         let mut current = candidates.pop();
         while let Some((piste_id, candidate)) = take(&mut current) {
             let begin = previous_begin.unwrap_or(candidate.begin_coord);
             let end = candidate.end_coord.unwrap();
-            let moving = Moving {
-                move_type,
-                piste_id,
-            };
+            push(piste_id, begin);
+            self.first_empty = Some(end);
 
             let mut possible_next = Vec::new();
             while candidates
@@ -222,9 +236,13 @@ impl<'a> Candidates<'a> {
                 .as_ref()
                 .map_or(true, |(_, c)| c.end_coord.unwrap() < end)
             {
-                result.push((moving, begin));
                 previous_begin = None;
                 current = candidates.pop();
+                if let Some((_, c)) = current.as_ref() {
+                    if c.begin_coord > end {
+                        push(String::new(), end);
+                    }
+                }
                 continue;
             }
 
@@ -260,21 +278,26 @@ impl<'a> Candidates<'a> {
         coord: SegmentCoordinate,
         point: &Point,
     ) -> Option<SegmentCoordinate> {
-        for candidate in self.candidates.values_mut() {
+        for candidate in self.candidates.values_mut().flatten() {
             candidate.add_point(coord, point);
         }
-        for (id, piste) in &self.ski_area.pistes {
-            if !self.bounding_rects[id].intersects(point)
-                || self.candidates.get(id).is_some()
-            {
-                continue;
+        for (id, piste) in self
+            .ski_area
+            .pistes
+            .iter()
+            .filter(|(id, _)| self.bounding_rects[*id].intersects(point))
+        {
+            let entry = self.candidates.entry(id.clone());
+            if let Entry::Occupied(e) = &entry {
+                if !e.get().iter().all(|c| c.is_finished()) {
+                    continue;
+                }
             }
 
             let (is_ok, d) = check_distance(piste, point);
             eprintln!("+ {coord:?} {}: {is_ok:?}, {d}", piste.metadata.name);
             if is_ok {
-                self.candidates
-                    .insert(id.clone(), Candidate::new(piste, coord, d));
+                entry.or_default().push(Candidate::new(piste, coord, d));
             }
         }
 
@@ -291,7 +314,7 @@ impl<'a> Candidates<'a> {
     }
 
     fn is_all_finished(&self) -> bool {
-        self.candidates.values().all(|c| c.is_finished())
+        self.candidates.values().flatten().all(|c| c.is_finished())
     }
 }
 

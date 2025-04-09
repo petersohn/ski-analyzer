@@ -122,6 +122,7 @@ type ActivityNode = {
 
 @Injectable({ providedIn: "root" })
 export class MapService {
+  public readonly skiArea = signal<SkiArea | undefined>(undefined);
   public readonly selectedPiste = signal<Piste | undefined>(undefined);
   public readonly selectedLift = signal<Lift | undefined>(undefined);
   public readonly selectedActivity = signal<Activity | undefined>(undefined);
@@ -148,7 +149,6 @@ export class MapService {
   private pisteLineFeatures: Map<Piste, Feature> = new Map();
   private liftLineFeatures: Map<Lift, Feature> = new Map();
   private skiAreaLayer: Layer | undefined;
-  private skiArea: SkiArea | undefined;
 
   private activityLineFeatures: Map<Activity, Feature> = new Map();
   private activityNodeFeatures: Map<Activity, ActivityNode[]> = new Map();
@@ -251,7 +251,7 @@ export class MapService {
     this.pisteAreaFeatures.clear();
     this.pisteLineFeatures.clear();
     this.liftLineFeatures.clear();
-    this.skiArea = undefined;
+    this.skiArea.set(undefined);
     this.skiAreaLayer = undefined;
 
     this.activityLineFeatures.clear();
@@ -335,7 +335,7 @@ export class MapService {
         minZoom: 10,
       });
       this.map!.getLayers().push(this.skiAreaLayer);
-      this.skiArea = skiArea;
+      this.skiArea.set(skiArea);
 
       if (zoom) {
         this.zoomToArea(minCoord, maxCoord);
@@ -351,7 +351,7 @@ export class MapService {
       throw new Error("Not initialized");
     }
 
-    if (!this.skiArea) {
+    if (!this.skiArea()) {
       throw new Error("Ski area not loaded.");
     }
 
@@ -593,7 +593,7 @@ export class MapService {
           distance: number;
         };
         this.currentWaypointClosestLift.set({
-          lift: this.skiArea!.lifts.get(lift_id)!,
+          lift: this.skiArea()!.lifts.get(lift_id)!,
           distance,
         });
       }

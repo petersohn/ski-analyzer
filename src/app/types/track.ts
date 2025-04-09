@@ -2,7 +2,6 @@ import dayjs from "dayjs";
 import { Dayjs } from "dayjs";
 import { Point, Rect } from "./geo";
 import { Lift, SkiArea } from "./skiArea";
-import { elementAt } from "rxjs";
 
 export type RawWaypoint = {
   point: Point;
