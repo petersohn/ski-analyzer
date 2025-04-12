@@ -51,6 +51,8 @@ class EventHandler extends Interaction {
         return this.handleClickEvent(event);
       case "keydown":
         return this.handleKeyEvent(event);
+      case "pointermove":
+        return this.handlePointerMoveEvent(event);
       default:
         return true;
     }
@@ -104,6 +106,14 @@ class EventHandler extends Interaction {
 
     return true;
   }
+
+  private handlePointerMoveEvent(event: MapBrowserEvent<any>): boolean {
+    const coord = event.map.getCoordinateFromPixel(event.pixel);
+    this.mapService.mouseCoordinate.set(
+      this.mapService.coordinateToPoint(coord),
+    );
+    return false;
+  }
 }
 
 type SelectedFeature = {
@@ -134,6 +144,7 @@ export class MapService {
     distance: number;
   } | null>(null);
   public readonly isInitialized = signal(false);
+  public readonly mouseCoordinate = signal<Point | undefined>(undefined);
 
   public readonly mapConfig = signal<MapConfig | undefined>(undefined);
 
@@ -218,7 +229,7 @@ export class MapService {
     const zoom = view.getZoom();
     if (center !== undefined && zoom !== undefined) {
       this.mapConfig.set({
-        center: this.coordinageToPoint(center),
+        center: this.coordinateToPoint(center),
         zoom,
       });
     }
@@ -514,10 +525,10 @@ export class MapService {
   }
 
   public getScreenBounds(): Rect {
-    const min = this.coordinageToPoint(
+    const min = this.coordinateToPoint(
       this.map?.getCoordinateFromPixel([0, this.targetElement!.clientHeight])!,
     );
-    const max = this.coordinageToPoint(
+    const max = this.coordinateToPoint(
       this.map?.getCoordinateFromPixel([this.targetElement!.clientWidth, 0])!,
     );
 
@@ -615,7 +626,7 @@ export class MapService {
     return fromLonLat([p.x, p.y], this.projection);
   }
 
-  private coordinageToPoint(c: Coordinate): Point {
+  public coordinateToPoint(c: Coordinate): Point {
     const lonlat = toLonLat(c, this.projection);
     return { x: lonlat[0], y: lonlat[1] };
   }

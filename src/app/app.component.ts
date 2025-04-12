@@ -16,10 +16,12 @@ import { TasksService } from "@/services/tasks.service";
 import { SkiAreaChooserService } from "@/services/ski-area-chooser.service";
 import { EventsService } from "@/services/events.service";
 import { MatIconRegistry } from "@angular/material/icon";
+import { DebugInfoComponent } from "./components/debug-info.component";
 
 @Component({
   selector: "app-root",
   imports: [
+    DebugInfoComponent,
     MainMenuComponent,
     MapComponent,
     SelectionInfoComponent,
