@@ -558,11 +558,13 @@ fn enter_and_leave_another_piste_with_area() {
 #[test]
 #[named]
 fn enter_and_leave_another_piste_with_line() {
+    let line1_part =
+        LineString::new(line1().0.split_at(32).1.split_at(12).0.to_vec());
     let ski_area = ski_area(
         function_name!(),
         &[
             piste("1", vec![line0()], vec![]),
-            piste("2", vec![line1()], vec![]),
+            piste("2", vec![line1_part], vec![]),
         ],
     );
     let segments = segments_enter_leave();
@@ -586,14 +588,14 @@ fn enter_and_leave_another_piste_with_line() {
                 piste_id: "2".to_string(),
                 move_type: MoveType::Ski,
             },
-            (0, 27),
+            (0, 26),
         ),
         (
             Moving {
                 piste_id: "1".to_string(),
                 move_type: MoveType::Ski,
             },
-            (0, 35),
+            (0, 36),
         ),
     ];
     run_test(
