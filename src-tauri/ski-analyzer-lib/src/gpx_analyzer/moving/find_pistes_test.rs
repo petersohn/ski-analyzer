@@ -993,3 +993,68 @@ fn stay_on_piste_when_crossing_another_from_line_to_area() {
         expected,
     );
 }
+
+fn segments_leave_for_short_time() -> Vec<TrackSegment> {
+    vec![segment(&[
+        (6.5260963, 45.3125588),
+        (6.5262519, 45.3126741),
+        (6.5264425, 45.3128468),
+        (6.5266085, 45.3130066),
+        (6.5267759, 45.3131474),
+        (6.5267665, 45.3133135),
+        (6.5269201, 45.3134453),
+        (6.5271804, 45.3135333),
+        (6.5273692, 45.3136859),
+        (6.5275999, 45.3138751),
+        (6.5276736, 45.3140696),
+        (6.5276104, 45.3141994),
+        (6.5277122, 45.3142864),
+        (6.5278658, 45.3142588),
+        (6.5279933, 45.3142539),
+        (6.5282917, 45.3143203),
+    ])]
+}
+
+#[test]
+#[named]
+fn stay_on_piste_when_leaving_for_a_short_time_with_areas() {
+    let ski_area =
+        ski_area(function_name!(), &[piste("1", vec![], vec![area0()])]);
+    let segments = segments_leave_for_short_time();
+    let expected = vec![(
+        Moving {
+            piste_id: "1".to_string(),
+            move_type: MoveType::Ski,
+        },
+        (0, 0),
+    )];
+    run_test(
+        function_name!(),
+        ski_area,
+        segments,
+        vec![(MoveType::Ski, (0, 0))],
+        expected,
+    );
+}
+
+#[test]
+#[named]
+fn stay_on_piste_when_leaving_for_a_short_time_with_lines() {
+    let ski_area =
+        ski_area(function_name!(), &[piste("1", vec![line0()], vec![])]);
+    let segments = segments_leave_for_short_time();
+    let expected = vec![(
+        Moving {
+            piste_id: "1".to_string(),
+            move_type: MoveType::Ski,
+        },
+        (0, 0),
+    )];
+    run_test(
+        function_name!(),
+        ski_area,
+        segments,
+        vec![(MoveType::Ski, (0, 0))],
+        expected,
+    );
+}
