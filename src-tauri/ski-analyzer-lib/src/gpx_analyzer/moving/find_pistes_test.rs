@@ -276,8 +276,86 @@ fn line1() -> LineString {
     ])
 }
 
-// https://www.openstreetmap.org/way/200749479
+// https://www.openstreetmap.org/way/1377262761
 fn area1_0() -> Polygon {
+    polygon(&[
+        (6.5239349, 45.3105977),
+        (6.5240063, 45.3105181),
+        (6.5241578, 45.3103622),
+        (6.5242586, 45.3103239),
+        (6.5245159, 45.3102191),
+        (6.5246672, 45.3102071),
+        (6.5257079, 45.3101245),
+        (6.5266627, 45.3100899),
+        (6.5270301, 45.3099833),
+        (6.5271032, 45.3099571),
+        (6.5273399, 45.3098721),
+        (6.5275684, 45.3099172),
+        (6.5276774, 45.3100824),
+        (6.5276863, 45.3101298),
+        (6.5277201, 45.3103093),
+        (6.5276218, 45.3106878),
+        (6.5275997, 45.3108065),
+        (6.527201, 45.3110003),
+        (6.5266349, 45.3112422),
+        (6.5259642, 45.3116102),
+        (6.5259216, 45.3116509),
+        (6.5258916, 45.3117184),
+        (6.5259157, 45.3118115),
+        (6.525959, 45.3118841),
+        (6.5260326, 45.3119737),
+        (6.5261195, 45.3120652),
+        (6.5263722, 45.3123313),
+        (6.5264723, 45.312473),
+        (6.5263642, 45.3123872),
+        (6.5262615, 45.3123417),
+        (6.5258531, 45.3119061),
+        (6.525804, 45.3117634),
+        (6.5258424, 45.3116327),
+        (6.5259685, 45.3115411),
+        (6.526714, 45.3111025),
+        (6.5271348, 45.31012),
+        (6.5264769, 45.3101756),
+        (6.525208, 45.3102477),
+        (6.5244903, 45.3103393),
+        (6.5240099, 45.3106945),
+        (6.5239349, 45.3105977),
+    ])
+}
+
+// https://www.openstreetmap.org/way/1027697132
+fn area1_1() -> Polygon {
+    polygon(&[
+        (6.52642, 45.3128859),
+        (6.5262046, 45.3128978),
+        (6.5260622, 45.3128711),
+        (6.5260653, 45.3127598),
+        (6.5261866, 45.3126895),
+        (6.52642, 45.3128859),
+    ])
+}
+
+// https://www.openstreetmap.org/way/1027697131
+fn area1_2() -> Polygon {
+    polygon(&[
+        (6.5267024, 45.3126557),
+        (6.5270531, 45.3125238),
+        (6.5273349, 45.3125438),
+        (6.5274932, 45.3127197),
+        (6.527433, 45.3129913),
+        (6.5273013, 45.3131738),
+        (6.5271885, 45.3130685),
+        (6.5272969, 45.3129334),
+        (6.5273064, 45.312762),
+        (6.5271893, 45.3126529),
+        (6.5269771, 45.3126818),
+        (6.5268272, 45.3127548),
+        (6.5267024, 45.3126557),
+    ])
+}
+
+// https://www.openstreetmap.org/way/200749479
+fn area1_3() -> Polygon {
     polygon(&[
         (6.5275881, 45.3134466),
         (6.5278472, 45.3133288),
@@ -512,7 +590,7 @@ fn enter_and_leave_another_piste_with_area() {
         function_name!(),
         &[
             piste("1", vec![], vec![area0()]),
-            piste("2", vec![], vec![area1_0()]),
+            piste("2", vec![], vec![area1_3()]),
         ],
     );
     let segments = segments_enter_leave();
@@ -664,7 +742,7 @@ fn enter_and_leave_another_piste_from_line_to_area() {
         function_name!(),
         &[
             piste("1", vec![line0()], vec![area0()]),
-            piste("2", vec![], vec![area1_0()]),
+            piste("2", vec![], vec![area1_3()]),
         ],
     );
     let segments = segments_enter_leave();
@@ -698,6 +776,215 @@ fn enter_and_leave_another_piste_from_line_to_area() {
             (0, 35),
         ),
     ];
+    run_test(
+        function_name!(),
+        ski_area,
+        segments,
+        vec![(MoveType::Ski, (0, 0))],
+        expected,
+    );
+}
+
+fn segments_follow_piste() -> Vec<TrackSegment> {
+    vec![segment(&[
+        (6.5266628, 45.3111721),
+        (6.5265875, 45.3112152),
+        (6.5264663, 45.3112827),
+        (6.5263322, 45.3113849),
+        (6.5261553, 45.311451),
+        (6.5260355, 45.3115289),
+        (6.5259002, 45.3116144),
+        (6.5258323, 45.3117159),
+        (6.5258779, 45.3117925),
+        (6.525895, 45.3119079),
+        (6.5259644, 45.3120047),
+        (6.5260757, 45.3120565),
+        (6.5261671, 45.3121841),
+        (6.5262546, 45.3122757),
+        (6.5262868, 45.3123771),
+        (6.5262323, 45.3124737),
+        (6.5262321, 45.3125694),
+        (6.5261976, 45.3126598),
+        (6.5261513, 45.3127399),
+        (6.5261892, 45.3128161),
+        (6.5262946, 45.3128463),
+        (6.5264407, 45.3128072),
+        (6.5266083, 45.3127555),
+        (6.5267407, 45.3126876),
+        (6.5269191, 45.3125976),
+        (6.5270368, 45.3125484),
+        (6.5271786, 45.3125683),
+        (6.5272762, 45.312649),
+        (6.5273379, 45.312706),
+        (6.5273276, 45.3128047),
+        (6.5273568, 45.3128811),
+        (6.527279, 45.312994),
+        (6.5272493, 45.3130743),
+        (6.5271442, 45.3131802),
+        (6.5271193, 45.3132978),
+        (6.5271856, 45.3134415),
+        (6.5273727, 45.313478),
+        (6.5275434, 45.3134666),
+        (6.5277459, 45.3134198),
+        (6.5278877, 45.3133435),
+        (6.5280262, 45.3132836),
+        (6.5281814, 45.313218),
+        (6.5283712, 45.3131632),
+        (6.5285336, 45.3130777),
+        (6.52862, 45.3129813),
+        (6.5287133, 45.3128632),
+        (6.5288536, 45.3128633),
+        (6.5288654, 45.3129682),
+        (6.5287551, 45.3130775),
+        (6.5286816, 45.3132029),
+        (6.5286133, 45.3133403),
+        (6.528506, 45.3134612),
+        (6.5283879, 45.3136126),
+        (6.5282865, 45.3137681),
+        (6.5282196, 45.3138874),
+        (6.5281253, 45.314009),
+    ])]
+}
+
+#[test]
+#[named]
+fn stay_on_piste_when_crossing_another_with_areas() {
+    let ski_area = ski_area(
+        function_name!(),
+        &[
+            piste("1", vec![], vec![area0()]),
+            piste(
+                "2",
+                vec![],
+                vec![area1_0(), area1_1(), area1_2(), area1_3()],
+            ),
+        ],
+    );
+    let segments = segments_follow_piste();
+    let expected = vec![
+        (
+            Moving {
+                piste_id: "2".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 0),
+        ),
+        (
+            Moving {
+                piste_id: "1".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 33),
+        ),
+        (
+            Moving {
+                piste_id: "2".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 38),
+        ),
+    ];
+    run_test(
+        function_name!(),
+        ski_area,
+        segments,
+        vec![(MoveType::Ski, (0, 0))],
+        expected,
+    );
+}
+
+#[test]
+#[named]
+fn stay_on_piste_when_crossing_another_with_lines() {
+    let ski_area = ski_area(
+        function_name!(),
+        &[
+            piste("1", vec![line0()], vec![]),
+            piste("2", vec![line1()], vec![]),
+        ],
+    );
+    let segments = segments_follow_piste();
+    let expected = vec![(
+        Moving {
+            piste_id: "2".to_string(),
+            move_type: MoveType::Ski,
+        },
+        (0, 0),
+    )];
+    run_test(
+        function_name!(),
+        ski_area,
+        segments,
+        vec![(MoveType::Ski, (0, 0))],
+        expected,
+    );
+}
+
+#[test]
+#[named]
+fn stay_on_piste_when_crossing_another_from_area_to_line() {
+    let ski_area = ski_area(
+        function_name!(),
+        &[
+            piste("1", vec![line0()], vec![]),
+            piste(
+                "2",
+                vec![],
+                vec![area1_0(), area1_1(), area1_2(), area1_3()],
+            ),
+        ],
+    );
+    let segments = segments_follow_piste();
+    let expected = vec![
+        (
+            Moving {
+                piste_id: "2".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 0),
+        ),
+        (
+            Moving {
+                piste_id: "1".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 33),
+        ),
+        (
+            Moving {
+                piste_id: "2".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 38),
+        ),
+    ];
+    run_test(
+        function_name!(),
+        ski_area,
+        segments,
+        vec![(MoveType::Ski, (0, 0))],
+        expected,
+    );
+}
+
+#[test]
+#[named]
+fn stay_on_piste_when_crossing_another_from_line_to_area() {
+    let ski_area = ski_area(
+        function_name!(),
+        &[
+            piste("1", vec![], vec![area0()]),
+            piste("2", vec![line1()], vec![]),
+        ],
+    );
+    let segments = segments_follow_piste();
+    let expected = vec![(
+        Moving {
+            piste_id: "2".to_string(),
+            move_type: MoveType::Ski,
+        },
+        (0, 0),
+    )];
     run_test(
         function_name!(),
         ski_area,
