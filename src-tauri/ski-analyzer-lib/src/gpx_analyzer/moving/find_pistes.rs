@@ -191,6 +191,7 @@ impl<'a> Candidates<'a> {
                 })
                 .flatten()
                 .collect();
+        eprintln!("commit candidates={}", candidates.len());
 
         for (_, c) in &mut candidates {
             if c.end_coord.is_none() {
@@ -221,6 +222,12 @@ impl<'a> Candidates<'a> {
         while let Some((piste_id, candidate)) = take(&mut current) {
             let begin = previous_begin.unwrap_or(candidate.begin_coord);
             let end = candidate.end_coord.unwrap();
+
+            if begin >= end {
+                current = candidates.pop();
+                continue;
+            }
+
             push(piste_id, begin);
             self.first_empty = Some(end);
 
