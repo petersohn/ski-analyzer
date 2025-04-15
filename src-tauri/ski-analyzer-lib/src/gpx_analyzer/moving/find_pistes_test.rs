@@ -18,7 +18,7 @@ use crate::utils::test_util::{
 use piste_data::{area0, area1_0, area1_1, area1_2, area1_3, line0, line1};
 use segment_data::{
     segments0, segments_enter_leave, segments_follow_piste,
-    segments_leave_for_short_time, segments_multiple,
+    segments_leave_for_short_time, segments_multiple0, segments_multiple1,
 };
 
 mod piste_data;
@@ -610,7 +610,7 @@ fn multiple_segments() {
             piste("2", vec![line1()], vec![]),
         ],
     );
-    let segments = segments_multiple();
+    let segments = segments_multiple0();
     let expected = vec![
         (
             Moving {
@@ -625,6 +625,44 @@ fn multiple_segments() {
                 move_type: MoveType::Ski,
             },
             (1, 0),
+        ),
+    ];
+    run_test(
+        function_name!(),
+        ski_area,
+        segments,
+        vec![(MoveType::Ski, (0, 0))],
+        expected,
+    );
+}
+
+#[test]
+#[named]
+fn multiple_segments_to_outside_piste() {
+    let ski_area =
+        ski_area(function_name!(), &[piste("1", vec![], vec![area0()])]);
+    let segments = segments_multiple1();
+    let expected = vec![
+        (
+            Moving {
+                piste_id: "1".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 0),
+        ),
+        (
+            Moving {
+                piste_id: "".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (1, 0),
+        ),
+        (
+            Moving {
+                piste_id: "1".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (1, 3),
         ),
     ];
     run_test(
