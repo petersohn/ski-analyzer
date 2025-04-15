@@ -228,6 +228,7 @@ impl<'a> Candidates<'a> {
                 continue;
             }
 
+            eprintln!("-> {piste_id} {begin:?}");
             push(piste_id, begin);
             self.first_empty = Some(end);
 
@@ -250,6 +251,7 @@ impl<'a> Candidates<'a> {
                 current = candidates.pop();
                 if let Some((_, c)) = current.as_ref() {
                     if c.begin_coord > end {
+                        eprintln!("=> {end:?}");
                         push(String::new(), end);
                     }
                 }
@@ -311,6 +313,11 @@ impl<'a> Candidates<'a> {
             }
         }
 
+        eprintln!(
+            "first_empty {:?} candidates {}",
+            self.first_empty,
+            self.candidates.len()
+        );
         match (self.first_empty, self.candidates.is_empty()) {
             (None, false) => (),
             (None, true) => self.first_empty = Some(coord),
@@ -353,13 +360,15 @@ pub fn find_pistes(
             }
 
             if let Some(c) = candidates.add_point(coord, &point.point()) {
-                result.push((
-                    Moving {
-                        move_type,
-                        piste_id: String::new(),
-                    },
-                    c,
-                ));
+                if c < coord {
+                    result.push((
+                        Moving {
+                            move_type,
+                            piste_id: String::new(),
+                        },
+                        c,
+                    ));
+                }
             }
         }
 

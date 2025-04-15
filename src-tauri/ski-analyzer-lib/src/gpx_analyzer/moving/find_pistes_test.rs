@@ -18,7 +18,7 @@ use crate::utils::test_util::{
 use piste_data::{area0, area1_0, area1_1, area1_2, area1_3, line0, line1};
 use segment_data::{
     segments0, segments_enter_leave, segments_follow_piste,
-    segments_leave_for_short_time,
+    segments_leave_for_short_time, segments_multiple,
 };
 
 mod piste_data;
@@ -591,6 +591,42 @@ fn stay_on_piste_when_leaving_for_a_short_time_with_lines() {
         },
         (0, 0),
     )];
+    run_test(
+        function_name!(),
+        ski_area,
+        segments,
+        vec![(MoveType::Ski, (0, 0))],
+        expected,
+    );
+}
+
+#[test]
+#[named]
+fn multiple_segments() {
+    let ski_area = ski_area(
+        function_name!(),
+        &[
+            piste("1", vec![line0()], vec![]),
+            piste("2", vec![line1()], vec![]),
+        ],
+    );
+    let segments = segments_multiple();
+    let expected = vec![
+        (
+            Moving {
+                piste_id: "2".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 0),
+        ),
+        (
+            Moving {
+                piste_id: "1".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (1, 0),
+        ),
+    ];
     run_test(
         function_name!(),
         ski_area,
