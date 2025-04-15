@@ -99,10 +99,6 @@ impl<'a> Candidate<'a> {
                 e
             }
         };
-        eprintln!(
-            "finish {}: {:?} - {end:?}",
-            self.piste.metadata.name, self.begin_coord
-        );
         self.end_coord = Some(end);
     }
 
@@ -112,7 +108,6 @@ impl<'a> Candidate<'a> {
         }
 
         let (is_ok, d) = check_distance(&self.piste, point);
-        eprintln!("* {coord:?} {}: {is_ok:?}, {d}", self.piste.metadata.name);
         if is_ok {
             self.distances.push(d);
             self.bad_run = None;
@@ -191,7 +186,6 @@ impl<'a> Candidates<'a> {
                 })
                 .flatten()
                 .collect();
-        eprintln!("commit candidates={}", candidates.len());
 
         for (_, c) in &mut candidates {
             if c.end_coord.is_none() {
@@ -228,7 +222,6 @@ impl<'a> Candidates<'a> {
                 continue;
             }
 
-            eprintln!("-> {piste_id} {begin:?}");
             push(piste_id, begin);
             self.first_empty = Some(end);
 
@@ -251,7 +244,6 @@ impl<'a> Candidates<'a> {
                 current = candidates.pop();
                 if let Some((_, c)) = current.as_ref() {
                     if c.begin_coord > end {
-                        eprintln!("=> {end:?}");
                         push(String::new(), end);
                     }
                 }
@@ -307,17 +299,11 @@ impl<'a> Candidates<'a> {
             }
 
             let (is_ok, d) = check_distance(piste, point);
-            eprintln!("+ {coord:?} {}: {is_ok:?}, {d}", piste.metadata.name);
             if is_ok {
                 entry.or_default().push(Candidate::new(piste, coord, d));
             }
         }
 
-        eprintln!(
-            "first_empty {:?} candidates {}",
-            self.first_empty,
-            self.candidates.len()
-        );
         match (self.first_empty, self.candidates.is_empty()) {
             (None, false) => (),
             (None, true) => self.first_empty = Some(coord),
