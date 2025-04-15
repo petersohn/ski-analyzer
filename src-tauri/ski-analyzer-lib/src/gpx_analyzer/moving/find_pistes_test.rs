@@ -673,3 +673,34 @@ fn multiple_segments_to_outside_piste() {
         expected,
     );
 }
+
+#[test]
+#[named]
+fn multiple_moves() {
+    let ski_area =
+        ski_area(function_name!(), &[piste("1", vec![], vec![area0()])]);
+    let segments = segments0();
+    let expected = vec![
+        (
+            Moving {
+                piste_id: "1".to_string(),
+                move_type: MoveType::Ski,
+            },
+            (0, 0),
+        ),
+        (
+            Moving {
+                piste_id: "1".to_string(),
+                move_type: MoveType::Traverse,
+            },
+            (0, 3),
+        ),
+    ];
+    run_test(
+        function_name!(),
+        ski_area,
+        segments,
+        vec![(MoveType::Ski, (0, 0)), (MoveType::Traverse, (0, 3))],
+        expected,
+    );
+}
