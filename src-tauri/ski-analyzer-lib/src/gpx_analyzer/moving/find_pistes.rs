@@ -305,15 +305,16 @@ impl<'a> Candidates<'a> {
         }
 
         match (self.first_empty, self.candidates.is_empty()) {
-            (None, false) => (),
-            (None, true) => self.first_empty = Some(coord),
+            (None, true) => {
+                self.first_empty = Some(coord);
+                None
+            }
             (Some(c), false) => {
                 self.first_empty = None;
-                return Some(c);
+                Some(c)
             }
-            (Some(_), true) => (),
-        };
-        None
+            _ => None,
+        }
     }
 
     fn is_all_finished(&self) -> bool {
