@@ -1,9 +1,9 @@
-<div>
-  <span class="label">{{ name() }}: </span>
-  <span *ngIf="singleValue() !== ''" class="value">{{ singleValue() }}</span>
+<div class="header">
+  <dt>{{ name() }}:</dt>
+  <dd *ngIf="singleValue() !== ''">{{ singleValue() }}</dd>
 </div>
 <div *ngIf="valueList().length !== 0" class="values-list">
   @for (value of valueList(); track value) {
-    <div class="value">{{ value }}</div>
+    <dd>{{ value }}</dd>
   }
 </div>

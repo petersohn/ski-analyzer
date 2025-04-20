@@ -1,7 +1,13 @@
-.label {
+.header dd {
+  display: inline;
+}
+
+dt {
+  display: inline;
   font-weight: 500;
 }
 
-.values-list {
+dd {
+  display: block;
   padding-left: 15px;
 }
