@@ -34,6 +34,7 @@ import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import { MapConfig } from "@/types/config";
 import { ConfigService } from "./config.service";
+import { Pixel } from "ol/pixel";
 
 dayjs.extend(duration);
 
@@ -77,32 +78,55 @@ class EventHandler extends Interaction {
     }
   }
 
-  private handleClickEvent(event: MapBrowserEvent<any>): boolean {
-    const found = event.map.forEachFeatureAtPixel(event.pixel, (feature) => {
-      const piste = feature.get("ski-analyzer-piste");
-      if (piste) {
-        this.mapService.selectPiste(piste as Piste);
-        return true;
-      }
-      const lift = feature.get("ski-analyzer-lift");
-      if (lift) {
-        this.mapService.selectLift(lift as Lift);
-        return true;
-      }
-      const activity = feature.get("ski-analyzer-activity");
-      if (activity) {
-        this.mapService.selectActivity(
-          activity as Activity,
-          event.map.getCoordinateFromPixel(event.pixel),
-        );
-        return true;
-      }
-      return false;
-    });
+  private selectFeatureAt(map: OlMap, pixel: Pixel): boolean {
+    return (
+      map.forEachFeatureAtPixel(pixel, (feature) => {
+        const piste = feature.get("ski-analyzer-piste");
+        if (piste) {
+          this.mapService.selectPiste(piste as Piste);
+          return true;
+        }
+        const lift = feature.get("ski-analyzer-lift");
+        if (lift) {
+          this.mapService.selectLift(lift as Lift);
+          return true;
+        }
+        const activity = feature.get("ski-analyzer-activity");
+        if (activity) {
+          this.mapService.selectActivity(
+            activity as Activity,
+            map.getCoordinateFromPixel(pixel),
+          );
+          return true;
+        }
+        return false;
+      }) ?? false
+    );
+  }
 
-    if (!found) {
-      this.mapService.unselectFeatures();
+  private handleClickEvent(event: MapBrowserEvent<any>): boolean {
+    const [x, y] = event.pixel;
+    for (const [dx, dy] of [
+      [0, 0],
+      [0, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 0],
+      [-1, -1],
+      [1, -1],
+      [1, 1],
+      [-1, 1],
+      [0, -2],
+      [2, 0],
+      [0, 2],
+      [-2, 0],
+    ]) {
+      if (this.selectFeatureAt(event.map, [x + dx, y + dy])) {
+        return true;
+      }
     }
+
+    this.mapService.unselectFeatures();
 
     return true;
   }
