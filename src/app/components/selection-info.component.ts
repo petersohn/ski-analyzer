@@ -184,11 +184,6 @@ export class SelectionInfoComponent {
     return !!vdop ? this.meters(vdop) : "";
   });
 
-  public closestLift = computed(() => {
-    const lift = this.currentWaypointClosestLift();
-    return !!lift ? `${lift.lift.name} (${this.meters(lift.distance)})` : "";
-  });
-
   public activityPiste = computed(() => {
     const pisteId = this.selectedActivity()?.moving?.piste_id;
     if (!pisteId) {

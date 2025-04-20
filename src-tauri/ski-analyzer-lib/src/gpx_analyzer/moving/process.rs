@@ -5,6 +5,7 @@ use gpx::Waypoint;
 
 use super::super::segments::Segments;
 use super::MoveType;
+use crate::config::get_config;
 use crate::error::Result;
 use crate::gpx_analyzer::SegmentCoordinate;
 use crate::utils::cancel::CancellationToken;
@@ -75,8 +76,10 @@ impl<'a> Process<'a> {
                     self.can_finish.entry(*move_type).or_insert(*from);
                 }
             };
-            self.comment
-                .push_str(&format!("{move_type:?} -> {res:?}\n"));
+            if get_config().is_vv() {
+                self.comment
+                    .push_str(&format!("{move_type:?} -> {res:?}\n"));
+            }
         }
 
         for move_type in &to_remove {
@@ -93,8 +96,11 @@ impl<'a> Process<'a> {
         {
             let min = entry.remove();
             let max = coordinate;
-            self.comment
-                .push_str(&format!("finish {move_type:?}: {min:?}->{max:?}\n"));
+            if get_config().is_vv() {
+                self.comment.push_str(&format!(
+                    "finish {move_type:?}: {min:?}->{max:?}\n"
+                ));
+            }
             self.finished_candidates.push(FinishedCandidate {
                 move_type,
                 min,
@@ -124,8 +130,12 @@ impl<'a> Process<'a> {
 
         finished_candidates.sort_by_key(|c| std::cmp::Reverse(c.min));
 
+        let config = get_config();
+
         let mut push = |x, coord| {
-            self.comment.push_str(&format!("commit {coord:?} {x:?}\n"));
+            if config.is_vv() {
+                self.comment.push_str(&format!("commit {coord:?} {x:?}\n"));
+            }
             self.result.push((x, coord));
         };
 
@@ -167,6 +177,7 @@ pub fn process_moves(
     let mut process = Process::new(move_types);
     let mut prev: Option<&Waypoint> = None;
     let mut comments: HashMap<SegmentCoordinate, String> = HashMap::new();
+    let config = get_config();
 
     for (coordinate, point) in &*segments {
         cancel.check()?;
@@ -182,9 +193,11 @@ pub fn process_moves(
         process.fill(coordinate);
         let was_finished = process.add_point(coordinate, prev.unwrap(), point);
         let should_commit = process.should_commit(coordinate);
-        process.comment.push_str(&format!(
-            "was_finished={was_finished}, should_commit={should_commit}\n"
-        ));
+        if config.is_vv() {
+            process.comment.push_str(&format!(
+                "was_finished={was_finished}, should_commit={should_commit}\n"
+            ));
+        }
 
         if was_finished && should_commit {
             process.commit();
@@ -206,10 +219,12 @@ pub fn process_moves(
 
     let mut coordinate = segments.begin_coord();
     while coordinate != segments.end_coord() {
-        if let Some(comment) = comments.get_mut(&coordinate) {
-            let comment = format!("{coordinate:?}\n{comment}");
-            segments.get_mut(coordinate).as_mut().unwrap().comment =
-                Some(comment);
+        if config.is_vv() {
+            if let Some(comment) = comments.get_mut(&coordinate) {
+                let comment = format!("{coordinate:?}\n{comment}");
+                segments.get_mut(coordinate).as_mut().unwrap().comment =
+                    Some(comment);
+            }
         }
         coordinate = segments.next_coord(coordinate);
     }
