@@ -22,9 +22,15 @@ export type CachedSkiArea = {
 
 export type MapTileType = "OpenStreetMap" | "Custom";
 
+export type SavedMapTile = {
+  name: string;
+  value: string;
+};
+
 export type UiConfig = {
   mapTileType: MapTileType;
   mapTileUrl: string;
+  savedMapTiles: SavedMapTile[];
 };
 
 export function convertCachedSkiAreas(

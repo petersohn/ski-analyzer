@@ -1,5 +1,11 @@
 .field {
   margin: 20px 10px;
+  display: flex;
+  gap: 10px;
+}
+
+.input-icon {
+  margin-top: 10px;
 }
 
 .url-input {

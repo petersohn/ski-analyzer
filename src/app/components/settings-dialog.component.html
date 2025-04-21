@@ -22,6 +22,14 @@
               placeholder="https://tile.example.com/{z}/{x}/{y}"
             />
           </mat-form-field>
+          <button
+            mat-icon-button
+            class="input-icon"
+            [disabled]="!hasCustomLocation"
+            [matMenuTriggerFor]="savedMapTilesMenu"
+          >
+            <mat-icon aria-label="Others" svgIcon="ellipsis"></mat-icon>
+          </button>
         </div>
       }
     </form>
@@ -33,3 +41,11 @@
     <button mat-button mat-dialog-close>Cancel</button>
   </mat-dialog-actions>
 </div>
+
+<mat-menu #savedMapTilesMenu="matMenu">
+  @for (item of data.config.savedMapTiles; track item.name) {
+    <button mat-menu-item (click)="setCustomUrl(item.value)">
+      {{ item.name }}
+    </button>
+  }
+</mat-menu>
