@@ -398,7 +398,7 @@ export class MapService {
       let previousNode: ActivityNode | undefined;
 
       for (const activity of track.item) {
-        const styles = this.mapStyleService.routeStyles()[activity.type];
+        const styles = this.getRouteStyle(activity);
 
         const coords = activity.route.map((segment) =>
           segment.map((wp) => this.pointToCoordinate(wp.point)),
@@ -592,10 +592,17 @@ export class MapService {
     view.setZoom(config.zoom);
   }
 
+  private getRouteStyle(activity: Activity) {
+    const moveType = activity.moving?.move_type;
+    const styleName = moveType ? `${activity.type}_${moveType}` : activity.type;
+    console.log(styleName);
+    return this.mapStyleService.routeStyles()[styleName];
+  }
+
   private selectActivityAndNode(activity: Activity, node?: ActivityNode) {
     this.unselectFeatures();
 
-    const styles = this.mapStyleService.routeStyles()[activity.type];
+    const styles = this.getRouteStyle(activity);
     this.selectFeature(this.activityLineFeatures.get(activity), styles.line);
 
     this.selectedActivity.set(activity);

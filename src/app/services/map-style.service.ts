@@ -117,7 +117,10 @@ export class MapStyleService {
       UseLift: "#f55",
       EnterLift: "#f33",
       ExitLift: "#f77",
-      Moving: "#0ff",
+      Moving: "#0aa",
+      Moving_Unknown: "#0aa",
+      Moving_Ski: "#0ff",
+      Moving_Wait: "#f7b32c",
     };
     const dashes: { [type: string]: number[] } = {
       EnterLift: [6, 4, 2, 4],
