@@ -29,4 +29,5 @@ Issue these commands in `src-tauri/ski-analyzer-lib`.
 
 Run this from the project root.
 
-- **build:** `pnpm tauri build`
+- **build the entire app:** `pnpm tauri build`
+- **build the front end:** `pnpm build`
