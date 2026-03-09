@@ -22,11 +22,6 @@
   ></name-value>
   <name-value *ngIf="!!speed()" name="Speed" [value]="speed()"></name-value>
   <name-value
-    *ngIf="!!activityPiste()"
-    name="Piste"
-    [value]="activityPiste()"
-  ></name-value>
-  <name-value
     *ngIf="!!elevation()"
     name="Elevation"
     [value]="elevation()"
@@ -48,7 +43,7 @@
   ></name-value>
 </mat-card>
 
-<mat-card class="card" *ngIf="!!selectedPiste()">
+<mat-card class="card" *ngIf="!!piste()">
   <div class="icon-container">
     <mat-icon svgIcon="piste" class="icon piste-icon"></mat-icon>
   </div>
@@ -56,7 +51,7 @@
   <name-value
     class="difficulty"
     name="Difficulty"
-    [value]="selectedPiste()!.difficulty"
+    [value]="piste()!.difficulty"
   ></name-value>
 </mat-card>
 

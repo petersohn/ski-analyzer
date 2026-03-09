@@ -54,7 +54,6 @@ export class ConfigService {
   }
 
   private autoFill(config: UiConfig) {
-    console.log(config);
     switch (config.mapTileType) {
       case "OpenStreetMap":
         config.mapTileUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";

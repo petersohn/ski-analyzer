@@ -56,7 +56,6 @@ export class SettingsDialogComponent {
     @Inject(MAT_DIALOG_DATA) public readonly data: SettingsDialogData,
     private readonly dialogRef: MatDialogRef<SettingsDialogComponent>,
   ) {
-    console.log(this.data);
     this.formGroup.controls.mapTileType.setValue(this.data.config.mapTileType);
     this.formGroup.controls.mapTileUrl.setValue(this.data.config.mapTileUrl);
   }

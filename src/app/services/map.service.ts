@@ -595,7 +595,6 @@ export class MapService {
   private getRouteStyle(activity: Activity) {
     const moveType = activity.moving?.move_type;
     const styleName = moveType ? `${activity.type}_${moveType}` : activity.type;
-    console.log(styleName);
     return this.mapStyleService.routeStyles()[styleName];
   }
 

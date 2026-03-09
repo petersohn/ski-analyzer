@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { Dayjs } from "dayjs";
 import { Point, Rect } from "./geo";
-import { Lift, SkiArea } from "./skiArea";
+import { Lift, Piste, SkiArea } from "./skiArea";
 
 export type RawWaypoint = {
   point: Point;
@@ -20,7 +20,7 @@ export type RawUseLift = {
   is_reverse: boolean;
 };
 
-export type Moving = {
+export type RawMoving = {
   move_type: string;
   piste_id: string;
 };
@@ -30,7 +30,7 @@ export type RawActivityType = {
   UseLift?: RawUseLift;
   EnterLift?: string;
   ExitLift?: string;
-  Moving?: Moving;
+  Moving?: RawMoving;
 };
 
 export type RawActivity = {
@@ -64,6 +64,11 @@ export type UseLift = {
   begin_station: number;
   end_station: number;
   is_reverse: boolean;
+};
+
+export type Moving = {
+  move_type: string;
+  piste?: Piste;
 };
 
 export type ActivityType =
@@ -101,7 +106,7 @@ export class TrackConverter {
           useLift: this.convertUseLift(activity.type.UseLift),
           enterLift: this.getLift(activity.type.EnterLift),
           exitLift: this.getLift(activity.type.ExitLift),
-          moving: activity.type.Moving,
+          moving: this.convertMoving(activity.type.Moving),
           route: this.convertRoute(activity.route),
           begin_time: dayjs(activity.begin_time),
           end_time: dayjs(activity.end_time),
@@ -120,6 +125,14 @@ export class TrackConverter {
     return this.skiArea.lifts.get(liftId);
   }
 
+  private getPiste(pisteId: string | undefined): Piste | undefined {
+    if (pisteId == undefined) {
+      return undefined;
+    }
+
+    return this.skiArea.pistes.get(pisteId);
+  }
+
   private convertUseLift(input?: RawUseLift): UseLift | undefined {
     if (!input) {
       return;
@@ -135,6 +148,22 @@ export class TrackConverter {
       begin_station: input.begin_station,
       end_station: input.end_station,
       is_reverse: input.is_reverse,
+    };
+  }
+
+  private convertMoving(input?: RawMoving): Moving | undefined {
+    if (!input) {
+      return;
+    }
+
+    const piste = this.getPiste(input.piste_id);
+    if (input.piste_id !== "" && !piste) {
+      console.warn(`Piste not found with id: ${input.piste_id}`);
+    }
+
+    return {
+      move_type: input.move_type,
+      piste,
     };
   }
 

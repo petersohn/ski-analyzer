@@ -93,16 +93,16 @@ export class SelectionInfoComponent {
     this.currentWaypointClosestLift =
       this.mapService.currentWaypointClosestLift;
     effect(() => {
-      const color =
-        difficultyColors[this.selectedPiste()?.difficulty ?? "Unknown"];
+      const color = difficultyColors[this.piste()?.difficulty ?? "Unknown"];
       this.elementRef.nativeElement.style.setProperty(
         "--difficulty-color",
         color,
       );
     });
+    effect(() => console.log("piste", this.piste(), !!this.piste()));
   }
 
-  public pisteName = computed(() => this.getName(this.selectedPiste()));
+  public pisteName = computed(() => this.getName(this.piste()));
 
   public lift = computed(
     () =>
@@ -111,18 +111,26 @@ export class SelectionInfoComponent {
       this.selectedActivity()?.enterLift ||
       this.selectedActivity()?.exitLift,
   );
+
+  public piste = computed(
+    () => this.selectedPiste() || this.selectedActivity()?.moving?.piste,
+  );
+
   public liftName = computed(() => this.getName(this.lift()));
   public liftType = computed(() => liftTypes[this.lift()?.type ?? ""]);
+
   public liftIcon = computed(() => {
     const type = liftIcons[this.lift()?.type ?? ""];
     return type;
   });
+
   public stations = computed(() => {
     const stations = this.lift()?.stations ?? [];
     return stations.map((s) =>
       s.elevation === 0 ? "?" : this.meters(s.elevation),
     );
   });
+
   public liftLengths = computed((): string[] => {
     const lengths = this.lift()?.lengths ?? [];
     return lengths.map((l) => this.meters(l));
@@ -182,16 +190,6 @@ export class SelectionInfoComponent {
   public elevationAccuracy = computed(() => {
     const vdop = this.selectedWaypoint()?.vdop;
     return !!vdop ? this.meters(vdop) : "";
-  });
-
-  public activityPiste = computed(() => {
-    const pisteId = this.selectedActivity()?.moving?.piste_id;
-    if (!pisteId) {
-      return "";
-    }
-
-    const piste = this.skiArea()?.pistes.get(pisteId);
-    return piste?.name ?? "";
   });
 
   private meters(len: number) {
