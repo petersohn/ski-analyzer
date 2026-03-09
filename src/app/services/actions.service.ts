@@ -1,7 +1,7 @@
-import { Injectable, signal, computed } from "@angular/core";
+import { Injectable } from "@angular/core";
 import { invoke } from "@tauri-apps/api/core";
 import { SkiAreaChooserService } from "./ski-area-chooser.service";
-import { RawSkiArea, SkiAreaMetadata } from "@/types/skiArea";
+import { RawSkiArea } from "@/types/skiArea";
 import { DerivedData, RawTrack, Waypoint } from "@/types/track";
 import { Rect } from "@/types/geo";
 import { Error } from "@/types/error";
