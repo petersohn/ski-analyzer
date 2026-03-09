@@ -31,3 +31,4 @@ Run this from the project root.
 
 - **build the entire app:** `pnpm tauri build`
 - **build the front end:** `pnpm build`
+- **test the front end:** `pnpm test`

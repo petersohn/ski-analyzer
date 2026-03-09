@@ -5,12 +5,12 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "watch": "ng build --watch --configuration development"
+    "watch": "ng build --watch --configuration development",
+    "test": "vitest"
   },
   "private": true,
   "dependencies": {
     "@angular/animations": "^21.2.2",
-    "@angular/cdk": "^21.2.1",
     "@angular/common": "^21.2.2",
     "@angular/compiler": "^21.2.2",
     "@angular/core": "^21.2.2",
@@ -31,21 +31,26 @@
   },
   "devDependencies": {
     "@angular/build": "^21.2.1",
+    "@angular/cdk": "^21.2.1",
     "@angular/cli": "^21.2.1",
     "@angular/compiler-cli": "^21.2.2",
     "@tauri-apps/cli": "2.10.1",
     "@types/jasmine": "~6.0.0",
     "@types/node": "^25.4.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/ui": "^4.0.18",
     "copyfiles": "^2.4.1",
     "jasmine-core": "~6.1.0",
     "jasmine-marbles": "~0.9.2",
     "jasmine-spec-reporter": "~7.0.0",
+    "jsdom": "^28.1.0",
     "karma": "~6.4.4",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.1",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.2.0",
     "ts-node": "~10.9.2",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
   }
 }
