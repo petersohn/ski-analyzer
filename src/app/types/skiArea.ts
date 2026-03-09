@@ -32,7 +32,7 @@ export type Difficulty =
   | "Easy"
   | "Intermediate"
   | "Advanced"
-  | "Expoert"
+  | "Expert"
   | "Freeride";
 
 export type Piste = {
