@@ -116,6 +116,11 @@ fn test_cache_flow(
 
     let current_uuid = app_state.get_config().current_ski_area;
     assert_eq!(current_uuid, Some(uuid_b), "Ski area B should be current");
+    assert_eq!(
+        app_state.get_ski_area().unwrap().1.metadata.name,
+        "Area B",
+        "Ski area B name should match"
+    );
 }
 
 #[rstest]
@@ -158,6 +163,11 @@ fn test_cache_persistence_after_restart(
 
         let current_uuid = app_state.get_config().current_ski_area;
         assert_eq!(current_uuid, Some(uuid_b), "Ski area B should be current");
+        assert_eq!(
+            app_state.get_ski_area().unwrap().1.metadata.name,
+            "Area B",
+            "Ski area B name should match"
+        );
     }
 }
 
@@ -174,8 +184,18 @@ fn test_load_cached_ski_area(
 
     let current_uuid = app_state.get_config().current_ski_area;
     assert_eq!(current_uuid, Some(uuid_b), "Ski area B should be current");
+    assert_eq!(
+        app_state.get_ski_area().unwrap().1.metadata.name,
+        "Area B",
+        "Ski area B name should match"
+    );
 
     app_state.load_cached_ski_area(&uuid_a).unwrap();
     let current_uuid = app_state.get_config().current_ski_area;
     assert_eq!(current_uuid, Some(uuid_a), "Ski area A should be current");
+    assert_eq!(
+        app_state.get_ski_area().unwrap().1.metadata.name,
+        "Area A",
+        "Ski area A name should match"
+    );
 }
