@@ -17,22 +17,10 @@ impl EventEmitter for TauriEventEmitter {
 
 #[cfg(test)]
 pub mod test_helpers {
-    use serde::Serialize;
     use serde_json::Value;
     use std::sync::{Arc, Mutex};
 
     use crate::utils::event::EventEmitter;
-
-    pub trait TestEventEmitter: Send + Sync {
-        fn emit_event<T: Serialize + Clone>(&self, name: &str, data: &T);
-    }
-
-    impl<T: EventEmitter> TestEventEmitter for T {
-        fn emit_event<U: Serialize + Clone>(&self, name: &str, data: &U) {
-            let value = serde_json::to_value(data).unwrap_or(Value::Null);
-            EventEmitter::emit_event(self, name, &value);
-        }
-    }
 
     #[derive(Clone, Default)]
     pub struct MockEventEmitter {
