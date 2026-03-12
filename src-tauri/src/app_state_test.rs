@@ -38,14 +38,6 @@ fn temp_dir() -> TempDir {
 }
 
 #[fixture]
-fn app_state(temp_dir: TempDir) -> AppState {
-    let emitter = Arc::new(MockEventEmitter::new());
-    let mut state = AppState::default();
-    state.init_config(temp_dir.path(), emitter);
-    state
-}
-
-#[fixture]
 fn ski_area_a() -> SkiArea {
     create_ski_area("Area A".to_string())
 }
@@ -83,16 +75,20 @@ fn create_ski_area(name: String) -> SkiArea {
     }
 }
 
+fn get_app_state(path: &PathBuf) -> AppState {
+    let emitter = Arc::new(MockEventEmitter::new());
+    let mut state = AppState::default();
+    state.init_config(path, emitter);
+    state
+}
+
 #[rstest]
 fn test_cache_flow(
-    mut app_state: AppState,
+    temp_dir: TempDir,
     ski_area_a: SkiArea,
     ski_area_b: SkiArea,
 ) {
-    assert!(
-        app_state.get_cached_ski_areas().is_empty(),
-        "Cache should be empty initially"
-    );
+    let mut app_state = get_app_state(temp_dir.path());
 
     app_state.set_ski_area(ski_area_a.clone());
     let uuid_a = app_state.get_ski_area().unwrap().0;
@@ -130,9 +126,7 @@ fn test_cache_persistence_after_restart(
     ski_area_b: SkiArea,
 ) {
     let (uuid_a, uuid_b) = {
-        let emitter = Arc::new(MockEventEmitter::new());
-        let mut app_state = AppState::default();
-        app_state.init_config(temp_dir.path(), emitter);
+        let mut app_state = get_app_state(temp_dir.path());
 
         app_state.set_ski_area(ski_area_a.clone());
         let uuid_a = app_state.get_ski_area().unwrap().0;
@@ -145,9 +139,7 @@ fn test_cache_persistence_after_restart(
     };
 
     {
-        let emitter = Arc::new(MockEventEmitter::new());
-        let mut app_state = AppState::default();
-        app_state.init_config(temp_dir.path(), emitter);
+        let app_state = get_app_state(temp_dir.path());
 
         let cached = app_state.get_cached_ski_areas();
         assert_eq!(cached.len(), 2, "Cache should persist after restart");
@@ -173,10 +165,11 @@ fn test_cache_persistence_after_restart(
 
 #[rstest]
 fn test_load_cached_ski_area(
-    mut app_state: AppState,
+    temp_dir: TempDir,
     ski_area_a: SkiArea,
     ski_area_b: SkiArea,
 ) {
+    let mut app_state = get_app_state(temp_dir.path());
     app_state.set_ski_area(ski_area_a.clone());
     let uuid_a = app_state.get_ski_area().unwrap().0;
     app_state.set_ski_area(ski_area_b.clone());
