@@ -5,9 +5,9 @@ pub trait EventEmitter: Send + Sync {
     fn emit_event(&self, name: &str, data: &Value);
 }
 
-pub struct TauriEventEmitter<'a>(pub &'a AppHandle);
+pub struct TauriEventEmitter(pub AppHandle);
 
-impl<'a> EventEmitter for TauriEventEmitter<'a> {
+impl EventEmitter for TauriEventEmitter {
     fn emit_event(&self, name: &str, data: &Value) {
         if let Err(err) = self.0.emit(name, data) {
             eprintln!("Failed to send event {}: {}", name, err);
@@ -50,7 +50,9 @@ pub mod test_helpers {
             let events = self.events.lock().unwrap();
             events
                 .iter()
-                .map(|(name, data)| (name.clone(), String::from_utf8_lossy(data).to_string()))
+                .map(|(name, data)| {
+                    (name.clone(), String::from_utf8_lossy(data).to_string())
+                })
                 .collect()
         }
 

@@ -6,6 +6,7 @@ mod tests {
     use ski_analyzer_lib::ski_area::{SkiArea, SkiAreaMetadata};
     use ski_analyzer_lib::utils::bounded_geometry::BoundedGeometry;
     use std::collections::HashMap;
+    use std::sync::Arc;
     use std::fs;
     use std::path::PathBuf;
     use uuid::Uuid;
@@ -43,9 +44,9 @@ mod tests {
 
     #[fixture]
     fn app_state(temp_dir: TempDir) -> AppState {
-        let emitter = MockEventEmitter::new();
+        let emitter = Arc::new(MockEventEmitter::new());
         let mut state = AppState::default();
-        state.init_config(temp_dir.path(), &emitter);
+        state.init_config(temp_dir.path(), emitter);
         state
     }
 
@@ -95,17 +96,15 @@ mod tests {
         ski_area_a: SkiArea,
         ski_area_b: SkiArea,
     ) {
-        let emitter = MockEventEmitter::new();
-
         assert!(
             app_state.get_cached_ski_areas().is_empty(),
             "Cache should be empty initially"
         );
 
-        app_state.set_ski_area(&emitter, ski_area_a.clone());
+        app_state.set_ski_area(ski_area_a.clone());
         let uuid_a = app_state.get_ski_area().unwrap().0;
 
-        app_state.set_ski_area(&emitter, ski_area_b.clone());
+        app_state.set_ski_area(ski_area_b.clone());
         let uuid_b = app_state.get_ski_area().unwrap().0;
 
         assert_ne!(uuid_a, uuid_b, "UUIDs should be different");
@@ -136,21 +135,21 @@ mod tests {
         ski_area_b: SkiArea,
     ) {
         {
-            let emitter = MockEventEmitter::new();
+            let emitter = Arc::new(MockEventEmitter::new());
             let mut app_state = AppState::default();
-            app_state.init_config(temp_dir.path(), &emitter);
+            app_state.init_config(temp_dir.path(), emitter);
 
-            app_state.set_ski_area(&emitter, ski_area_a.clone());
-            app_state.set_ski_area(&emitter, ski_area_b.clone());
+            app_state.set_ski_area(ski_area_a.clone());
+            app_state.set_ski_area(ski_area_b.clone());
 
             let cached = app_state.get_cached_ski_areas();
             assert_eq!(cached.len(), 2, "Both ski areas should be cached");
         }
 
         {
-            let emitter2 = MockEventEmitter::new();
+            let emitter2 = Arc::new(MockEventEmitter::new());
             let mut app_state2 = AppState::default();
-            app_state2.init_config(temp_dir.path(), &emitter2);
+            app_state2.init_config(temp_dir.path(), emitter2);
 
             let cached = app_state2.get_cached_ski_areas();
             assert_eq!(
@@ -167,24 +166,24 @@ mod tests {
         ski_area_a: SkiArea,
         ski_area_b: SkiArea,
     ) {
-        let emitter = MockEventEmitter::new();
+        let emitter = Arc::new(MockEventEmitter::new());
         let mut app_state = AppState::default();
-        app_state.init_config(temp_dir.path(), &emitter);
+        app_state.init_config(temp_dir.path(), emitter);
 
-        app_state.set_ski_area(&emitter, ski_area_a.clone());
+        app_state.set_ski_area(ski_area_a.clone());
         let uuid_a = app_state.get_ski_area().unwrap().0;
 
-        app_state.set_ski_area(&emitter, ski_area_b.clone());
+        app_state.set_ski_area(ski_area_b.clone());
         let _uuid_b = app_state.get_ski_area().unwrap().0;
 
         drop(app_state);
 
-        let emitter2 = MockEventEmitter::new();
+        let emitter2 = Arc::new(MockEventEmitter::new());
         let mut app_state2 = AppState::default();
-        app_state2.init_config(temp_dir.path(), &emitter2);
+        app_state2.init_config(temp_dir.path(), emitter2);
 
         app_state2
-            .load_cached_ski_area(&emitter2, &uuid_a)
+            .load_cached_ski_area(&uuid_a)
             .expect("Should load ski area A from cache");
 
         let current = app_state2.get_ski_area();
@@ -210,12 +209,10 @@ mod tests {
         ski_area_a: SkiArea,
         ski_area_b: SkiArea,
     ) {
-        let emitter = MockEventEmitter::new();
-
-        app_state.set_ski_area(&emitter, ski_area_a.clone());
+        app_state.set_ski_area(ski_area_a.clone());
         let _uuid_a = app_state.get_ski_area().unwrap().0;
 
-        app_state.set_ski_area(&emitter, ski_area_b.clone());
+        app_state.set_ski_area(ski_area_b.clone());
 
         let current = app_state.get_ski_area().unwrap();
         assert_eq!(

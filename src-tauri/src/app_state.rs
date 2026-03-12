@@ -12,8 +12,7 @@ use ski_analyzer_lib::utils::json::{
 };
 
 use tauri::{
-    Manager, PhysicalPosition, Position, Runtime, Size, Window,
-    WindowEvent,
+    Manager, PhysicalPosition, Position, Runtime, Size, Window, WindowEvent,
 };
 use uuid::Uuid;
 
@@ -23,6 +22,7 @@ use crate::utils::event::EventEmitter;
 use serde_json::Value;
 
 pub struct AppState {
+    emitter: Option<Arc<dyn EventEmitter>>,
     config_path: PathBuf,
     config_file_path: PathBuf,
     ski_areas_path: PathBuf,
@@ -40,7 +40,12 @@ fn remove_file(path: &Path) {
 }
 
 impl AppState {
-    pub fn init_config(&mut self, data_dir: &Path, emitter: &dyn EventEmitter) {
+    pub fn init_config(
+        &mut self,
+        data_dir: &Path,
+        emitter: Arc<dyn EventEmitter>,
+    ) {
+        self.emitter = Some(emitter);
         self.config_path = PathBuf::from(data_dir);
         self.config_path.push("ski-analyzer");
         self.config_file_path = self.config_path.join("config.json");
@@ -51,12 +56,16 @@ impl AppState {
         });
 
         if let Some(uuid) = config.current_ski_area {
-            if let Err(err) = self.load_cached_ski_area_inner(emitter, &uuid) {
+            if let Err(err) = self.load_cached_ski_area_inner(&uuid) {
                 eprintln!("Failed to load ski area: {}", err);
             }
         }
 
         self.config = Some(config);
+    }
+
+    fn emit_event(&self, name: &str, data: &Value) {
+        self.emitter.as_ref().unwrap().emit_event(name, data);
     }
 
     fn load_config(&self) -> Result<Config> {
@@ -101,22 +110,14 @@ impl AppState {
         self.ski_area.as_ref().map(|s| &**s)
     }
 
-    fn set_ski_area_inner(
-        &mut self,
-        emitter: &dyn EventEmitter,
-        ski_area: SkiArea,
-        uuid: Uuid,
-    ) {
+    fn set_ski_area_inner(&mut self, ski_area: SkiArea, uuid: Uuid) {
         self.ski_area = Some(Arc::new((uuid, ski_area)));
-        let value = serde_json::to_value(&self.ski_area.as_ref().unwrap().1).unwrap_or(Value::Null);
-        emitter.emit_event("active_ski_area_changed", &value);
+        let value = serde_json::to_value(&self.ski_area.as_ref().unwrap().1)
+            .unwrap_or(Value::Null);
+        self.emit_event("active_ski_area_changed", &value);
     }
 
-    pub fn set_ski_area(
-        &mut self,
-        emitter: &dyn EventEmitter,
-        ski_area: SkiArea,
-    ) {
+    pub fn set_ski_area(&mut self, ski_area: SkiArea) {
         let uuid = self.get_config_mut().save_ski_area(&ski_area);
 
         if let Err(err) = self.save_ski_area(&uuid, &ski_area) {
@@ -125,8 +126,8 @@ impl AppState {
             return;
         }
 
-        self.clear_route(emitter);
-        self.set_ski_area_inner(emitter, ski_area, uuid);
+        self.clear_route();
+        self.set_ski_area_inner(ski_area, uuid);
     }
 
     fn save_ski_area(
@@ -192,15 +193,11 @@ impl AppState {
         self.ski_areas_path.join(format!("{}.json", uuid))
     }
 
-    fn load_cached_ski_area_inner(
-        &mut self,
-        emitter: &dyn EventEmitter,
-        uuid: &Uuid,
-    ) -> Result<()> {
+    fn load_cached_ski_area_inner(&mut self, uuid: &Uuid) -> Result<()> {
         let result: SkiArea =
             match load_from_file_if_exists(&self.get_ski_area_path(uuid))? {
                 None => {
-                    self.remove_cached_ski_area(emitter, uuid);
+                    self.remove_cached_ski_area(uuid);
                     return Err(Error::new_s(
                         ErrorType::IoError,
                         "Ski area file not found",
@@ -208,16 +205,15 @@ impl AppState {
                 }
                 Some(s) => s,
             };
-        self.set_ski_area_inner(emitter, result.clone(), *uuid);
+        self.set_ski_area_inner(result.clone(), *uuid);
         Ok(())
     }
 
     pub fn load_cached_ski_area(
         &mut self,
-        emitter: &dyn EventEmitter,
         uuid: &Uuid,
     ) -> std::result::Result<(), Box<dyn std::error::Error>> {
-        self.load_cached_ski_area_inner(emitter, uuid)?;
+        self.load_cached_ski_area_inner(uuid)?;
         if self.get_config_mut().save_current_ski_area(Some(*uuid)) {
             self.save_config_immediately();
         }
@@ -229,11 +225,7 @@ impl AppState {
         &self.get_config().ski_areas
     }
 
-    pub fn remove_cached_ski_area(
-        &mut self,
-        emitter: &dyn EventEmitter,
-        uuid: &Uuid,
-    ) {
+    pub fn remove_cached_ski_area(&mut self, uuid: &Uuid) {
         let config = self.get_config_mut();
         let clipped_uuid = config
             .remove_ski_area(uuid)
@@ -247,8 +239,9 @@ impl AppState {
         if should_clear {
             config.current_ski_area = None;
             self.ski_area = None;
-            let value = serde_json::to_value(&Option::<SkiArea>::None).unwrap_or(Value::Null);
-            emitter.emit_event("active_ski_area_changed", &value);
+            let value = serde_json::to_value(&Option::<SkiArea>::None)
+                .unwrap_or(Value::Null);
+            self.emit_event("active_ski_area_changed", &value);
         }
 
         remove_file(&self.get_ski_area_path(uuid));
@@ -268,20 +261,18 @@ impl AppState {
         self.analyzed_route.as_ref()
     }
 
-    pub fn clear_route(&mut self, emitter: &dyn EventEmitter) {
+    pub fn clear_route(&mut self) {
         self.analyzed_route = None;
-        let value = serde_json::to_value(&Option::<AnalyzedRoute>::None).unwrap_or(Value::Null);
-        emitter.emit_event("active_route_changed", &value);
+        let value = serde_json::to_value(&Option::<AnalyzedRoute>::None)
+            .unwrap_or(Value::Null);
+        self.emit_event("active_route_changed", &value);
     }
 
-    pub fn set_route(
-        &mut self,
-        emitter: &dyn EventEmitter,
-        route: AnalyzedRoute,
-    ) {
+    pub fn set_route(&mut self, route: AnalyzedRoute) {
         self.analyzed_route = Some(route);
-        let value = serde_json::to_value(&self.analyzed_route).unwrap_or(Value::Null);
-        emitter.emit_event("active_route_changed", &value);
+        let value =
+            serde_json::to_value(&self.analyzed_route).unwrap_or(Value::Null);
+        self.emit_event("active_route_changed", &value);
     }
 
     pub fn save_map_config<M: Manager<R>, R: Runtime>(
@@ -362,6 +353,7 @@ impl AppState {
 impl Default for AppState {
     fn default() -> Self {
         AppState {
+            emitter: None,
             config_path: PathBuf::new(),
             config_file_path: PathBuf::new(),
             ski_areas_path: PathBuf::new(),

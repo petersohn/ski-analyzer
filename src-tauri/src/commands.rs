@@ -1,7 +1,6 @@
 use crate::app_state::AppStateType;
 use crate::config::{CachedSkiArea, MapConfig};
 use crate::task_manager::{do_with_task, TaskHandle, TaskManagerType};
-use crate::utils::event::TauriEventEmitter;
 
 use geo::{Intersects, Point, Rect};
 use gpx::Waypoint;
@@ -50,12 +49,10 @@ impl CachedSkiAreaWithUuid {
 fn load_ski_area_from_file_inner(
     path: String,
     state: tauri::State<AppStateType>,
-    app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn Error>> {
     let ski_area = load_from_file(&path)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    let emitter = TauriEventEmitter(&app_handle);
-    app_state.set_ski_area(&emitter, ski_area);
+    app_state.set_ski_area(ski_area);
     Ok(())
 }
 
@@ -63,10 +60,8 @@ fn load_ski_area_from_file_inner(
 pub fn load_ski_area_from_file(
     path: String,
     state: tauri::State<AppStateType>,
-    app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
-    load_ski_area_from_file_inner(path, state, app_handle)
-        .map_err(|e| e.to_string())
+    load_ski_area_from_file_inner(path, state).map_err(|e| e.to_string())
 }
 
 fn save_current_ski_area_to_file_inner(
@@ -155,8 +150,7 @@ async fn load_ski_area_from_id_inner(
     let ski_area = task.add_sync_task(|cancel| SkiArea::parse(cancel, &doc))?;
     let state = app_handle.state::<AppStateType>();
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    let emitter = TauriEventEmitter(&app_handle);
-    app_state.set_ski_area(&emitter, ski_area);
+    app_state.set_ski_area(ski_area);
     Ok(())
 }
 
@@ -172,11 +166,9 @@ pub fn load_ski_area_from_id(id: u64, app_handle: tauri::AppHandle) -> u64 {
 pub fn load_cached_ski_area_inner(
     uuid: Uuid,
     state: tauri::State<AppStateType>,
-    app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn Error>> {
     let mut lock = state.inner().lock().unwrap();
-    let emitter = TauriEventEmitter(&app_handle);
-    lock.load_cached_ski_area(&emitter, &uuid)?;
+    lock.load_cached_ski_area(&uuid)?;
     Ok(())
 }
 
@@ -184,10 +176,8 @@ pub fn load_cached_ski_area_inner(
 pub fn load_cached_ski_area(
     uuid: Uuid,
     state: tauri::State<AppStateType>,
-    app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
-    load_cached_ski_area_inner(uuid, state, app_handle)
-        .map_err(|e| e.to_string())
+    load_cached_ski_area_inner(uuid, state).map_err(|e| e.to_string())
 }
 
 fn load_gpx_inner(
@@ -231,7 +221,7 @@ fn load_gpx_inner(
             "Ski area changed",
         ));
     }
-    lock.set_route(&TauriEventEmitter(&app_handle), route);
+    lock.set_route(route);
 
     Ok(())
 }
@@ -246,11 +236,10 @@ pub fn load_gpx(path: String, app_handle: tauri::AppHandle) -> u64 {
 fn load_route_inner(
     path: String,
     state: tauri::State<AppStateType>,
-    app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn Error>> {
     let route = load_from_file(&path)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.set_route(&TauriEventEmitter(&app_handle), route);
+    app_state.set_route(route);
     Ok(())
 }
 
@@ -258,9 +247,8 @@ fn load_route_inner(
 pub fn load_route(
     path: String,
     state: tauri::State<AppStateType>,
-    app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
-    load_route_inner(path, state, app_handle).map_err(|e| e.to_string())
+    load_route_inner(path, state).map_err(|e| e.to_string())
 }
 
 fn save_current_route_to_file_inner(
@@ -436,10 +424,9 @@ pub fn get_cached_ski_areas_by_name(
 pub fn remove_cached_ski_area(
     uuid: Uuid,
     state: tauri::State<AppStateType>,
-    app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.remove_cached_ski_area(&TauriEventEmitter(&app_handle), &uuid);
+    app_state.remove_cached_ski_area(&uuid);
     Ok(())
 }
 

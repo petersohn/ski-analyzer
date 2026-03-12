@@ -2,9 +2,10 @@ use app_state::{AppState, AppStateType};
 use ski_analyzer_lib::config::{set_config, Config};
 use task_manager::TaskManager;
 use tauri::Manager;
-use utils::event::TauriEventEmitter;
 
 use std::sync::{Arc, Mutex};
+
+use crate::utils::event::TauriEventEmitter;
 
 mod app_state;
 mod commands;
@@ -37,8 +38,11 @@ pub fn run() {
                 )?;
             }
             let data_dir = app.path().data_dir().unwrap();
-            let emitter = TauriEventEmitter(app.handle());
-            app.state::<AppStateType>().lock().unwrap().init_config(&data_dir, &emitter);
+            let emitter = Arc::new(TauriEventEmitter(app.handle().clone()));
+            app.state::<AppStateType>()
+                .lock()
+                .unwrap()
+                .init_config(&data_dir, emitter);
             Ok(())
         })
         .on_window_event(|window, event| {
