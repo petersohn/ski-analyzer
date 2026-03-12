@@ -27,7 +27,7 @@ pub fn run() {
     set_config(Config { verbose: 0 }).unwrap();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .manage(Arc::new(Mutex::new(AppState::default())))
+        .manage(Arc::new(Mutex::new(AppState::<TauriEventEmitter>::new())))
         .manage(Arc::new(Mutex::new(TaskManager::default())))
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -38,7 +38,7 @@ pub fn run() {
                 )?;
             }
             let data_dir = app.path().data_dir().unwrap();
-            let emitter = Arc::new(TauriEventEmitter(app.handle().clone()));
+            let emitter = TauriEventEmitter(app.handle().clone());
             app.state::<AppStateType>()
                 .lock()
                 .unwrap()

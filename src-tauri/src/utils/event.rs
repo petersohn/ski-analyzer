@@ -47,11 +47,6 @@ pub mod test_helpers {
                 })
                 .collect()
         }
-
-        pub fn clear(&self) {
-            let mut events = self.events.lock().unwrap();
-            events.clear();
-        }
     }
 
     impl EventEmitter for MockEventEmitter {

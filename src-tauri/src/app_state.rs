@@ -18,11 +18,11 @@ use uuid::Uuid;
 
 use crate::config::{CachedSkiArea, Config, MapConfig, WindowConfig};
 use crate::utils::delayed_action::DelayedAction;
-use crate::utils::event::EventEmitter;
+use crate::utils::event::{EventEmitter, TauriEventEmitter};
 use serde_json::Value;
 
-pub struct AppState {
-    emitter: Option<Arc<dyn EventEmitter>>,
+pub struct AppState<E: EventEmitter> {
+    emitter: Option<E>,
     config_path: PathBuf,
     config_file_path: PathBuf,
     ski_areas_path: PathBuf,
@@ -39,12 +39,22 @@ fn remove_file(path: &Path) {
     }
 }
 
-impl AppState {
-    pub fn init_config(
-        &mut self,
-        data_dir: &Path,
-        emitter: Arc<dyn EventEmitter>,
-    ) {
+impl<E: EventEmitter> AppState<E> {
+    pub fn new() -> Self {
+        AppState {
+            emitter: None,
+            config_path: PathBuf::new(),
+            config_file_path: PathBuf::new(),
+            ski_areas_path: PathBuf::new(),
+            config: None,
+            window_initialized: false,
+            window_saver: DelayedAction::new(Duration::from_secs(2)),
+            ski_area: None,
+            analyzed_route: None,
+        }
+    }
+
+    pub fn init_config(&mut self, data_dir: &Path, emitter: E) {
         self.emitter = Some(emitter);
         self.config_path = PathBuf::from(data_dir);
         self.config_path.push("ski-analyzer");
@@ -350,20 +360,4 @@ impl AppState {
     }
 }
 
-impl Default for AppState {
-    fn default() -> Self {
-        AppState {
-            emitter: None,
-            config_path: PathBuf::new(),
-            config_file_path: PathBuf::new(),
-            ski_areas_path: PathBuf::new(),
-            config: None,
-            window_initialized: false,
-            window_saver: DelayedAction::new(Duration::from_secs(2)),
-            ski_area: None,
-            analyzed_route: None,
-        }
-    }
-}
-
-pub type AppStateType = Arc<Mutex<AppState>>;
+pub type AppStateType = Arc<Mutex<AppState<TauriEventEmitter>>>;

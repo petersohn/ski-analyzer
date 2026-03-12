@@ -5,7 +5,6 @@ use ski_analyzer_lib::utils::bounded_geometry::BoundedGeometry;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::app_state::AppState;
@@ -75,9 +74,11 @@ fn create_ski_area(name: String) -> SkiArea {
     }
 }
 
-fn get_app_state(path: &PathBuf) -> (AppState, Arc<MockEventEmitter>) {
-    let emitter = Arc::new(MockEventEmitter::new());
-    let mut state = AppState::default();
+fn get_app_state(
+    path: &PathBuf,
+) -> (AppState<MockEventEmitter>, MockEventEmitter) {
+    let emitter = MockEventEmitter::new();
+    let mut state = AppState::new();
     state.init_config(path, emitter.clone());
     (state, emitter)
 }
