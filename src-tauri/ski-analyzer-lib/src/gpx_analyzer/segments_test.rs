@@ -244,3 +244,38 @@ fn split_end_at_segment_begin(segmented: Segments) {
 fn split_end_at_segment_middle(segmented: Segments) {
     test_split_end(segmented, (1, 1), (2, 0), (1, 1));
 }
+
+fn wp_with_elevation(x: f64, y: f64, elevation: f64) -> Waypoint {
+    let mut result = Waypoint::new(geo::point!(x: x, y: y));
+    result.elevation = Some(elevation);
+    result
+}
+
+#[test]
+fn test_segments_serialize_deserialize_roundtrip() {
+    let original = Segments::new(vec![
+        vec![
+            wp_with_elevation(8.0, 47.0, 1000.0),
+            wp_with_elevation(8.1, 47.1, 1500.0),
+        ],
+        vec![wp(8.2, 47.2, None)],
+    ]);
+
+    let json = serde_json::to_string(&original).unwrap();
+    let deserialized: Segments = serde_json::from_str(&json).unwrap();
+
+    assert_eq!(deserialized.0.len(), 2);
+    assert_eq!(deserialized.0[0].len(), 2);
+    assert_eq!(deserialized.0[1].len(), 1);
+
+    assert!((deserialized.0[0][0].point().x() - 8.0).abs() < 0.001);
+    assert!((deserialized.0[0][0].elevation.unwrap() - 1000.0).abs() < 0.001);
+}
+
+#[test]
+fn test_empty_segments() {
+    let original = super::Segments::new(vec![]);
+    let json = serde_json::to_string(&original).unwrap();
+    let deserialized: super::Segments = serde_json::from_str(&json).unwrap();
+    assert!(deserialized.0.is_empty());
+}
