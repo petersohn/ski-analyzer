@@ -34,12 +34,16 @@ pub mod test_helpers {
             }
         }
 
-        pub fn get_events(&self) -> Vec<(String, String)> {
+        pub fn get_events(&self, name: Option<&str>) -> Vec<(String, String)> {
             let events = self.events.lock().unwrap();
             events
                 .iter()
-                .map(|(name, data)| {
-                    (name.clone(), String::from_utf8_lossy(data).to_string())
+                .filter(|(n, _)| match name {
+                    None => true,
+                    Some(nn) => n == nn,
+                })
+                .map(|(n, data)| {
+                    (n.clone(), String::from_utf8_lossy(data).to_string())
                 })
                 .collect()
         }

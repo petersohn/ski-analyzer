@@ -75,11 +75,11 @@ fn create_ski_area(name: String) -> SkiArea {
     }
 }
 
-fn get_app_state(path: &PathBuf) -> AppState {
+fn get_app_state(path: &PathBuf) -> (AppState, Arc<MockEventEmitter>) {
     let emitter = Arc::new(MockEventEmitter::new());
     let mut state = AppState::default();
-    state.init_config(path, emitter);
-    state
+    state.init_config(path, emitter.clone());
+    (state, emitter)
 }
 
 #[rstest]
@@ -88,7 +88,7 @@ fn test_cache_flow(
     ski_area_a: SkiArea,
     ski_area_b: SkiArea,
 ) {
-    let mut app_state = get_app_state(temp_dir.path());
+    let (mut app_state, _) = get_app_state(temp_dir.path());
 
     app_state.set_ski_area(ski_area_a.clone());
     let uuid_a = app_state.get_ski_area().unwrap().0;
@@ -126,7 +126,7 @@ fn test_cache_persistence_after_restart(
     ski_area_b: SkiArea,
 ) {
     let (uuid_a, uuid_b) = {
-        let mut app_state = get_app_state(temp_dir.path());
+        let (mut app_state, _) = get_app_state(temp_dir.path());
 
         app_state.set_ski_area(ski_area_a.clone());
         let uuid_a = app_state.get_ski_area().unwrap().0;
@@ -139,7 +139,7 @@ fn test_cache_persistence_after_restart(
     };
 
     {
-        let app_state = get_app_state(temp_dir.path());
+        let (app_state, _) = get_app_state(temp_dir.path());
 
         let cached = app_state.get_cached_ski_areas();
         assert_eq!(cached.len(), 2, "Cache should persist after restart");
@@ -169,7 +169,7 @@ fn test_load_cached_ski_area(
     ski_area_a: SkiArea,
     ski_area_b: SkiArea,
 ) {
-    let mut app_state = get_app_state(temp_dir.path());
+    let (mut app_state, _) = get_app_state(temp_dir.path());
     app_state.set_ski_area(ski_area_a.clone());
     let uuid_a = app_state.get_ski_area().unwrap().0;
     app_state.set_ski_area(ski_area_b.clone());
@@ -191,4 +191,46 @@ fn test_load_cached_ski_area(
         "Area A",
         "Ski area A name should match"
     );
+}
+
+#[rstest]
+fn test_ski_area_events_on_load_from_file_and_cache(
+    temp_dir: TempDir,
+    ski_area_a: SkiArea,
+    ski_area_b: SkiArea,
+) {
+    let uuid_a = {
+        let (mut app_state, emitter) = get_app_state(temp_dir.path());
+        app_state.set_ski_area(ski_area_a.clone());
+        let uuid_a = app_state.get_ski_area().unwrap().0;
+        app_state.set_ski_area(ski_area_b.clone());
+
+        let events = emitter.get_events(Some("active_ski_area_changed"));
+        assert_eq!(
+            events.len(),
+            2,
+            "Should emit exactly one event when loading ski area from each file"
+        );
+
+        uuid_a
+    };
+
+    {
+        let (mut app_state, emitter) = get_app_state(temp_dir.path());
+        let events = emitter.get_events(Some("active_ski_area_changed"));
+        assert_eq!(
+            events.len(),
+            1,
+            "Should emit exactly one event when loading ski area from cache"
+        );
+
+        app_state.load_cached_ski_area(&uuid_a).unwrap();
+
+        let events = emitter.get_events(Some("active_ski_area_changed"));
+        assert_eq!(
+            events.len(),
+            2,
+            "Should emit exactly one event when loading ski area from cache"
+        );
+    }
 }
