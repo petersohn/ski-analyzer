@@ -2,6 +2,7 @@ use app_state::{AppState, AppStateType};
 use ski_analyzer_lib::config::{set_config, Config};
 use task_manager::TaskManager;
 use tauri::Manager;
+use utils::event::TauriEventEmitter;
 
 use std::sync::{Arc, Mutex};
 
@@ -10,6 +11,9 @@ mod commands;
 mod config;
 mod task_manager;
 mod utils;
+
+#[cfg(test)]
+mod app_state_test;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -32,7 +36,9 @@ pub fn run() {
                         .build(),
                 )?;
             }
-            app.state::<AppStateType>().lock().unwrap().init_config(app);
+            let data_dir = app.path().data_dir().unwrap();
+            let emitter = TauriEventEmitter(app.handle());
+            app.state::<AppStateType>().lock().unwrap().init_config(&data_dir, &emitter);
             Ok(())
         })
         .on_window_event(|window, event| {

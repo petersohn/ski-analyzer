@@ -1,6 +1,7 @@
 use crate::app_state::AppStateType;
 use crate::config::{CachedSkiArea, MapConfig};
 use crate::task_manager::{do_with_task, TaskHandle, TaskManagerType};
+use crate::utils::event::TauriEventEmitter;
 
 use geo::{Intersects, Point, Rect};
 use gpx::Waypoint;
@@ -53,7 +54,8 @@ fn load_ski_area_from_file_inner(
 ) -> Result<(), Box<dyn Error>> {
     let ski_area = load_from_file(&path)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.set_ski_area(&app_handle, ski_area);
+    let emitter = TauriEventEmitter(&app_handle);
+    app_state.set_ski_area(&emitter, ski_area);
     Ok(())
 }
 
@@ -153,8 +155,8 @@ async fn load_ski_area_from_id_inner(
     let ski_area = task.add_sync_task(|cancel| SkiArea::parse(cancel, &doc))?;
     let state = app_handle.state::<AppStateType>();
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-
-    app_state.set_ski_area(&app_handle, ski_area);
+    let emitter = TauriEventEmitter(&app_handle);
+    app_state.set_ski_area(&emitter, ski_area);
     Ok(())
 }
 
@@ -173,7 +175,8 @@ pub fn load_cached_ski_area_inner(
     app_handle: tauri::AppHandle,
 ) -> Result<(), Box<dyn Error>> {
     let mut lock = state.inner().lock().unwrap();
-    lock.load_cached_ski_area(&app_handle, &uuid)?;
+    let emitter = TauriEventEmitter(&app_handle);
+    lock.load_cached_ski_area(&emitter, &uuid)?;
     Ok(())
 }
 
@@ -228,7 +231,7 @@ fn load_gpx_inner(
             "Ski area changed",
         ));
     }
-    lock.set_route(&app_handle, route);
+    lock.set_route(&TauriEventEmitter(&app_handle), route);
 
     Ok(())
 }
@@ -247,7 +250,7 @@ fn load_route_inner(
 ) -> Result<(), Box<dyn Error>> {
     let route = load_from_file(&path)?;
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.set_route(&app_handle, route);
+    app_state.set_route(&TauriEventEmitter(&app_handle), route);
     Ok(())
 }
 
@@ -436,7 +439,7 @@ pub fn remove_cached_ski_area(
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     let mut app_state = state.inner().lock().map_err(|e| e.to_string())?;
-    app_state.remove_cached_ski_area(&app_handle, &uuid);
+    app_state.remove_cached_ski_area(&TauriEventEmitter(&app_handle), &uuid);
     Ok(())
 }
 

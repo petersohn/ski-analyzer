@@ -2,14 +2,12 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::future::Future;
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 use ski_analyzer_lib::error::{Error, ErrorType, Result};
 use ski_analyzer_lib::utils::cancel::{
     Cancellable, CancellableTask, CancellationToken,
 };
-
-use crate::utils::event::emit_event;
 
 pub type TaskManagerType = Arc<Mutex<TaskManager>>;
 
@@ -156,17 +154,27 @@ where
     let future = func(task);
 
     tauri::async_runtime::spawn(async move {
-        match future.await {
-            Ok(data) => emit_event(
-                &app_handle,
+        let result = future.await;
+        let (event_name, result_value) = match &result {
+            Ok(data) => (
                 "task_finished",
-                &TaskResult { task_id, data },
+                serde_json::to_value(&TaskResult {
+                    task_id,
+                    data: data.clone(),
+                })
+                .unwrap(),
             ),
-            Err(data) => emit_event(
-                &app_handle,
+            Err(data) => (
                 "task_failed",
-                &TaskResult { task_id, data },
+                serde_json::to_value(&TaskResult {
+                    task_id,
+                    data: data.clone(),
+                })
+                .unwrap(),
             ),
+        };
+        if let Err(err) = app_handle.emit(event_name, &result_value) {
+            eprintln!("Failed to emit {}: {}", event_name, err);
         }
     });
 
