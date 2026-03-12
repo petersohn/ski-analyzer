@@ -33,3 +33,7 @@ Run this from the project root.
 - **build the front end:** `pnpm build`
 - **test the Tauri app:** run from `src-tauri`: `cargo test`
 - **test the front end:** `pnpm test`
+
+# Coding conventions
+
+- After every change, format the code using `rustfmt`.
