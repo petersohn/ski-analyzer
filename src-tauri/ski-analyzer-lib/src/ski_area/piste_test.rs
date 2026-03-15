@@ -10,7 +10,7 @@ use crate::utils::test_util::{
     assert_eq_pretty, create_ski_area_metadata, init, save_ski_area, Init,
 };
 
-use ::function_name::named;
+use function_name::named;
 use geo::{
     BoundingRect, Coord, LineString, MultiLineString, MultiPolygon, Polygon,
     Rect,

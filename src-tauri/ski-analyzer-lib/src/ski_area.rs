@@ -19,6 +19,8 @@ mod lift;
 mod piste;
 
 #[cfg(test)]
+mod geo_test;
+#[cfg(test)]
 mod lift_test;
 #[cfg(test)]
 mod piste_test;

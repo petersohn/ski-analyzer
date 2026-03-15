@@ -37,3 +37,16 @@ Run this from the project root.
 # Coding conventions
 
 - After every change, format the code using `rustfmt`.
+
+## Test organization
+
+Unit tests are organized the following way. For the module `foo.rs`, the tests should go to `foo_test.rs`. The modules should be defined the following way in `lib.rs`:
+
+```rust
+mod foo;
+
+#[cfg(test)]
+mod foo_test;
+```
+
+
