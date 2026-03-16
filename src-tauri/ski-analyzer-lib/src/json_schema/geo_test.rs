@@ -47,12 +47,19 @@ fn validate_polygon_schema() {
 
     let exterior = LineString::from(vec![
         (0.0, 0.0),
-        (1.0, 0.0),
-        (1.0, 1.0),
-        (0.0, 1.0),
+        (2.0, 0.0),
+        (2.0, 2.0),
+        (0.0, 2.0),
         (0.0, 0.0),
     ]);
-    let polygon = Polygon::new(exterior, vec![]);
+    let interiors = vec![LineString::from(vec![
+        (0.5, 0.5),
+        (1.5, 0.5),
+        (1.5, 1.5),
+        (0.5, 1.5),
+        (0.5, 0.5),
+    ])];
+    let polygon = Polygon::new(exterior, interiors);
     let json = serde_json::to_value(&polygon).unwrap();
 
     assert!(validator.validate(&json).is_ok());
