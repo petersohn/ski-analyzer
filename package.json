@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "vitest"
+    "test": "vitest",
+    "generate-types": "ts-node scripts/generate-types.ts"
   },
   "private": true,
   "dependencies": {
