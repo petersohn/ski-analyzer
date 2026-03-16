@@ -1,6 +1,5 @@
 use schemars::JsonSchema;
 
 #[derive(JsonSchema)]
-pub struct OffsetDateTimeDef {
-    pub datetime: String,
-}
+#[allow(dead_code)]
+pub struct OffsetDateTimeDef(String);

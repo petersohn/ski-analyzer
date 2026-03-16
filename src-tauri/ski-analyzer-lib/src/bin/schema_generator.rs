@@ -2,6 +2,7 @@ use schemars::schema_for;
 use ski_analyzer_lib::json_schema::geo::{
     LineStringDef, PointDef, PolygonDef, RectDef,
 };
+use ski_analyzer_lib::json_schema::time::OffsetDateTimeDef;
 use std::env;
 use std::fs;
 use std::path::Path;
@@ -17,6 +18,7 @@ fn main() {
     generate_schema::<RectDef>("rect", &schemas_dir);
     generate_schema::<LineStringDef>("line-string", &schemas_dir);
     generate_schema::<PolygonDef>("polygon", &schemas_dir);
+    generate_schema::<OffsetDateTimeDef>("offset-date-time", &schemas_dir);
 
     println!("Schema directory: {}", schemas_dir.display());
     println!("cargo:schema_dir={}", schemas_dir.display());
