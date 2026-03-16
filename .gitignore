@@ -4,3 +4,5 @@ out/
 /.angular
 .gdb_history
 node_modules
+src/app/types/generated/
+src/schemas/

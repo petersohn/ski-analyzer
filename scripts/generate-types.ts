@@ -1,15 +1,8 @@
 import { execSync } from "child_process";
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync } from "fs";
 import { join, basename } from "path";
 
-const SCHEMAS_DIR = "src-tauri/target";
+const SCHEMAS_DIR = "src-tauri/ski-analyzer-lib/target";
 const OUTPUT_SCHEMAS_DIR = "src/schemas";
 const OUTPUT_TYPES_DIR = "src/app/types/generated";
 
@@ -54,7 +47,7 @@ function generateTypes(schemas: string[]): void {
 
     try {
       execSync(
-        `quicktype "${schema}" -o "${outputFile}" --top-level ${tsName}`,
+        `quicktype "${schema}" -o "${outputFile}" --top-level ${tsName} --src-lang schema --just-types`,
         {
           stdio: "inherit",
         },

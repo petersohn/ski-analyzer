@@ -1,4 +1,7 @@
 use schemars::schema_for;
+use ski_analyzer_lib::json_schema::geo::{
+    LineStringDef, PointDef, PolygonDef, RectDef,
+};
 use std::env;
 use std::fs;
 use std::path::Path;
@@ -9,6 +12,11 @@ fn main() {
         .unwrap_or_else(|_| "schemas".to_string());
     let schemas_dir = Path::new(&out_dir).join("schemas");
     fs::create_dir_all(&schemas_dir).unwrap();
+
+    generate_schema::<PointDef>("point", &schemas_dir);
+    generate_schema::<RectDef>("rect", &schemas_dir);
+    generate_schema::<LineStringDef>("line-string", &schemas_dir);
+    generate_schema::<PolygonDef>("polygon", &schemas_dir);
 
     println!("Schema directory: {}", schemas_dir.display());
     println!("cargo:schema_dir={}", schemas_dir.display());

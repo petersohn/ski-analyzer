@@ -8,6 +8,9 @@ pub mod utils;
 
 mod multipolygon;
 
+#[cfg(feature = "schemars")]
+pub mod json_schema;
+
 #[cfg(test)]
 mod multipolygon_test;
 #[cfg(test)]
