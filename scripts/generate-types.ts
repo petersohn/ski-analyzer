@@ -28,15 +28,6 @@ function ensureDir(dir: string): void {
   }
 }
 
-function copySchemas(schemas: string[]): void {
-  ensureDir(OUTPUT_SCHEMAS_DIR);
-  for (const schema of schemas) {
-    const dest = join(OUTPUT_SCHEMAS_DIR, basename(schema));
-    copyFileSync(schema, dest);
-    console.log(`Copied: ${basename(schema)}`);
-  }
-}
-
 function generateTypes(schemas: string[]): void {
   ensureDir(OUTPUT_TYPES_DIR);
 
@@ -71,9 +62,6 @@ function main(): void {
   }
 
   console.log(`Found ${schemas.length} schemas`);
-
-  console.log("\nCopying schemas...");
-  copySchemas(schemas);
 
   console.log("\nGenerating TypeScript types...");
   generateTypes(schemas);
