@@ -1,68 +1,34 @@
-import {
-  Rect,
-  LineString,
-  BoundedGeometry,
+export {
   PointWithElevation,
-  MultiPolygon,
-  MultiLineString,
-  Polygon,
-} from "./geo";
+  Difficulty,
+  Lift,
+  PisteMetadata,
+  PisteData,
+  Piste,
+  SkiAreaMetadata,
+  SkiArea as RawSkiArea,
+} from "./generated/skiArea";
+
+import { Rect } from "./geo";
+import type { Lift, Piste, SkiAreaMetadata } from "./generated/skiArea";
 import { indexData } from "@/utils/data";
 
-export type SkiAreaMetadata = {
-  id: number;
-  name: string;
-  outline: BoundedGeometry<Polygon>;
-};
-
-export type Lift = {
-  ref: string;
-  name: string;
-  type: string;
-  line: BoundedGeometry<LineString>;
-  stations: PointWithElevation[];
-  can_go_reverse: boolean;
-  can_disembark: boolean;
-  lengths: number[];
-};
-
-export type Difficulty =
-  | ""
-  | "Novice"
-  | "Easy"
-  | "Intermediate"
-  | "Advanced"
-  | "Expert"
-  | "Freeride";
-
-export type Piste = {
-  ref: string;
-  name: string;
-  difficulty: Difficulty;
-  bounding_rect: Rect;
-  areas: MultiPolygon;
-  lines: MultiLineString;
-};
-
-export type RawSkiArea = {
-  name: string;
-  lifts: { [id: string]: Lift };
-  pistes: { [id: string]: Piste };
-  bounding_rect: Rect;
-};
-
 export type SkiArea = {
-  name: string;
+  metadata: SkiAreaMetadata;
   lifts: Map<string, Lift>;
   pistes: Map<string, Piste>;
   bounding_rect: Rect;
+  date: string;
 };
 
-export function indexSkiArea(ski_area: RawSkiArea): SkiArea {
+export function indexSkiArea(
+  ski_area: import("./generated/skiArea").SkiArea,
+): SkiArea {
   return {
-    name: ski_area.name,
+    metadata: ski_area.metadata,
     lifts: indexData<Lift>(ski_area.lifts),
     pistes: indexData<Piste>(ski_area.pistes),
     bounding_rect: ski_area.bounding_rect,
+    date: ski_area.date,
   };
 }

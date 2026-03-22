@@ -4,7 +4,26 @@ import { type SkiArea } from "./skiArea";
 
 describe("TrackConverter", () => {
   const createMockSkiArea = (): SkiArea => ({
-    name: "Test",
+    metadata: {
+      id: 1,
+      name: "Test",
+      outline: {
+        item: {
+          exterior: [
+            { x: 0, y: 0 },
+            { x: 2, y: 0 },
+            { x: 2, y: 2 },
+            { x: 0, y: 2 },
+            { x: 0, y: 0 },
+          ],
+          interiors: [],
+        },
+        bounding_rect: {
+          min: { x: 0, y: 0 },
+          max: { x: 2, y: 2 },
+        },
+      },
+    },
     lifts: new Map([
       [
         "lift1",
@@ -46,6 +65,7 @@ describe("TrackConverter", () => {
       min: { x: 0, y: 0 },
       max: { x: 2, y: 2 },
     },
+    date: "2024-01-01T00:00:00Z",
   });
 
   describe("convertTrack", () => {
