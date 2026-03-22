@@ -1,50 +1,68 @@
+import {
+  Rect,
+  LineString,
+  BoundedGeometry,
+  PointWithElevation,
+  MultiPolygon,
+  MultiLineString,
+  Polygon,
+} from "./geo";
 import { indexData } from "@/utils/data";
 
-// Import raw types from Rust (object dictionaries)
-import type { SkiArea as RawSkiAreaType } from "./generated/skiArea";
+export type SkiAreaMetadata = {
+  id: number;
+  name: string;
+  outline: BoundedGeometry<Polygon>;
+};
 
-// Import and re-export sub-types from their canonical locations
-export type { Lift } from "./generated/lift";
-export type { Piste } from "./generated/piste";
-export type { SkiAreaMetadata } from "./generated/skiAreaMetadata";
-export type { Rect } from "./generated/rect";
-export type { Point } from "./generated/point";
-export type { BoundedLineString } from "./generated/boundedLineString";
-export type { PointWithElevation } from "./generated/pointWithElevation";
-export type { BoundedPolygon } from "./generated/boundedPolygon";
-export type { Polygon } from "./generated/polygon";
-export { Difficulty } from "./generated/difficulty";
+export type Lift = {
+  ref: string;
+  name: string;
+  type: string;
+  line: BoundedGeometry<LineString>;
+  stations: PointWithElevation[];
+  can_go_reverse: boolean;
+  can_disembark: boolean;
+  lengths: number[];
+};
 
-import type { Lift } from "./generated/lift";
-import type { Piste } from "./generated/piste";
-import type { SkiAreaMetadata } from "./generated/skiAreaMetadata";
-import type { Rect } from "./generated/rect";
+export type Difficulty =
+  | ""
+  | "Novice"
+  | "Easy"
+  | "Intermediate"
+  | "Advanced"
+  | "Expert"
+  | "Freeride";
 
-// Re-export geo types for convenience
-import type { Point } from "./generated/point";
-import type { Polygon } from "./generated/polygon";
-export type LineString = Point[];
-export type MultiLineString = LineString[];
-export type MultiPolygon = Polygon[];
+export type Piste = {
+  ref: string;
+  name: string;
+  difficulty: Difficulty;
+  bounding_rect: Rect;
+  areas: MultiPolygon;
+  lines: MultiLineString;
+};
 
-// RawSkiArea is the type received from Rust backend (with object dictionaries)
-export type RawSkiArea = RawSkiAreaType;
+export type RawSkiArea = {
+  name: string;
+  lifts: { [id: string]: Lift };
+  pistes: { [id: string]: Piste };
+  bounding_rect: Rect;
+};
 
-// SkiArea is the type used in the app (with Maps for easier access)
 export type SkiArea = {
-  metadata: SkiAreaMetadata;
+  name: string;
   lifts: Map<string, Lift>;
   pistes: Map<string, Piste>;
   bounding_rect: Rect;
-  date: string;
 };
 
 export function indexSkiArea(ski_area: RawSkiArea): SkiArea {
   return {
-    metadata: ski_area.metadata,
+    name: ski_area.name,
     lifts: indexData<Lift>(ski_area.lifts),
     pistes: indexData<Piste>(ski_area.pistes),
     bounding_rect: ski_area.bounding_rect,
-    date: ski_area.date,
   };
 }

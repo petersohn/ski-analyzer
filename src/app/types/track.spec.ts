@@ -1,29 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { TrackConverter, type RawTrack } from "./track";
-import { type SkiArea, Difficulty } from "./skiArea";
+import { type SkiArea } from "./skiArea";
 
 describe("TrackConverter", () => {
   const createMockSkiArea = (): SkiArea => ({
-    metadata: {
-      id: 12345,
-      name: "Test",
-      outline: {
-        item: {
-          exterior: [
-            { x: 0, y: 0 },
-            { x: 1, y: 0 },
-            { x: 1, y: 1 },
-            { x: 0, y: 1 },
-            { x: 0, y: 0 },
-          ],
-          interiors: [],
-        },
-        bounding_rect: {
-          min: { x: 0, y: 0 },
-          max: { x: 1, y: 1 },
-        },
-      },
-    },
+    name: "Test",
     lifts: new Map([
       [
         "lift1",
@@ -51,7 +32,7 @@ describe("TrackConverter", () => {
         {
           ref: "piste1",
           name: "Main Piste",
-          difficulty: Difficulty.Easy,
+          difficulty: "Easy",
           bounding_rect: {
             min: { x: 0, y: 0 },
             max: { x: 2, y: 2 },
@@ -65,7 +46,6 @@ describe("TrackConverter", () => {
       min: { x: 0, y: 0 },
       max: { x: 2, y: 2 },
     },
-    date: "2024-01-01T00:00:00Z",
   });
 
   describe("convertTrack", () => {
