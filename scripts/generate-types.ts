@@ -7,50 +7,10 @@ import {
   writeFileSync,
   unlinkSync,
 } from "fs";
-import { join, basename } from "path";
+import { join } from "path";
 
 const SCHEMAS_DIR = "src-tauri/ski-analyzer-lib/target";
 const OUTPUT_TYPES_DIR = "src/app/types/generated";
-
-// Explicit mappings for types that quicktype names differently
-const TYPE_RENAMES: Record<string, string> = {
-  LiftValue: "Lift",
-  PisteValue: "Piste",
-  Metadata: "SkiAreaMetadata",
-  BoundingRect: "Rect",
-  Bound: "Rect",
-  Max: "Point",
-  MaxElement: "Point",
-  Line: "BoundedLineString",
-  Outline: "BoundedPolygon",
-  Item: "Polygon",
-  AreaElement: "Polygon",
-  StationElement: "PointWithElevation",
-};
-
-// Canonical file for each type (where the type should be defined)
-// Maps type name -> file name (without .ts)
-const TYPE_HOME: Record<string, string> = {
-  Point: "point",
-  Rect: "rect",
-  Lift: "lift",
-  Piste: "piste",
-  SkiAreaMetadata: "skiAreaMetadata",
-  SkiArea: "skiArea",
-  Difficulty: "difficulty",
-  PointWithElevation: "pointWithElevation",
-  BoundedLineString: "boundedLineString",
-  BoundedPolygon: "boundedPolygon",
-  Polygon: "polygon",
-  LineString: "lineString",
-  MultiLineString: "multiLineString",
-  MultiPolygon: "multiPolygon",
-  OffsetDateTime: "offsetDateTime",
-  PisteData: "pisteData",
-  PisteMetadata: "pisteMetadata",
-  BoundedGeometryLineString: "boundedGeometryLineString",
-  BoundedGeometryPolygon: "boundedGeometryPolygon",
-};
 
 function findSchemas(): string[] {
   const patterns = [
@@ -82,65 +42,61 @@ function cleanDir(dir: string): void {
   }
 }
 
-function generateTypes(schemas: string[]): Map<string, string> {
-  ensureDir(OUTPUT_TYPES_DIR);
-  cleanDir(OUTPUT_TYPES_DIR);
+function generateAllTypes(schemas: string[]): string {
+  const tmpFile = "/tmp/all-types.ts";
+  const schemaArgs = schemas.map((s) => `"${s}"`).join(" ");
 
-  const generatedFiles = new Map<string, string>();
+  execSync(
+    `npx quicktype --src-lang schema --lang ts --just-types --out "${tmpFile}" ${schemaArgs}`,
+    { stdio: "pipe" },
+  );
 
-  for (const schema of schemas) {
-    const baseName = basename(schema, ".json");
-    const tsName = baseName.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-    const outputFile = join(OUTPUT_TYPES_DIR, `${tsName}.ts`);
-
-    try {
-      execSync(
-        `quicktype "${schema}" -o "${outputFile}" --top-level ${tsName} --src-lang schema --just-types`,
-        { stdio: "pipe" },
-      );
-      generatedFiles.set(tsName, outputFile);
-      console.log(`Generated: ${tsName}.ts`);
-    } catch (e) {
-      console.error(`Failed to generate types for ${schema}`);
-    }
-  }
-
-  return generatedFiles;
+  return readFileSync(tmpFile, "utf-8");
 }
 
-function extractTypeDefs(
-  content: string,
-): Array<{ name: string; fullMatch: string; start: number; end: number }> {
-  const types: Array<{
-    name: string;
-    fullMatch: string;
-    start: number;
-    end: number;
-  }> = [];
+interface TypeInfo {
+  kind: "interface" | "enum" | "type";
+  definition: string;
+}
+
+function extractTypeDefs(content: string): Map<string, TypeInfo> {
+  const types = new Map<string, TypeInfo>();
 
   // Extract interfaces with proper brace matching
   let pos = 0;
   while (pos < content.length) {
     const interfaceStart = content.indexOf("export interface ", pos);
     const enumStart = content.indexOf("export enum ", pos);
+    const typeStart = content.indexOf("type ", pos);
 
     let start = -1;
-    let isInterface = false;
+    let kind: "interface" | "enum" | "type" = "interface";
 
     if (
       interfaceStart !== -1 &&
-      (enumStart === -1 || interfaceStart < enumStart)
+      (enumStart === -1 || interfaceStart < enumStart) &&
+      (typeStart === -1 || interfaceStart < typeStart)
     ) {
       start = interfaceStart;
-      isInterface = true;
-    } else if (enumStart !== -1) {
+      kind = "interface";
+    } else if (
+      enumStart !== -1 &&
+      (typeStart === -1 || enumStart < typeStart)
+    ) {
       start = enumStart;
-      isInterface = false;
+      kind = "enum";
+    } else if (typeStart !== -1) {
+      // Check it's a top-level type alias (not inside a definition)
+      const lineStart = content.lastIndexOf("\n", typeStart) + 1;
+      if (content.substring(lineStart, typeStart).trim() === "") {
+        start = typeStart;
+        kind = "type";
+      }
     }
 
     if (start === -1) break;
 
-    if (isInterface) {
+    if (kind === "interface") {
       const nameStart = start + "export interface ".length;
       const braceStart = content.indexOf("{", nameStart);
       if (braceStart === -1) break;
@@ -158,11 +114,9 @@ function extractTypeDefs(
         if (content[i] === "}") {
           depth--;
           if (depth === 0) {
-            types.push({
-              name,
-              fullMatch: content.substring(start, i + 1),
-              start,
-              end: i + 1,
+            types.set(name, {
+              kind: "interface",
+              definition: content.substring(start, i + 1),
             });
             pos = i + 1;
             break;
@@ -171,8 +125,7 @@ function extractTypeDefs(
         i++;
       }
       if (depth !== 0) break;
-    } else {
-      // enum
+    } else if (kind === "enum") {
       const nameStart = start + "export enum ".length;
       const braceStart = content.indexOf("{", nameStart);
       if (braceStart === -1) break;
@@ -181,93 +134,124 @@ function extractTypeDefs(
       const braceEnd = content.indexOf("}", braceStart);
       if (braceEnd === -1) break;
 
-      types.push({
-        name,
-        fullMatch: content.substring(start, braceEnd + 1),
-        start,
-        end: braceEnd + 1,
+      types.set(name, {
+        kind: "enum",
+        definition: content.substring(start, braceEnd + 1),
       });
       pos = braceEnd + 1;
+    } else {
+      // type alias
+      const lineEnd = content.indexOf(";", start);
+      if (lineEnd === -1) break;
+
+      const line = content.substring(start, lineEnd + 1);
+      const nameMatch = line.match(/^type (\w+)\s*=/);
+      if (nameMatch) {
+        types.set(nameMatch[1], { kind: "type", definition: line });
+      }
+      pos = lineEnd + 1;
     }
   }
 
   return types;
 }
 
-function postProcessTypes(files: Map<string, string>): void {
-  console.log("\nPost-processing to remove duplicates...");
+function getCanonicalFile(typeName: string): string | null {
+  const typeToFiles: Record<string, string> = {
+    Point: "point",
+    Rect: "rect",
+    LineString: "lineString",
+    MultiLineString: "multiLineString",
+    Polygon: "polygon",
+    MultiPolygon: "multiPolygon",
+    OffsetDateTime: "offsetDateTime",
+    PointWithElevation: "pointWithElevation",
+    BoundedLineString: "boundedLineString",
+    BoundedPolygon: "boundedPolygon",
+    Lift: "lift",
+    Difficulty: "difficulty",
+    PisteMetadata: "pisteMetadata",
+    PisteData: "pisteData",
+    Piste: "piste",
+    SkiAreaMetadata: "skiAreaMetadata",
+    SkiArea: "skiArea",
+  };
+  return typeToFiles[typeName] || null;
+}
 
-  // First pass: rename types in all files
-  for (const [tsName, filePath] of files) {
-    let content = readFileSync(filePath, "utf-8");
+function splitIntoFiles(allTypes: Map<string, TypeInfo>): Map<string, string> {
+  const files = new Map<string, string>();
 
-    // Rename types
-    for (const [oldName, newName] of Object.entries(TYPE_RENAMES)) {
-      // Rename definitions
-      content = content.replace(
-        new RegExp(`(export (?:interface|enum|type)) ${oldName}\\b`, "g"),
-        `$1 ${newName}`,
-      );
-      // Rename references
-      content = content.replace(
-        new RegExp(`:\\s*${oldName}\\b`, "g"),
-        `: ${newName}`,
-      );
-      content = content.replace(
-        new RegExp(`<${oldName}\\b`, "g"),
-        `<${newName}`,
-      );
-      content = content.replace(
-        new RegExp(`\\b${oldName}\\[\\]`, "g"),
-        `${newName}[]`,
-      );
+  // Group types by their canonical file
+  const typesByFile = new Map<string, string[]>();
+
+  for (const [typeName, { definition }] of allTypes) {
+    const canonicalFile = getCanonicalFile(typeName);
+    if (canonicalFile) {
+      const existing = typesByFile.get(canonicalFile) || [];
+      existing.push(definition);
+      typesByFile.set(canonicalFile, existing);
     }
-
-    writeFileSync(filePath, content);
   }
 
-  // Second pass: remove duplicates and add imports
-  for (const [tsName, filePath] of files) {
-    let content = readFileSync(filePath, "utf-8");
-    const types = extractTypeDefs(content);
+  // Build each file
+  for (const [fileName, definitions] of typesByFile) {
+    files.set(fileName, definitions.join("\n\n") + "\n");
+  }
 
-    const importsByFile = new Map<string, Set<string>>();
-    const typesToRemove: string[] = [];
+  return files;
+}
 
-    for (const type of types) {
-      const homeFile = TYPE_HOME[type.name];
+function addImports(files: Map<string, string>): void {
+  for (const [fileName, content] of files) {
+    const imports = new Set<string>();
 
-      // If this type belongs to a different file, remove it and import
-      if (homeFile && homeFile !== tsName) {
-        typesToRemove.push(type.fullMatch);
+    // Find all type references
+    const patterns = [
+      /:\s*(\w+)/g, // Type annotations
+      /(\w+)\[\]/g, // Array types
+      /<(\w+)>/g, // Generic types
+      /{\s*\[key:\s*string\]:\s*(\w+)/g, // Record types
+    ];
 
-        if (!importsByFile.has(homeFile)) {
-          importsByFile.set(homeFile, new Set());
+    for (const pattern of patterns) {
+      const matches = content.matchAll(pattern);
+      for (const match of matches) {
+        const typeName = match[1];
+        const canonicalFile = getCanonicalFile(typeName);
+        if (canonicalFile && canonicalFile !== fileName) {
+          imports.add(typeName);
         }
-        importsByFile.get(homeFile)!.add(type.name);
       }
     }
 
-    // Remove duplicate type definitions
-    for (const toRemove of typesToRemove) {
-      content = content.replace(toRemove + "\n", "");
-      content = content.replace(toRemove, "");
-    }
-
     // Build import statements
-    let imports = "";
-    for (const [sourceFile, typeNames] of importsByFile) {
-      imports += `import { ${[...typeNames].join(", ")} } from "./${sourceFile}";\n`;
+    const importsByFile = new Map<string, string[]>();
+    for (const typeName of imports) {
+      const sourceFile = getCanonicalFile(typeName);
+      if (sourceFile) {
+        const existing = importsByFile.get(sourceFile) || [];
+        existing.push(typeName);
+        importsByFile.set(sourceFile, existing);
+      }
     }
 
-    // Combine and clean up
-    content = imports + content;
-    content = content.replace(/\n{3,}/g, "\n\n").trim() + "\n";
+    let importStatements = "";
+    for (const [sourceFile, typeNames] of importsByFile) {
+      importStatements += `import { ${typeNames.join(", ")} } from "./${sourceFile}";\n`;
+    }
 
-    writeFileSync(filePath, content);
+    if (importStatements) {
+      files.set(fileName, importStatements + "\n" + content);
+    }
   }
+}
 
-  console.log("Post-processing complete.");
+function writeFiles(files: Map<string, string>): void {
+  for (const [fileName, content] of files) {
+    writeFileSync(join(OUTPUT_TYPES_DIR, `${fileName}.ts`), content);
+    console.log(`Generated: ${fileName}.ts`);
+  }
 }
 
 function main(): void {
@@ -284,9 +268,14 @@ function main(): void {
   console.log(`Found ${schemas.length} schemas`);
 
   console.log("\nGenerating TypeScript types...");
-  const generatedFiles = generateTypes(schemas);
+  ensureDir(OUTPUT_TYPES_DIR);
+  cleanDir(OUTPUT_TYPES_DIR);
 
-  postProcessTypes(generatedFiles);
+  const allContent = generateAllTypes(schemas);
+  const allTypes = extractTypeDefs(allContent);
+  const files = splitIntoFiles(allTypes);
+  addImports(files);
+  writeFiles(files);
 
   console.log("\nDone!");
 }
