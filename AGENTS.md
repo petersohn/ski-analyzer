@@ -23,7 +23,7 @@ The purpose of this app is to display a recorded GPX track for skiing, and displ
 Issue these commands in `src-tauri/ski-analyzer-lib`.
 
 - **build:** `cargo build`
-- **test:** `cargo test`
+- **test:** `cargo test --features schemars`
 
 ## Tauri app
 
