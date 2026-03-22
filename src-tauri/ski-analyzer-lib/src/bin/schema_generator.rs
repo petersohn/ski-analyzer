@@ -5,7 +5,10 @@ use ski_analyzer_lib::json_schema::geo::{
 };
 use ski_analyzer_lib::json_schema::ski_analyzer::BoundedGeometryDef;
 use ski_analyzer_lib::json_schema::time::OffsetDateTimeDef;
-use ski_analyzer_lib::ski_area::{PointWithElevation, SkiArea};
+use ski_analyzer_lib::ski_area::{
+    Difficulty, Lift, Piste, PisteData, PisteMetadata, PointWithElevation,
+    SkiArea, SkiAreaMetadata,
+};
 use std::env;
 use std::fs;
 use std::path::Path;
@@ -17,7 +20,7 @@ fn main() {
     let schemas_dir = Path::new(&out_dir).join("schemas");
     fs::create_dir_all(&schemas_dir).unwrap();
 
-    // Geo types (used in TypeScript for map rendering)
+    // Geo types
     generate_schema::<PointDef>("point", &schemas_dir);
     generate_schema::<RectDef>("rect", &schemas_dir);
     generate_schema::<LineStringDef>("line-string", &schemas_dir);
@@ -28,7 +31,7 @@ fn main() {
     // Time types
     generate_schema::<OffsetDateTimeDef>("offset-date-time", &schemas_dir);
 
-    // Bounded geometry types (used in TypeScript for map rendering)
+    // Ski area types
     generate_schema::<PointWithElevation>("point-with-elevation", &schemas_dir);
     generate_schema::<BoundedGeometryDef<PolygonDef>>(
         "bounded-polygon",
@@ -38,9 +41,12 @@ fn main() {
         "bounded-line-string",
         &schemas_dir,
     );
-
-    // SkiArea is the primary type sent from Rust to TypeScript
-    // It includes all sub-types (Lift, Piste, etc.) inline
+    generate_schema::<Lift>("lift", &schemas_dir);
+    generate_schema::<Difficulty>("difficulty", &schemas_dir);
+    generate_schema::<PisteMetadata>("piste-metadata", &schemas_dir);
+    generate_schema::<PisteData>("piste-data", &schemas_dir);
+    generate_schema::<Piste>("piste", &schemas_dir);
+    generate_schema::<SkiAreaMetadata>("ski-area-metadata", &schemas_dir);
     generate_schema::<SkiArea>("ski-area", &schemas_dir);
 
     println!("Schema directory: {}", schemas_dir.display());

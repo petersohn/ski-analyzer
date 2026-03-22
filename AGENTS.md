@@ -29,6 +29,8 @@ Issue these commands in `src-tauri/ski-analyzer-lib`.
 
 Run this from the project root.
 
+Before building anything, types from JSON schema need to be generated. To do this: run: `pnpm generate-types`.
+
 - **build the entire app:** `pnpm tauri build`
 - **build the front end:** `pnpm build`
 - **test the Tauri app:** run from `src-tauri`: `cargo test`
