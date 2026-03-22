@@ -16,7 +16,13 @@ pub struct RectDef {
 pub struct LineStringDef(pub Vec<PointDef>);
 
 #[derive(JsonSchema)]
+pub struct MultiLineStringDef(pub Vec<LineStringDef>);
+
+#[derive(JsonSchema)]
 pub struct PolygonDef {
     pub exterior: Vec<PointDef>,
     pub interiors: Vec<Vec<PointDef>>,
 }
+
+#[derive(JsonSchema)]
+pub struct MultiPolygonDef(pub Vec<PolygonDef>);

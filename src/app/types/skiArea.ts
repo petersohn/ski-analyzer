@@ -1,68 +1,44 @@
-import {
-  Rect,
-  LineString,
-  BoundedGeometry,
-  PointWithElevation,
-  MultiPolygon,
-  MultiLineString,
-  Polygon,
-} from "./geo";
 import { indexData } from "@/utils/data";
 
-export type SkiAreaMetadata = {
-  id: number;
-  name: string;
-  outline: BoundedGeometry<Polygon>;
-};
+// Re-export all types from generated schema
+export {
+  SkiArea as RawSkiArea,
+  LiftValue as Lift,
+  PisteValue as Piste,
+  Metadata as SkiAreaMetadata,
+  Difficulty,
+  BoundingRect as Rect,
+  Max as Point,
+  Line as BoundedLineString,
+  StationElement as PointWithElevation,
+  Outline as BoundedPolygon,
+  Item as Polygon,
+} from "./generated/skiArea";
 
-export type Lift = {
-  ref: string;
-  name: string;
-  type: string;
-  line: BoundedGeometry<LineString>;
-  stations: PointWithElevation[];
-  can_go_reverse: boolean;
-  can_disembark: boolean;
-  lengths: number[];
-};
+// Import types for transformation
+import type {
+  SkiArea as RawSkiAreaType,
+  LiftValue,
+  PisteValue,
+  Metadata,
+  BoundingRect,
+} from "./generated/skiArea";
 
-export type Difficulty =
-  | ""
-  | "Novice"
-  | "Easy"
-  | "Intermediate"
-  | "Advanced"
-  | "Expert"
-  | "Freeride";
-
-export type Piste = {
-  ref: string;
-  name: string;
-  difficulty: Difficulty;
-  bounding_rect: Rect;
-  areas: MultiPolygon;
-  lines: MultiLineString;
-};
-
-export type RawSkiArea = {
-  name: string;
-  lifts: { [id: string]: Lift };
-  pistes: { [id: string]: Piste };
-  bounding_rect: Rect;
-};
-
+// SkiArea is the transformed type with Maps for easier access
 export type SkiArea = {
-  name: string;
-  lifts: Map<string, Lift>;
-  pistes: Map<string, Piste>;
-  bounding_rect: Rect;
+  metadata: Metadata;
+  lifts: Map<string, LiftValue>;
+  pistes: Map<string, PisteValue>;
+  bounding_rect: BoundingRect;
+  date: string;
 };
 
-export function indexSkiArea(ski_area: RawSkiArea): SkiArea {
+export function indexSkiArea(ski_area: RawSkiAreaType): SkiArea {
   return {
-    name: ski_area.name,
-    lifts: indexData<Lift>(ski_area.lifts),
-    pistes: indexData<Piste>(ski_area.pistes),
+    metadata: ski_area.metadata,
+    lifts: indexData<LiftValue>(ski_area.lifts),
+    pistes: indexData<PisteValue>(ski_area.pistes),
     bounding_rect: ski_area.bounding_rect,
+    date: ski_area.date,
   };
 }

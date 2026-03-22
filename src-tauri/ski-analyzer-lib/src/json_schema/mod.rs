@@ -1,4 +1,5 @@
 pub mod geo;
+pub mod ski_analyzer;
 pub mod time;
 
 #[cfg(test)]

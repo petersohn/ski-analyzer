@@ -19,6 +19,12 @@ use crate::utils::collection::max_if;
 use crate::utils::rect::union_rects;
 use crate::utils::with_id::WithId;
 
+#[cfg(feature = "schemars")]
+use schemars::JsonSchema;
+
+#[cfg(feature = "schemars")]
+use crate::json_schema::geo::{MultiLineStringDef, MultiPolygonDef, RectDef};
+
 #[derive(
     Serialize,
     Deserialize,
@@ -32,6 +38,7 @@ use crate::utils::with_id::WithId;
     strum_macros::Display,
 )]
 #[strum(serialize_all = "lowercase")]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub enum Difficulty {
     #[strum(serialize = "")]
     Unknown,
@@ -44,6 +51,7 @@ pub enum Difficulty {
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct PisteMetadata {
     #[serde(rename = "ref")]
     pub ref_: String,
@@ -52,9 +60,13 @@ pub struct PisteMetadata {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct PisteData {
+    #[cfg_attr(feature = "schemars", schemars(with = "RectDef"))]
     pub bounding_rect: Rect,
+    #[cfg_attr(feature = "schemars", schemars(with = "MultiPolygonDef"))]
     pub areas: MultiPolygon,
+    #[cfg_attr(feature = "schemars", schemars(with = "MultiLineStringDef"))]
     pub lines: MultiLineString,
 }
 
@@ -69,6 +81,7 @@ impl geo::Intersects for PisteData {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct Piste {
     #[serde(flatten)]
     pub metadata: PisteMetadata,

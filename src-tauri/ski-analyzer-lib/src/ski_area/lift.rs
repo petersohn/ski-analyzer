@@ -15,6 +15,14 @@ use crate::osm_reader::{
 };
 use crate::utils::bounded_geometry::BoundedGeometry;
 
+#[cfg(feature = "schemars")]
+use schemars::JsonSchema;
+
+#[cfg(feature = "schemars")]
+use crate::json_schema::{
+    geo::LineStringDef, ski_analyzer::BoundedGeometryDef,
+};
+
 pub struct LiftClosestPoint {
     pub line_id: usize,
     pub line: Line,
@@ -23,12 +31,17 @@ pub struct LiftClosestPoint {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct Lift {
     #[serde(rename = "ref")]
     pub ref_: String,
     pub name: String,
     #[serde(rename = "type")]
     pub type_: String,
+    #[cfg_attr(
+        feature = "schemars",
+        schemars(with = "BoundedGeometryDef<LineStringDef>")
+    )]
     pub line: BoundedGeometry<LineString>,
     pub stations: Vec<PointWithElevation>,
     pub can_go_reverse: bool,
