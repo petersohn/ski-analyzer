@@ -7,10 +7,10 @@ export {
   Piste,
   SkiAreaMetadata,
   SkiArea as RawSkiArea,
-} from "./generated/skiArea";
+} from "./generated/generated";
 
 import { Rect } from "./geo";
-import type { Lift, Piste, SkiAreaMetadata } from "./generated/skiArea";
+import type { Lift, Piste, SkiAreaMetadata } from "./generated/generated";
 import { indexData } from "@/utils/data";
 
 export type SkiArea = {
@@ -22,7 +22,7 @@ export type SkiArea = {
 };
 
 export function indexSkiArea(
-  ski_area: import("./generated/skiArea").SkiArea,
+  ski_area: import("./generated/generated").SkiArea,
 ): SkiArea {
   return {
     metadata: ski_area.metadata,

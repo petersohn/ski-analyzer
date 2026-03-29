@@ -8,7 +8,7 @@ pub mod utils;
 
 mod multipolygon;
 
-#[cfg(feature = "schemars")]
+#[cfg(feature = "specta")]
 pub mod json_schema;
 
 #[cfg(test)]

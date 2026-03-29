@@ -24,27 +24,20 @@ mod geo_test;
 mod lift_test;
 #[cfg(test)]
 mod piste_test;
-#[cfg(test)]
-#[cfg(feature = "schemars")]
-mod schema_test;
 
 pub use lift::Lift;
 pub use piste::{Difficulty, Piste, PisteData, PisteMetadata};
 
-#[cfg(feature = "schemars")]
-use schemars::JsonSchema;
-
-#[cfg(feature = "schemars")]
+#[cfg(feature = "specta")]
 use crate::json_schema::{
     geo::{PointDef, PolygonDef, RectDef},
     ski_analyzer::BoundedGeometryDef,
-    time::OffsetDateTimeDef,
 };
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct PointWithElevation {
-    #[cfg_attr(feature = "schemars", schemars(with = "PointDef"))]
+    #[cfg_attr(feature = "specta", specta(type = PointDef))]
     pub point: Point,
     pub elevation: u32,
 }
@@ -55,28 +48,24 @@ impl PointWithElevation {
     }
 }
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct SkiArea {
     pub metadata: SkiAreaMetadata,
     pub lifts: HashMap<String, Lift>,
     pub pistes: HashMap<String, Piste>,
-    #[cfg_attr(feature = "schemars", schemars(with = "RectDef"))]
+    #[cfg_attr(feature = "specta", specta(type = RectDef))]
     pub bounding_rect: Rect,
     #[serde(with = "time_ser")]
-    #[cfg_attr(feature = "schemars", schemars(with = "OffsetDateTimeDef"))]
     pub date: OffsetDateTime,
 }
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct SkiAreaMetadata {
     pub id: u64,
     pub name: String,
-    #[cfg_attr(
-        feature = "schemars",
-        schemars(with = "BoundedGeometryDef<PolygonDef>")
-    )]
+    #[cfg_attr(feature = "specta", specta(type = BoundedGeometryDef<PolygonDef>))]
     pub outline: BoundedGeometry<Polygon>,
 }
 

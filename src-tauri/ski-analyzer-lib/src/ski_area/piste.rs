@@ -19,12 +19,10 @@ use crate::utils::collection::max_if;
 use crate::utils::rect::union_rects;
 use crate::utils::with_id::WithId;
 
-#[cfg(feature = "schemars")]
-use schemars::JsonSchema;
-
-#[cfg(feature = "schemars")]
+#[cfg(feature = "specta")]
 use crate::json_schema::geo::{MultiLineStringDef, MultiPolygonDef, RectDef};
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(
     Serialize,
     Deserialize,
@@ -38,7 +36,6 @@ use crate::json_schema::geo::{MultiLineStringDef, MultiPolygonDef, RectDef};
     strum_macros::Display,
 )]
 #[strum(serialize_all = "lowercase")]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub enum Difficulty {
     #[strum(serialize = "")]
     Unknown,
@@ -50,8 +47,8 @@ pub enum Difficulty {
     Freeride,
 }
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(PartialEq, Eq, Hash, Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct PisteMetadata {
     #[serde(rename = "ref")]
     pub ref_: String,
@@ -59,14 +56,14 @@ pub struct PisteMetadata {
     pub difficulty: Difficulty,
 }
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct PisteData {
-    #[cfg_attr(feature = "schemars", schemars(with = "RectDef"))]
+    #[cfg_attr(feature = "specta", specta(type = RectDef))]
     pub bounding_rect: Rect,
-    #[cfg_attr(feature = "schemars", schemars(with = "MultiPolygonDef"))]
+    #[cfg_attr(feature = "specta", specta(type = MultiPolygonDef))]
     pub areas: MultiPolygon,
-    #[cfg_attr(feature = "schemars", schemars(with = "MultiLineStringDef"))]
+    #[cfg_attr(feature = "specta", specta(type = MultiLineStringDef))]
     pub lines: MultiLineString,
 }
 
@@ -80,8 +77,8 @@ impl geo::Intersects for PisteData {
     }
 }
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct Piste {
     #[serde(flatten)]
     pub metadata: PisteMetadata,
