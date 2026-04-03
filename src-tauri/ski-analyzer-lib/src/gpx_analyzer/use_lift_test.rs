@@ -1,7 +1,7 @@
 use super::test_util::save_analyzed_route;
 use super::use_lift::find_lift_usage;
 use super::Segments;
-use super::{Activity, ActivityType, LiftEnd, UseLift};
+use super::{Activity, ActivityType, UseLift};
 use crate::assert_eq_pretty;
 use crate::ski_area::{Lift, PointWithElevation, SkiArea};
 use crate::utils::bounded_geometry::BoundedGeometry;
@@ -56,14 +56,6 @@ fn ski_area(name: &str, lifts: Vec<Lift>) -> SkiArea {
         OffsetDateTime::UNIX_EPOCH,
     )
     .unwrap()
-}
-
-#[derive(PartialEq, Eq)]
-pub struct UseLiftPtr {
-    lift: *const Lift,
-    begin_station: LiftEnd,
-    end_station: LiftEnd,
-    is_reverse: bool,
 }
 
 // https://www.openstreetmap.org/way/107110280
