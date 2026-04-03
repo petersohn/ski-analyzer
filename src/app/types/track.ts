@@ -2,71 +2,50 @@ import dayjs from "dayjs";
 import { Dayjs } from "dayjs";
 import { Point, Rect } from "./geo";
 import { Lift, Piste, SkiArea } from "./skiArea";
+import {
+  Activity as GpxActivity,
+  ActivityType as GpxActivityType,
+  AnalyzedRouteDef,
+  DerivedData as GpxDerivedData,
+  MoveType,
+  Moving,
+  UseLift,
+  WaypointDef,
+} from "./generated/generated";
 
-export type RawWaypoint = {
-  point: Point;
-  time?: string;
-  elevation?: number;
-  hdop?: number;
-  vdop?: number;
-  speed?: number;
-  comment?: string;
-};
+export type RawWaypoint = WaypointDef;
 
-export type RawUseLift = {
-  lift_id: string;
-  begin_station: number;
-  end_station: number;
-  is_reverse: boolean;
-};
+export type RawUseLift = UseLift;
 
-export type RawMoving = {
-  move_type: string;
-  piste_id: string;
-};
+export type RawMoving = Moving;
 
-export type RawActivityType = {
-  Unknown?: null;
-  UseLift?: RawUseLift;
-  EnterLift?: string;
-  ExitLift?: string;
-  Moving?: RawMoving;
-};
+export type RawActivityType = GpxActivityType;
 
-export type RawActivity = {
-  type: RawActivityType;
-  route: RawWaypoint[][];
-  begin_time: string | null;
-  end_time: string | null;
-  length: number;
-};
+export type RawActivity = GpxActivity;
 
-export type RawTrack = {
-  item: RawActivity[];
-  bounding_rect: Rect;
-};
+export type RawTrack = AnalyzedRouteDef;
 
 export type Waypoint = {
   point: Point;
   time?: Dayjs;
-  elevation?: number;
-  hdop?: number;
-  vdop?: number;
-  speed?: number;
-  comment?: string;
+  elevation?: number | null;
+  hdop?: number | null;
+  vdop?: number | null;
+  speed?: number | null;
+  comment?: string | null;
 };
 
 export type Segment = Waypoint[];
 export type Segments = Segment[];
 
-export type UseLift = {
+export type ProcessedUseLift = {
   lift: Lift;
-  begin_station: number;
-  end_station: number;
+  begin_station: number | null;
+  end_station: number | null;
   is_reverse: boolean;
 };
 
-export type Moving = {
+export type ProcessedMoving = {
   move_type: string;
   piste?: Piste;
 };
@@ -80,10 +59,10 @@ export type ActivityType =
 
 export type Activity = {
   type: ActivityType;
-  useLift?: UseLift;
+  useLift?: ProcessedUseLift;
   enterLift?: Lift;
   exitLift?: Lift;
-  moving?: Moving;
+  moving?: ProcessedMoving;
   route: Segments;
   begin_time: Dayjs | null;
   end_time: Dayjs | null;
@@ -101,12 +80,37 @@ export class TrackConverter {
   public convertTrack(route: RawTrack): Track {
     return {
       item: route.item.map((activity) => {
+        const typeInfo = activity.type;
+        let activityType: ActivityType;
+        let useLiftData: UseLift | undefined;
+        let enterLiftData: string | undefined;
+        let exitLiftData: string | undefined;
+        let movingData: Moving | undefined;
+
+        if ("Unknown" in typeInfo) {
+          activityType = "Unknown";
+        } else if ("UseLift" in typeInfo) {
+          activityType = "UseLift";
+          useLiftData = typeInfo.UseLift;
+        } else if ("EnterLift" in typeInfo) {
+          activityType = "EnterLift";
+          enterLiftData = typeInfo.EnterLift;
+        } else if ("ExitLift" in typeInfo) {
+          activityType = "ExitLift";
+          exitLiftData = typeInfo.ExitLift;
+        } else if ("Moving" in typeInfo) {
+          activityType = "Moving";
+          movingData = typeInfo.Moving;
+        } else {
+          activityType = "Unknown";
+        }
+
         return {
-          type: this.convertActivityType(activity.type),
-          useLift: this.convertUseLift(activity.type.UseLift),
-          enterLift: this.getLift(activity.type.EnterLift),
-          exitLift: this.getLift(activity.type.ExitLift),
-          moving: this.convertMoving(activity.type.Moving),
+          type: activityType,
+          useLift: this.convertUseLift(useLiftData),
+          enterLift: this.getLift(enterLiftData),
+          exitLift: this.getLift(exitLiftData),
+          moving: this.convertMoving(movingData),
           route: this.convertRoute(activity.route),
           begin_time: dayjs(activity.begin_time),
           end_time: dayjs(activity.end_time),
@@ -133,7 +137,7 @@ export class TrackConverter {
     return this.skiArea.pistes.get(pisteId);
   }
 
-  private convertUseLift(input?: RawUseLift): UseLift | undefined {
+  private convertUseLift(input?: RawUseLift): ProcessedUseLift | undefined {
     if (!input) {
       return;
     }
@@ -151,7 +155,7 @@ export class TrackConverter {
     };
   }
 
-  private convertMoving(input?: RawMoving): Moving | undefined {
+  private convertMoving(input?: RawMoving): ProcessedMoving | undefined {
     if (!input) {
       return;
     }
@@ -188,7 +192,4 @@ export class TrackConverter {
   }
 }
 
-export type DerivedData = {
-  speed: number | null;
-  inclination: number | null;
-};
+export type DerivedData = GpxDerivedData;

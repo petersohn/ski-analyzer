@@ -8,6 +8,7 @@ use super::{
     },
 };
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum MoveType {
     Ski,

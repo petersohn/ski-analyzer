@@ -19,6 +19,7 @@ const MIN_SPEED: f64 = 1.0;
 
 pub type LiftEnd = Option<usize>;
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct UseLift {

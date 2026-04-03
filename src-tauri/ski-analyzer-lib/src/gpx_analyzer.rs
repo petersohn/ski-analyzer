@@ -29,10 +29,13 @@ mod test_util;
 #[cfg(test)]
 mod use_lift_test;
 
+pub use moving::move_type::MoveType;
 pub use moving::Moving;
 pub use segments::{Segment, SegmentCoordinate, Segments};
 pub use use_lift::{LiftEnd, UseLift};
+pub use waypoint_ser::WaypointDef;
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum ActivityType {
@@ -49,11 +52,13 @@ impl Default for ActivityType {
     }
 }
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Activity {
     #[serde(rename = "type")]
     pub type_: ActivityType,
+    #[cfg_attr(feature = "specta", specta(type = Vec<Vec<WaypointDef>>))]
     pub route: Segments,
     #[serde(with = "option_time_ser")]
     pub begin_time: Option<OffsetDateTime>,
@@ -189,6 +194,7 @@ fn get_inclination_inner(
     Some(de / distance)
 }
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct DerivedData {
     pub speed: Option<f64>,

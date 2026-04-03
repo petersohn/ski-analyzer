@@ -1,4 +1,4 @@
-use ::function_name::named;
+use function_name::named;
 use geo::LineString;
 use gpx::TrackSegment;
 use std::collections::HashMap;

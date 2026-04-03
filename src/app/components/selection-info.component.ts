@@ -159,7 +159,7 @@ export class SelectionInfoComponent {
 
   public waypointAccuracy = computed(() => {
     const hdop = this.selectedWaypoint()?.hdop;
-    return hdop !== undefined ? this.meters(hdop) : "";
+    return !!hdop ? this.meters(hdop) : "";
   });
 
   public waypointSpeed = computed(() => {

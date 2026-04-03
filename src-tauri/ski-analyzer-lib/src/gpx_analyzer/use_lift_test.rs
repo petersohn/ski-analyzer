@@ -11,7 +11,7 @@ use crate::utils::test_util::{
     save_ski_area, segment, Init,
 };
 
-use ::function_name::named;
+use function_name::named;
 use geo::{Distance, Haversine, LineString};
 use gpx::TrackSegment;
 use rstest::{fixture, rstest};

@@ -3,11 +3,16 @@ use gpx::Waypoint;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
+#[cfg(feature = "specta")]
+use crate::typescript_gen::geo::PointDef;
+
 use super::to_odt;
 use crate::utils::option_time_ser;
 
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Serialize, Deserialize)]
 pub struct WaypointDef {
+    #[cfg_attr(feature = "specta", specta(type = PointDef))]
     pub point: Point,
     speed: Option<f64>,
     #[serde(with = "option_time_ser")]
