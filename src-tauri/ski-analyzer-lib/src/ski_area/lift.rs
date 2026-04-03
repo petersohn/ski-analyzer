@@ -16,7 +16,7 @@ use crate::osm_reader::{
 use crate::utils::bounded_geometry::BoundedGeometry;
 
 #[cfg(feature = "specta")]
-use crate::json_schema::{
+use crate::typescript_gen::{
     geo::LineStringDef, ski_analyzer::BoundedGeometryDef,
 };
 

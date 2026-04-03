@@ -20,7 +20,9 @@ use crate::utils::rect::union_rects;
 use crate::utils::with_id::WithId;
 
 #[cfg(feature = "specta")]
-use crate::json_schema::geo::{MultiLineStringDef, MultiPolygonDef, RectDef};
+use crate::typescript_gen::geo::{
+    MultiLineStringDef, MultiPolygonDef, RectDef,
+};
 
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(

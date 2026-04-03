@@ -29,7 +29,7 @@ pub use lift::Lift;
 pub use piste::{Difficulty, Piste, PisteData, PisteMetadata};
 
 #[cfg(feature = "specta")]
-use crate::json_schema::{
+use crate::typescript_gen::{
     geo::{PointDef, PolygonDef, RectDef},
     ski_analyzer::BoundedGeometryDef,
 };

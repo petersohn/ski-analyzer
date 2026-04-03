@@ -9,7 +9,7 @@ pub mod utils;
 mod multipolygon;
 
 #[cfg(feature = "specta")]
-pub mod json_schema;
+pub mod typescript_gen;
 
 #[cfg(test)]
 mod multipolygon_test;

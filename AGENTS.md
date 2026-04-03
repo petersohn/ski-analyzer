@@ -29,7 +29,7 @@ Issue these commands in `src-tauri/ski-analyzer-lib`.
 
 Run this from the project root.
 
-Before building anything, types from JSON schema need to be generated. To do this: run: `pnpm generate-types`.
+Before building anything, types need to be generated. To do this: run: `pnpm generate-types`. Also generate types if any type that has a specta::Type derive is added, removed, or modified.
 
 - **build the entire app:** `pnpm tauri build`
 - **build the front end:** `pnpm build`
@@ -39,6 +39,7 @@ Before building anything, types from JSON schema need to be generated. To do thi
 # Coding conventions
 
 - After every change, format the code using `rustfmt`.
+- For modules, don't use `mod.rs`. Instead, use `<module_name>.rs` in the parent directory.
 
 ## Test organization
 

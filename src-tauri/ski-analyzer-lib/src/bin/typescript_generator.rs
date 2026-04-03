@@ -1,13 +1,13 @@
 use clap::Parser;
-use ski_analyzer_lib::json_schema::geo::{
-    LineStringDef, MultiLineStringDef, MultiPolygonDef, PointDef, PolygonDef,
-    RectDef,
-};
-use ski_analyzer_lib::json_schema::ski_analyzer::BoundedGeometryDef;
 use ski_analyzer_lib::ski_area::{
     Difficulty, Lift, Piste, PisteData, PisteMetadata, PointWithElevation,
     SkiArea, SkiAreaMetadata,
 };
+use ski_analyzer_lib::typescript_gen::geo::{
+    LineStringDef, MultiLineStringDef, MultiPolygonDef, PointDef, PolygonDef,
+    RectDef,
+};
+use ski_analyzer_lib::typescript_gen::ski_analyzer::BoundedGeometryDef;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use std::fs;
 use std::path::PathBuf;
