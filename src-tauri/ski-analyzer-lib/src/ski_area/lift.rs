@@ -16,9 +16,7 @@ use crate::osm_reader::{
 use crate::utils::bounded_geometry::BoundedGeometry;
 
 #[cfg(feature = "specta")]
-use crate::typescript_gen::{
-    geo::LineStringDef, ski_analyzer::BoundedGeometryDef,
-};
+use crate::typescript_gen::geo::LineStringDef;
 
 pub struct LiftClosestPoint {
     pub line_id: usize,
@@ -35,7 +33,7 @@ pub struct Lift {
     pub name: String,
     #[serde(rename = "type")]
     pub type_: String,
-    #[cfg_attr(feature = "specta", specta(type = BoundedGeometryDef<LineStringDef>))]
+    #[cfg_attr(feature = "specta", specta(type = BoundedGeometry<LineStringDef>))]
     pub line: BoundedGeometry<LineString>,
     pub stations: Vec<PointWithElevation>,
     pub can_go_reverse: bool,

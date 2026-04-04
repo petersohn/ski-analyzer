@@ -5,5 +5,5 @@ export {
   PolygonDef as Polygon,
   MultiPolygonDef as MultiPolygon,
   MultiLineStringDef as MultiLineString,
-  BoundedGeometryDef as BoundedGeometry,
+  BoundedGeometry as BoundedGeometry,
 } from "./generated/generated";

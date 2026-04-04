@@ -29,10 +29,7 @@ pub use lift::Lift;
 pub use piste::{Difficulty, Piste, PisteData, PisteMetadata};
 
 #[cfg(feature = "specta")]
-use crate::typescript_gen::{
-    geo::{PointDef, PolygonDef, RectDef},
-    ski_analyzer::BoundedGeometryDef,
-};
+use crate::typescript_gen::geo::{PointDef, PolygonDef, RectDef};
 
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
@@ -65,7 +62,7 @@ pub struct SkiArea {
 pub struct SkiAreaMetadata {
     pub id: u64,
     pub name: String,
-    #[cfg_attr(feature = "specta", specta(type = BoundedGeometryDef<PolygonDef>))]
+    #[cfg_attr(feature = "specta", specta(type = BoundedGeometry<PolygonDef>))]
     pub outline: BoundedGeometry<Polygon>,
 }
 

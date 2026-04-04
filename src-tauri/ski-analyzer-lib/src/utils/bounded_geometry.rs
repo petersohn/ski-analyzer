@@ -1,12 +1,18 @@
 use geo::{BoundingRect, Intersects, Rect};
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "specta")]
+use specta::Type;
+
 use super::rect::expand_rect;
 use crate::error::{Error, ErrorType, Result};
 
+#[cfg_attr(feature = "specta", derive(Type))]
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename = "BoundedGeometry")]
 pub struct BoundedGeometry<T> {
     pub item: T,
+    #[cfg_attr(feature = "specta", specta(type = crate::typescript_gen::geo::RectDef))]
     pub bounding_rect: Rect,
 }
 

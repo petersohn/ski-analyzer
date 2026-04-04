@@ -35,9 +35,6 @@ pub use segments::{Segment, SegmentCoordinate, Segments};
 pub use use_lift::{LiftEnd, UseLift};
 pub use waypoint_ser::WaypointDef;
 
-#[cfg(feature = "specta")]
-use crate::typescript_gen::ski_analyzer::BoundedGeometryDef;
-
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -122,7 +119,6 @@ fn format_time_option(time: Option<OffsetDateTime>) -> String {
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AnalyzedRoute {
-    #[cfg_attr(feature = "specta", specta(type = BoundedGeometryDef<Vec<Activity>>))]
     pub route: BoundedGeometry<Vec<Activity>>,
 }
 

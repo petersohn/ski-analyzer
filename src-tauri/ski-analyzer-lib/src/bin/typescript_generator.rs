@@ -11,7 +11,7 @@ use ski_analyzer_lib::typescript_gen::geo::{
     LineStringDef, MultiLineStringDef, MultiPolygonDef, PointDef, PolygonDef,
     RectDef,
 };
-use ski_analyzer_lib::typescript_gen::ski_analyzer::BoundedGeometryDef;
+use ski_analyzer_lib::utils::bounded_geometry::BoundedGeometry;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use std::fs;
 use std::path::PathBuf;
@@ -34,9 +34,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .register::<MultiLineStringDef>()
         .register::<PolygonDef>()
         .register::<MultiPolygonDef>()
-        .register::<BoundedGeometryDef<PolygonDef>>()
-        .register::<BoundedGeometryDef<LineStringDef>>()
-        .register::<BoundedGeometryDef<Vec<Activity>>>()
+        .register::<BoundedGeometry<PolygonDef>>()
+        .register::<BoundedGeometry<LineStringDef>>()
+        .register::<BoundedGeometry<Vec<Activity>>>()
         .register::<PointWithElevation>()
         .register::<SkiAreaMetadata>()
         .register::<Lift>()
