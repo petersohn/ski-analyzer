@@ -35,8 +35,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .register::<PolygonDef>()
         .register::<MultiPolygonDef>()
         .register::<BoundedGeometry<PolygonDef>>()
-        .register::<BoundedGeometry<LineStringDef>>()
-        .register::<BoundedGeometry<Vec<Activity>>>()
         .register::<PointWithElevation>()
         .register::<SkiAreaMetadata>()
         .register::<Lift>()

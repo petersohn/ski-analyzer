@@ -1,3 +1,8 @@
+import { Rect } from "./geo";
+import type { Lift, Piste, SkiAreaMetadata } from "./generated/generated";
+import { indexData } from "@/utils/data";
+import { SkiArea as RawSkiArea } from "./generated/generated";
+
 export {
   PointWithElevation,
   Difficulty,
@@ -6,12 +11,9 @@ export {
   PisteData,
   Piste,
   SkiAreaMetadata,
-  SkiArea as RawSkiArea,
 } from "./generated/generated";
 
-import { Rect } from "./geo";
-import type { Lift, Piste, SkiAreaMetadata } from "./generated/generated";
-import { indexData } from "@/utils/data";
+export { RawSkiArea };
 
 export type SkiArea = {
   metadata: SkiAreaMetadata;
@@ -21,9 +23,7 @@ export type SkiArea = {
   date: string;
 };
 
-export function indexSkiArea(
-  ski_area: import("./generated/generated").SkiArea,
-): SkiArea {
+export function indexSkiArea(ski_area: RawSkiArea): SkiArea {
   return {
     metadata: ski_area.metadata,
     lifts: indexData<Lift>(ski_area.lifts),
