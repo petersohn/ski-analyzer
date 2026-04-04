@@ -1,27 +1,22 @@
-use geo::{BoundingRect, CoordFloat, CoordNum, Intersects, Rect};
-use num_traits::cast::FromPrimitive;
+use geo::{BoundingRect, Intersects, Rect};
 use serde::{Deserialize, Serialize};
 
 use super::rect::expand_rect;
 use crate::error::{Error, ErrorType, Result};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct BoundedGeometry<T, C = f64>
-where
-    C: CoordNum,
-{
+pub struct BoundedGeometry<T> {
     pub item: T,
-    pub bounding_rect: Rect<C>,
+    pub bounding_rect: Rect,
 }
 
-impl<T, C> BoundedGeometry<T, C>
+impl<T> BoundedGeometry<T>
 where
-    C: CoordNum,
-    T: BoundingRect<C>,
+    T: BoundingRect<f64>,
 {
     pub fn new(item: T) -> Result<Self>
     where
-        T: BoundingRect<C>,
+        T: BoundingRect<f64>,
     {
         let bounding_rect = item.bounding_rect().into().ok_or_else(|| {
             Error::new_s(
@@ -35,45 +30,39 @@ where
         })
     }
 
-    pub fn expanded_rect(&self, amount: C) -> Rect<C>
-    where
-        C: CoordFloat + FromPrimitive,
-    {
+    pub fn expanded_rect(&self, amount: f64) -> Rect {
         let mut rect = self.bounding_rect;
         expand_rect(&mut rect, amount);
         rect
     }
 }
 
-impl<T, C> BoundingRect<C> for BoundedGeometry<T, C>
+impl<T> BoundingRect<f64> for BoundedGeometry<T>
 where
-    C: CoordNum,
-    T: BoundingRect<C>,
+    T: BoundingRect<f64>,
 {
-    type Output = Rect<C>;
+    type Output = Rect;
 
     fn bounding_rect(&self) -> Self::Output {
         self.bounding_rect.bounding_rect()
     }
 }
 
-impl<T, C> PartialEq for BoundedGeometry<T, C>
+impl<T> PartialEq for BoundedGeometry<T>
 where
-    C: CoordNum,
-    T: BoundingRect<C> + PartialEq,
+    T: BoundingRect<f64> + PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
         self.item == other.item
     }
 }
 
-impl<T, U, C> Intersects<BoundedGeometry<U, C>> for BoundedGeometry<T, C>
+impl<T, U> Intersects<BoundedGeometry<U>> for BoundedGeometry<T>
 where
-    C: CoordNum,
-    T: BoundingRect<C> + Intersects<U>,
-    U: BoundingRect<C>,
+    T: BoundingRect<f64> + Intersects<U>,
+    U: BoundingRect<f64>,
 {
-    fn intersects(&self, rhs: &BoundedGeometry<U, C>) -> bool {
+    fn intersects(&self, rhs: &BoundedGeometry<U>) -> bool {
         self.bounding_rect.intersects(&rhs.bounding_rect)
             && self.item.intersects(&rhs.item)
     }

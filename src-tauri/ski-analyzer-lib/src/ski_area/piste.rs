@@ -1,6 +1,6 @@
 use geo::{
-    BooleanOps, BoundingRect, CoordNum, HasDimensions, Haversine, Intersects,
-    Length, LineString, MultiLineString, MultiPolygon, Polygon, Rect,
+    BooleanOps, BoundingRect, HasDimensions, Haversine, Intersects, Length,
+    LineString, MultiLineString, MultiPolygon, Polygon, Rect,
 };
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
@@ -133,13 +133,12 @@ struct PartialPistes {
     area_entities: Vec<WithId<BoundedGeometry<MultiPolygon>>>,
 }
 
-struct UnnamedPiste<T, C = f64>
+struct UnnamedPiste<T>
 where
-    C: CoordNum,
-    T: BoundingRect<C>,
+    T: BoundingRect<f64>,
 {
     difficulty: Difficulty,
-    geometry: WithId<BoundedGeometry<T, C>>,
+    geometry: WithId<BoundedGeometry<T>>,
 }
 
 enum PisteGeometry {
