@@ -74,31 +74,41 @@ describe("TrackConverter", () => {
       const converter = new TrackConverter(skiArea);
 
       const rawTrack: RawTrack = {
-        item: [
-          {
-            type: { Moving: { move_type: "ski", piste_id: "piste1" } },
-            route: [
-              [
-                {
-                  point: { x: 0, y: 0 },
-                  time: "2024-01-01T10:00:00Z",
-                  elevation: 1000,
-                },
-                {
-                  point: { x: 1, y: 1 },
-                  time: "2024-01-01T10:01:00Z",
-                  elevation: 900,
-                },
+        route: {
+          item: [
+            {
+              type: { Moving: { move_type: "Ski", piste_id: "piste1" } },
+              route: [
+                [
+                  {
+                    point: { x: 0, y: 0 },
+                    time: "2024-01-01T10:00:00Z",
+                    elevation: 1000,
+                    speed: null,
+                    hdop: null,
+                    vdop: null,
+                    comment: null,
+                  },
+                  {
+                    point: { x: 1, y: 1 },
+                    time: "2024-01-01T10:01:00Z",
+                    elevation: 900,
+                    speed: null,
+                    hdop: null,
+                    vdop: null,
+                    comment: null,
+                  },
+                ],
               ],
-            ],
-            begin_time: "2024-01-01T10:00:00Z",
-            end_time: "2024-01-01T10:01:00Z",
-            length: 100,
+              begin_time: "2024-01-01T10:00:00Z",
+              end_time: "2024-01-01T10:01:00Z",
+              length: 100,
+            },
+          ],
+          bounding_rect: {
+            min: { x: 0, y: 0 },
+            max: { x: 1, y: 1 },
           },
-        ],
-        bounding_rect: {
-          min: { x: 0, y: 0 },
-          max: { x: 1, y: 1 },
         },
       };
 
@@ -106,7 +116,7 @@ describe("TrackConverter", () => {
 
       expect(result.item.length).toBe(1);
       expect(result.item[0].type).toBe("Moving");
-      expect(result.item[0].moving?.move_type).toBe("ski");
+      expect(result.item[0].moving?.move_type).toBe("Ski");
       expect(result.item[0].moving?.piste?.name).toBe("Main Piste");
       expect(result.item[0].begin_time?.toISOString()).toBe(
         "2024-01-01T10:00:00.000Z",
@@ -121,25 +131,27 @@ describe("TrackConverter", () => {
       const converter = new TrackConverter(skiArea);
 
       const rawTrack: RawTrack = {
-        item: [
-          {
-            type: {
-              UseLift: {
-                lift_id: "lift1",
-                begin_station: 0,
-                end_station: 1,
-                is_reverse: false,
+        route: {
+          item: [
+            {
+              type: {
+                UseLift: {
+                  lift_id: "lift1",
+                  begin_station: 0,
+                  end_station: 1,
+                  is_reverse: false,
+                },
               },
+              route: [],
+              begin_time: "2024-01-01T10:00:00Z",
+              end_time: "2024-01-01T10:05:00Z",
+              length: 500,
             },
-            route: [],
-            begin_time: "2024-01-01T10:00:00Z",
-            end_time: "2024-01-01T10:05:00Z",
-            length: 500,
+          ],
+          bounding_rect: {
+            min: { x: 0, y: 0 },
+            max: { x: 1, y: 1 },
           },
-        ],
-        bounding_rect: {
-          min: { x: 0, y: 0 },
-          max: { x: 1, y: 1 },
         },
       };
 
@@ -156,18 +168,20 @@ describe("TrackConverter", () => {
       const converter = new TrackConverter(skiArea);
 
       const rawTrack: RawTrack = {
-        item: [
-          {
-            type: { Unknown: null },
-            route: [],
-            begin_time: null,
-            end_time: null,
-            length: 0,
+        route: {
+          item: [
+            {
+              type: { Unknown: null },
+              route: [],
+              begin_time: null,
+              end_time: null,
+              length: 0,
+            },
+          ],
+          bounding_rect: {
+            min: { x: 0, y: 0 },
+            max: { x: 1, y: 1 },
           },
-        ],
-        bounding_rect: {
-          min: { x: 0, y: 0 },
-          max: { x: 1, y: 1 },
         },
       };
 
@@ -181,18 +195,20 @@ describe("TrackConverter", () => {
       const converter = new TrackConverter(skiArea);
 
       const rawTrack: RawTrack = {
-        item: [
-          {
-            type: { Moving: { move_type: "ski", piste_id: "" } },
-            route: [],
-            begin_time: null,
-            end_time: null,
-            length: 0,
+        route: {
+          item: [
+            {
+              type: { Moving: { move_type: "Ski", piste_id: "" } },
+              route: [],
+              begin_time: null,
+              end_time: null,
+              length: 0,
+            },
+          ],
+          bounding_rect: {
+            min: { x: 0, y: 0 },
+            max: { x: 1, y: 1 },
           },
-        ],
-        bounding_rect: {
-          min: { x: 0, y: 0 },
-          max: { x: 1, y: 1 },
         },
       };
 

@@ -5,9 +5,8 @@ import { Lift, Piste, SkiArea } from "./skiArea";
 import {
   Activity as GpxActivity,
   ActivityType as GpxActivityType,
-  AnalyzedRouteDef,
+  AnalyzedRoute,
   DerivedData as GpxDerivedData,
-  MoveType,
   Moving,
   UseLift,
   WaypointDef,
@@ -23,7 +22,7 @@ export type RawActivityType = GpxActivityType;
 
 export type RawActivity = GpxActivity;
 
-export type RawTrack = AnalyzedRouteDef;
+export type RawTrack = AnalyzedRoute;
 
 export type Waypoint = {
   point: Point;
@@ -79,7 +78,7 @@ export class TrackConverter {
 
   public convertTrack(route: RawTrack): Track {
     return {
-      item: route.item.map((activity) => {
+      item: route.route.item.map((activity) => {
         const typeInfo = activity.type;
         let activityType: ActivityType;
         let useLiftData: UseLift | undefined;
@@ -117,7 +116,7 @@ export class TrackConverter {
           length: activity.length,
         };
       }),
-      bounding_rect: route.bounding_rect,
+      bounding_rect: route.route.bounding_rect,
     };
   }
 

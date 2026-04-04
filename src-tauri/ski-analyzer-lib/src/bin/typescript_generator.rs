@@ -1,6 +1,7 @@
 use clap::Parser;
 use ski_analyzer_lib::gpx_analyzer::{
-    Activity, ActivityType, DerivedData, MoveType, Moving, UseLift, WaypointDef,
+    Activity, ActivityType, AnalyzedRoute, DerivedData, MoveType, Moving,
+    UseLift, WaypointDef,
 };
 use ski_analyzer_lib::ski_area::{
     Difficulty, Lift, Piste, PisteData, PisteMetadata, PointWithElevation,
@@ -10,7 +11,6 @@ use ski_analyzer_lib::typescript_gen::geo::{
     LineStringDef, MultiLineStringDef, MultiPolygonDef, PointDef, PolygonDef,
     RectDef,
 };
-use ski_analyzer_lib::typescript_gen::gpx_analyzer::AnalyzedRouteDef;
 use ski_analyzer_lib::typescript_gen::ski_analyzer::BoundedGeometryDef;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use std::fs;
@@ -36,6 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .register::<MultiPolygonDef>()
         .register::<BoundedGeometryDef<PolygonDef>>()
         .register::<BoundedGeometryDef<LineStringDef>>()
+        .register::<BoundedGeometryDef<Vec<Activity>>>()
         .register::<PointWithElevation>()
         .register::<SkiAreaMetadata>()
         .register::<Lift>()
@@ -50,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .register::<Moving>()
         .register::<ActivityType>()
         .register::<Activity>()
-        .register::<AnalyzedRouteDef>()
+        .register::<AnalyzedRoute>()
         .register::<DerivedData>();
 
     let output = Typescript::default()
