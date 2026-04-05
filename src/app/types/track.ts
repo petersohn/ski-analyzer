@@ -3,26 +3,19 @@ import { Dayjs } from "dayjs";
 import { Point, Rect } from "./geo";
 import { Lift, Piste, SkiArea } from "./skiArea";
 import {
-  Activity as GpxActivity,
-  ActivityType as GpxActivityType,
   AnalyzedRoute,
-  DerivedData as GpxDerivedData,
   Moving,
   UseLift,
   WaypointDef,
 } from "./generated/generated";
 
-export type RawWaypoint = WaypointDef;
-
-export type RawUseLift = UseLift;
-
-export type RawMoving = Moving;
-
-export type RawActivityType = GpxActivityType;
-
-export type RawActivity = GpxActivity;
-
-export type RawTrack = AnalyzedRoute;
+export {
+  WaypointDef as RawWaypoint,
+  UseLift as RawUseLift,
+  Moving as RawMoving,
+  AnalyzedRoute as RawTrack,
+  DerivedData,
+} from "./generated/generated";
 
 export type Waypoint = {
   point: Point;
@@ -76,7 +69,7 @@ export type Track = {
 export class TrackConverter {
   constructor(private readonly skiArea: SkiArea) {}
 
-  public convertTrack(route: RawTrack): Track {
+  public convertTrack(route: AnalyzedRoute): Track {
     return {
       item: route.route.item.map((activity) => {
         const typeInfo = activity.type;
@@ -136,7 +129,7 @@ export class TrackConverter {
     return this.skiArea.pistes.get(pisteId);
   }
 
-  private convertUseLift(input?: RawUseLift): ProcessedUseLift | undefined {
+  private convertUseLift(input?: UseLift): ProcessedUseLift | undefined {
     if (!input) {
       return;
     }
@@ -154,7 +147,7 @@ export class TrackConverter {
     };
   }
 
-  private convertMoving(input?: RawMoving): ProcessedMoving | undefined {
+  private convertMoving(input?: Moving): ProcessedMoving | undefined {
     if (!input) {
       return;
     }
@@ -170,7 +163,7 @@ export class TrackConverter {
     };
   }
 
-  private convertRoute(route: RawWaypoint[][]): Segments {
+  private convertRoute(route: WaypointDef[][]): Segments {
     return route.map((s) =>
       s.map((wp) => {
         return {
@@ -185,10 +178,4 @@ export class TrackConverter {
       }),
     );
   }
-
-  private convertActivityType(type: RawActivityType): ActivityType {
-    return (Object.keys(type)[0] ?? "Unknown") as ActivityType;
-  }
 }
-
-export type DerivedData = GpxDerivedData;
